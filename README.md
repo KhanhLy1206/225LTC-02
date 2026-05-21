@@ -91,37 +91,122 @@ graph TD
 
 ## 📁 Cấu Trúc Mã Nguồn Dự Án
 
-Mã nguồn được tổ chức theo cấu trúc phân lớp chuẩn của một dự án ASP.NET Core MVC doanh nghiệp:
+Mã nguồn được tổ chức theo cấu trúc phân lớp chuẩn của một dự án ASP.NET Core MVC, chia tách không gian phát triển theo từng **Actor (Vai trò)** để tránh tối đa việc ghi đè code lẫn nhau:
 
 ```text
 CUOIKICSHARP/
 │
-├── src/
-│   ├── SmartParking.Web/             # Lớp giao diện (Presentation Layer)
-│   │   ├── Areas/                   # Phân hệ quản lý
-│   │   │   ├── Admin/               # Quản lý xét duyệt đơn bãi xe, thống kê chiết khấu
-│   │   │   └── Owner/               # Quản lý cấu hình khóa barie, chat trực tiếp
-│   │   ├── Controllers/             # Xử lý các request (Account, Booking, Chat, Barrier...)
-│   │   ├── Models/                  # ViewModels, InputModels hiển thị và nhận dữ liệu
-│   │   ├── Views/                   # Razor Views (.cshtml) chứa mã HTML/CSS/JS
-│   │   ├── Hubs/                    # SignalR Hubs (ChatHub.cs xử lý tin nhắn thời gian thực)
-│   │   ├── wwwroot/                 # Thư mục chứa CSS, JS, hình ảnh bãi xe tải lên
-│   │   ├── Program.cs               # File cấu hình Services, DI Container và Route chính
-│   │   └── appsettings.json         # Cấu hình SQL Server Connection String và API VNPAY
-│   │
-│   ├── SmartParking.Data/            # Lớp truy cập cơ sở dữ liệu (Data Access Layer)
-│   │   ├── Context/                 # SmartParkingDbContext kết nối SQL Server
-│   │   ├── Entities/                # Định nghĩa các bảng trong DB (User, ParkingLot, Booking, XaPhuong...)
-│   │   └── Migrations/              # Quản lý các phiên bản cập nhật database của EF Core
-│   │
-│   └── SmartParking.Service/         # Lớp xử lý nghiệp vụ logic (Business Logic Layer)
-│       ├── Interfaces/              # Khai báo các dịch vụ (IEmailService, IBarrierService, IPaymentService...)
-│       └── Implementations/         # Hiện thực hóa logic nghiệp vụ (gửi mail, thanh toán VNPAY, mở khóa barie)
+├── WebApplication1/                     # Thư mục giải pháp (Visual Studio Solution)
+│   ├── WebApplication1.sln             # File Solution quản lý dự án
+│   └── WebApplication1/                 # Dự án Web chính (Presentation & Logic Layer)
+│       ├── Areas/                       # CHIA THEO ACTOR (Phòng ngừa xung đột code)
+│       │   ├── Admin/                   # Phân hệ dành riêng cho lập trình viên ADMIN
+│       │   │   ├── Controllers/         # Các Controller của Admin (vd: ApproveParkingController)
+│       │   │   ├── Models/              # ViewModels dùng riêng cho Admin
+│       │   │   └── Views/               # Giao diện quản lý Admin
+│       │   │
+│       │   ├── Owner/                   # Phân hệ dành riêng cho lập trình viên CHỦ BÃI XE
+│       │   │   ├── Controllers/         # Các Controller của Owner (vd: ParkingLotManagerController)
+│       │   │   ├── Models/              # ViewModels dùng riêng cho Owner
+│       │   │   └── Views/               # Giao diện quản lý của Owner
+│       │   │
+│       │   └── Customer/                # Phân hệ dành riêng cho lập trình viên KHÁCH HÀNG
+│       │       ├── Controllers/         # Các Controller của Customer (vd: BookingController)
+│       │       ├── Models/              # ViewModels dùng riêng cho Customer
+│       │       └── Views/               # Giao diện đặt chỗ, lịch sử cho Customer
+│       │
+│       ├── Extensions/                  # Đăng ký Dependency Injection riêng biệt
+│       │   ├── AdminServiceRegistration.cs
+│       │   ├── OwnerServiceRegistration.cs
+│       │   └── CustomerServiceRegistration.cs
+│       │
+│       ├── Controllers/                 # Các Controller dùng chung (AccountController, HomeController...)
+│       ├── Models/                      # Model dùng chung, thực thể Database và cấu hình DB
+│       │   ├── Entities/                # Lớp ánh xạ bảng cơ sở dữ liệu (TinhThanh, TaiKhoan...)
+│       │   └── Configurations/          # Fluent API configs riêng cho từng bảng (Tránh sửa chung DbContext)
+│       ├── Views/                       # Layout dùng chung, trang chủ, trang lỗi
+│       │
+│       ├── wwwroot/                     # Tài nguyên tĩnh cô lập thư mục theo Actor
+│       │   ├── admin/                   # CSS, JS, hình ảnh của Admin
+│       │   ├── owner/                   # CSS, JS, hình ảnh của Chủ bãi
+│       │   ├── customer/                # CSS, JS, hình ảnh của Khách hàng
+│       │   └── common/                  # Thư viện dùng chung (Bootstrap, jQuery, v.v.)
+│       │
+│       ├── Program.cs                   # File khởi chạy ứng dụng (Không cần sửa nhiều)
+│       └── appsettings.json             # File cấu hình kết nối CSDL và các API
 │
-├── database/                        # Chứa file script tạo CSDL SQL Server [db_QuanLyBaiDoXe.sql]
-├── docs/                            # Tài liệu phân tích thiết kế hệ thống, sơ đồ cơ sở dữ liệu
-└── README.md                        # Tài liệu hướng dẫn này
+├── database/                            # Chứa file script tạo CSDL SQL Server [db_QuanLyBaiDoXe.sql]
+├── docs/                                # Tài liệu phân tích, sơ đồ thiết kế hệ thống
+└── README.md                            # Tài liệu hướng dẫn này
 ```
+
+---
+
+## 🤝 Quy Tắc Làm Việc Nhóm (Tránh Xung Đột Code)
+
+Để đảm bảo các thành viên trong nhóm có thể phát triển song song các phân hệ **Admin, Chủ bãi xe, và Khách hàng** mà không gặp lỗi xung đột khi merge Git, nhóm cần tuân thủ nghiêm ngặt các quy tắc sau:
+
+### 1. Cô lập không gian phát triển (Areas)
+- Lập trình viên phụ trách vai trò nào **chỉ được phép** thao tác trên các thư mục, file nằm trong phân hệ `Areas/[Tên_Vai_Trò]/` tương ứng.
+- **Bắt buộc:** Tất cả Controller khai báo trong thư mục `Areas/` phải được gắn thuộc tính `[Area("Tên_Vai_Trò")]` trên cùng class. Ví dụ:
+  ```csharp
+  namespace WebApplication1.Areas.Admin.Controllers
+  {
+      [Area("Admin")]
+      public class ApproveParkingController : Controller
+      {
+          public IActionResult Index() => View();
+      }
+  }
+  ```
+
+### 2. Không sửa chung tệp cấu hình khởi chạy (`Program.cs`)
+- Nghiêm cấm các thành viên tự ý chèn trực tiếp dòng lệnh đăng ký Dependency Injection (Services, Repositories) vào `Program.cs`.
+- Mọi dịch vụ cần đăng ký phải được viết trong các lớp mở rộng cô lập tương ứng tại thư mục `Extensions/`:
+  - Lập trình viên Admin viết trong `Extensions/AdminServiceRegistration.cs`
+  - Lập trình viên Owner viết trong `Extensions/OwnerServiceRegistration.cs`
+  - Lập trình viên Customer viết trong `Extensions/CustomerServiceRegistration.cs`
+- Khi cần đăng ký một Service mới (ví dụ: `IAdminService`), Admin chỉ cần vào đúng file `AdminServiceRegistration.cs` để thêm dịch vụ của mình.
+
+### 3. Cô lập cấu hình Database (EF Core Fluent API)
+- Tránh việc sửa chung tệp `DbContext.cs` để cấu hình ràng buộc cơ sở dữ liệu (`OnModelCreating`).
+- Mỗi thực thể bảng sẽ có một tệp cấu hình độc lập đặt tại `Models/Configurations/` thực thi `IEntityTypeConfiguration<T>`. Ví dụ, đối với bảng `HoaDon`:
+  ```csharp
+  public class HoaDonConfiguration : IEntityTypeConfiguration<HoaDon>
+  {
+      public void Configure(EntityTypeBuilder<HoaDon> builder)
+      {
+          builder.HasKey(h => h.ID);
+          builder.Property(h => h.TongTien).HasPrecision(18, 2);
+          // Ràng buộc check constraint ...
+      }
+  }
+  ```
+- Trong `DbContext.cs`, chỉ cần khai báo một dòng lệnh quét tự động để tránh xung đột:
+  ```csharp
+  protected override void OnModelCreating(ModelBuilder modelBuilder)
+  {
+      base.OnModelCreating(modelBuilder);
+      modelBuilder.ApplyConfigurationsFromAssembly(typeof(MyDbContext).Assembly);
+  }
+  ```
+
+### 4. Cô lập tài nguyên tĩnh (Static Assets in wwwroot)
+- Không viết code JS hoặc CSS tùy chỉnh vào tệp dùng chung `site.js` hoặc `site.css`.
+- Các tệp bổ trợ giao diện riêng biệt cho từng vai trò phải đặt tại các thư mục tương ứng:
+  - `wwwroot/admin/` cho phân hệ Admin.
+  - `wwwroot/owner/` cho phân hệ Chủ bãi.
+  - `wwwroot/customer/` cho phân hệ Khách hàng.
+
+### 5. Quy trình Git và Tạo Nhánh (Git Workflow)
+- **Đặt tên nhánh:** Tạo nhánh tính năng riêng cho từng người:
+  - Nhóm Admin: `feature/admin-[tên_tính_năng]`
+  - Nhóm Chủ bãi: `feature/owner-[tên_tính_năng]`
+  - Nhóm Khách hàng: `feature/customer-[tên_tính_năng]`
+- **Merge Code:** 
+  1. Trước khi làm việc: Luôn chuyển sang nhánh chính và lấy mã mới nhất (`git checkout main` và `git pull origin main`).
+  2. Merge nhánh của mình vào nhánh chính thông qua Pull Request (PR) trên GitHub. Yêu cầu có ít nhất 1 thành viên khác review và phê duyệt trước khi merge.
+  3. Tuyệt đối không commit các file rác sinh ra khi chạy cục bộ (được cấu hình tự động bỏ qua qua `.gitignore`).
 
 ---
 

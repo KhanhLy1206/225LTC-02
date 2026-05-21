@@ -1,7 +1,14 @@
+using WebApplication1.Extensions;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// Đăng ký dịch vụ cho từng Actor (tránh xung đột merge code trong Program.cs)
+builder.Services.AddAdminServices();
+builder.Services.AddOwnerServices();
+builder.Services.AddCustomerServices();
 
 var app = builder.Build();
 
@@ -19,6 +26,11 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseAuthorization();
+
+// Đăng ký Route cho Areas trước Route mặc định
+app.MapControllerRoute(
+    name: "areas",
+    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
 
 app.MapControllerRoute(
     name: "default",
