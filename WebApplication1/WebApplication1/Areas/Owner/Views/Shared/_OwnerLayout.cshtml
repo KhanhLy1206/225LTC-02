@@ -12,6 +12,9 @@
     <!-- Custom Owner Stylesheet -->
     <link rel="stylesheet" href="~/css/owner-style.css" asp-append-version="true" />
 </head>
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+}
 <body class="owner-body">
     <div class="owner-wrapper">
         <!-- Sidebar Navigation -->
@@ -23,43 +26,43 @@
             
             <ul class="owner-menu">
                 <li class="owner-menu-item">
-                    <a href="/Owner" class="owner-menu-link active">
+                    <a href="/Owner" class="owner-menu-link @(currentController == "Home" ? "active" : "")">
                         <i class="fa-solid fa-chart-pie"></i>
                         <span>Dashboard Overview</span>
                     </a>
                 </li>
                 <li class="owner-menu-item">
-                    <a href="#" class="owner-menu-link">
+                    <a href="/Owner/BaiXe" class="owner-menu-link @(currentController == "BaiXe" ? "active" : "")">
                         <i class="fa-solid fa-circle-info"></i>
                         <span>Quản lý bãi xe</span>
                     </a>
                 </li>
                 <li class="owner-menu-item">
-                    <a href="#" class="owner-menu-link">
+                    <a href="/Owner/SoDo" class="owner-menu-link @(currentController == "SoDo" ? "active" : "")">
                         <i class="fa-solid fa-map-location-dot"></i>
                         <span>Sơ đồ bãi đỗ</span>
                     </a>
                 </li>
                 <li class="owner-menu-item">
-                    <a href="#" class="owner-menu-link">
+                    <a href="/Owner/Gia" class="owner-menu-link @(currentController == "Gia" ? "active" : "")">
                         <i class="fa-solid fa-tags"></i>
                         <span>Quản lý giá</span>
                     </a>
                 </li>
                 <li class="owner-menu-item">
-                    <a href="#" class="owner-menu-link">
+                    <a href="/Owner/ThietBi" class="owner-menu-link @(currentController == "ThietBi" ? "active" : "")">
                         <i class="fa-solid fa-microchip"></i>
                         <span>Quản lý thiết bị</span>
                     </a>
                 </li>
                 <li class="owner-menu-item">
-                    <a href="#" class="owner-menu-link">
+                    <a href="/Owner/ThongKe" class="owner-menu-link @(currentController == "ThongKe" ? "active" : "")">
                         <i class="fa-solid fa-chart-line"></i>
                         <span>Thống kê doanh thu</span>
                     </a>
                 </li>
                 <li class="owner-menu-item">
-                    <a href="#" class="owner-menu-link">
+                    <a href="/Owner/Chat" class="owner-menu-link @(currentController == "Chat" ? "active" : "")">
                         <i class="fa-solid fa-comments"></i>
                         <span>Chat hỗ trợ</span>
                     </a>

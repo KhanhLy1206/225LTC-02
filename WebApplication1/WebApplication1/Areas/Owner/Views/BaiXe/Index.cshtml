@@ -1,0 +1,185 @@
+@{
+    ViewData["Title"] = "Quản lý bãi xe";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="owner-page-title">Quản lý bãi xe</h1>
+        <p class="owner-page-subtitle">Xem danh sách, kiểm tra trạng thái hoạt động và đăng ký bãi đỗ xe mới.</p>
+    </div>
+    <button class="btn btn-primary-custom d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#addBaiXeModal">
+        <i class="fa-solid fa-plus"></i> Đăng ký bãi xe mới
+    </button>
+</div>
+
+<!-- KPI Stats Row -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-4 col-md-6">
+        <div class="owner-kpi-card">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="owner-kpi-info">
+                    <h6>Tổng số bãi xe</h6>
+                </div>
+                <div class="owner-kpi-icon-box primary">
+                    <i class="fa-solid fa-square-parking"></i>
+                </div>
+            </div>
+            <div class="owner-kpi-value mb-2">3 bãi xe</div>
+            <div class="owner-kpi-footer text-muted small">
+                2 bãi đang hoạt động | 1 bãi chờ duyệt
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6">
+        <div class="owner-kpi-card">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="owner-kpi-info">
+                    <h6>Tổng sức chứa</h6>
+                </div>
+                <div class="owner-kpi-icon-box success">
+                    <i class="fa-solid fa-car-side"></i>
+                </div>
+            </div>
+            <div class="owner-kpi-value mb-2">180 chỗ đỗ</div>
+            <div class="owner-kpi-footer text-muted small">
+                100% chỗ đỗ dành cho xe ô tô
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-12">
+        <div class="owner-kpi-card">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="owner-kpi-info">
+                    <h6>Doanh thu tích lũy</h6>
+                </div>
+                <div class="owner-kpi-icon-box info">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+            </div>
+            <div class="owner-kpi-value mb-2">43,700,000đ</div>
+            <div class="owner-kpi-footer text-muted small">
+                Đã khấu trừ chiết khấu hệ thống
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Parking Lots Grid -->
+<div class="row g-4 mb-5">
+    <!-- Lot 1 -->
+    <div class="col-xl-4 col-md-6">
+        <div class="card h-100 owner-table-card border-0">
+            <div class="position-relative">
+                <img src="https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=600&q=80" 
+                     class="card-img-top" 
+                     alt="Smart Parking Quận 1" 
+                     style="height: 200px; object-fit: cover; border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                <span class="badge position-absolute top-0 end-0 m-3 bg-success-light text-success px-3 py-2" style="border-radius: 20px;">
+                    <i class="fa-solid fa-circle-check me-1"></i> Hoạt động
+                </span>
+            </div>
+            <div class="card-body p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <h5 class="card-title fw-bold text-dark mb-2">SPMS Cống Quỳnh - Quận 1</h5>
+                    <p class="small text-muted mb-3"><i class="fa-solid fa-location-dot me-1"></i> 189 Cống Quỳnh, P. Nguyễn Cư Trinh, Quận 1, TP. HCM</p>
+                    
+                    <hr class="my-3 opacity-50">
+                    
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <span class="d-block small text-muted">Sức chứa</span>
+                            <strong class="text-dark"><i class="fa-solid fa-circle-info me-1 text-primary"></i> 50 chỗ đỗ (Ô tô)</strong>
+                        </div>
+                        <div class="col-6">
+                            <span class="d-block small text-muted">Giờ mở cửa</span>
+                            <strong class="text-dark"><i class="fa-solid fa-clock me-1 text-primary"></i> 24/7</strong>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2 mt-3 pt-2 border-top border-light">
+                    <a href="/Owner/SoDo" class="btn btn-sm btn-outline-primary flex-grow-1 py-2 rounded-3">Sơ đồ bãi đỗ</a>
+                    <a href="/Owner/Gia" class="btn btn-sm btn-outline-secondary flex-grow-1 py-2 rounded-3">Cấu hình giá</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lot 2 -->
+    <div class="col-xl-4 col-md-6">
+        <div class="card h-100 owner-table-card border-0">
+            <div class="position-relative">
+                <img src="https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=600&q=80" 
+                     class="card-img-top" 
+                     alt="Smart Parking Quận 7" 
+                     style="height: 200px; object-fit: cover; border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                <span class="badge position-absolute top-0 end-0 m-3 bg-success-light text-success px-3 py-2" style="border-radius: 20px;">
+                    <i class="fa-solid fa-circle-check me-1"></i> Hoạt động
+                </span>
+            </div>
+            <div class="card-body p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <h5 class="card-title fw-bold text-dark mb-2">SPMS Sunrise City - Quận 7</h5>
+                    <p class="small text-muted mb-3"><i class="fa-solid fa-location-dot me-1"></i> 23 Nguyễn Hữu Thọ, P. Tân Hưng, Quận 7, TP. HCM</p>
+                    
+                    <hr class="my-3 opacity-50">
+                    
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <span class="d-block small text-muted">Sức chứa</span>
+                            <strong class="text-dark"><i class="fa-solid fa-circle-info me-1 text-primary"></i> 80 chỗ đỗ (Ô tô)</strong>
+                        </div>
+                        <div class="col-6">
+                            <span class="d-block small text-muted">Giờ mở cửa</span>
+                            <strong class="text-dark"><i class="fa-solid fa-clock me-1 text-primary"></i> 06:00 - 23:30</strong>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2 mt-3 pt-2 border-top border-light">
+                    <a href="/Owner/SoDo" class="btn btn-sm btn-outline-primary flex-grow-1 py-2 rounded-3">Sơ đồ bãi đỗ</a>
+                    <a href="/Owner/Gia" class="btn btn-sm btn-outline-secondary flex-grow-1 py-2 rounded-3">Cấu hình giá</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lot 3 -->
+    <div class="col-xl-4 col-md-6">
+        <div class="card h-100 owner-table-card border-0">
+            <div class="position-relative">
+                <img src="https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?auto=format&fit=crop&w=600&q=80" 
+                     class="card-img-top" 
+                     alt="Smart Parking Bình Thạnh" 
+                     style="height: 200px; object-fit: cover; border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                <span class="badge position-absolute top-0 end-0 m-3 bg-warning-light text-warning px-3 py-2" style="border-radius: 20px;">
+                    <i class="fa-solid fa-clock me-1"></i> Chờ duyệt
+                </span>
+            </div>
+            <div class="card-body p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <h5 class="card-title fw-bold text-dark mb-2">SPMS Landmark Plus - Bình Thạnh</h5>
+                    <p class="small text-muted mb-3"><i class="fa-solid fa-location-dot me-1"></i> 720A Điện Biên Phủ, Phường 22, Bình Thạnh, TP. HCM</p>
+                    
+                    <hr class="my-3 opacity-50">
+                    
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <span class="d-block small text-muted">Sức chứa</span>
+                            <strong class="text-dark"><i class="fa-solid fa-circle-info me-1 text-primary"></i> 50 chỗ đỗ (Ô tô)</strong>
+                        </div>
+                        <div class="col-6">
+                            <span class="d-block small text-muted">Giờ mở cửa</span>
+                            <strong class="text-dark"><i class="fa-solid fa-clock me-1 text-primary"></i> 24/7</strong>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2 mt-3 pt-2 border-top border-light">
+                    <button class="btn btn-sm btn-outline-secondary flex-grow-1 py-2 rounded-3 disabled" disabled>Chờ phê duyệt hồ sơ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
