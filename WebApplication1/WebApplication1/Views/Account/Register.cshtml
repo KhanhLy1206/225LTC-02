@@ -1,0 +1,282 @@
+@{
+    ViewData["Title"] = "Đăng Ký Khách Hàng - SmartParking";
+}
+
+<div class="auth-wrapper">
+    <div class="glass-card auth-card-wide animate-fade-in-up">
+        <!-- Logo and Title -->
+        <div class="text-center mb-4">
+            <div class="fs-1 text-secondary mb-2">
+                <i class="fa-solid fa-user-plus"></i>
+            </div>
+            <h3 class="auth-title text-gradient mb-1">ĐĂNG KÝ KHÁCH HÀNG</h3>
+            <p class="text-muted small">Tạo tài khoản để đặt chỗ và điều khiển barie đỗ xe thông minh</p>
+        </div>
+
+        <form method="post" action="/Account/Register" id="registerForm">
+            <div class="row g-3">
+                <!-- Column 1: Personal Info -->
+                <div class="col-md-6 border-end border-secondary border-opacity-10 pe-md-4">
+                    <h5 class="text-secondary mb-3 small text-uppercase fw-bold tracking-wider"><i class="fa-solid fa-address-card me-2"></i>Thông tin cá nhân</h5>
+                    
+                    <!-- Full Name -->
+                    <div class="mb-3">
+                        <label class="auth-label" for="fullNameInput">Họ và Tên</label>
+                        <div class="auth-input-group">
+                            <input type="text" class="form-control" id="fullNameInput" name="HoTen" placeholder="Nguyễn Văn A..." required />
+                            <i class="fa-solid fa-user input-icon"></i>
+                        </div>
+                    </div>
+
+                    <!-- Phone Number -->
+                    <div class="mb-3">
+                        <label class="auth-label" for="phoneInput">Số điện thoại</label>
+                        <div class="auth-input-group">
+                            <input type="tel" class="form-control" id="phoneInput" name="SoDienThoai" placeholder="0901234567..." required pattern="[0-9]{10}" title="Vui lòng nhập đúng 10 số điện thoại" />
+                            <i class="fa-solid fa-phone input-icon"></i>
+                        </div>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="mb-3">
+                        <label class="auth-label" for="emailInput">Địa chỉ Email</label>
+                        <div class="auth-input-group">
+                            <input type="email" class="form-control" id="emailInput" name="Email" placeholder="email@vi-du.com..." required />
+                            <i class="fa-solid fa-envelope input-icon"></i>
+                        </div>
+                    </div>
+
+                    <!-- CCCD / Identity Card -->
+                    <div class="mb-3">
+                        <label class="auth-label" for="cccdInput">Số CCCD / Hộ chiếu</label>
+                        <div class="auth-input-group">
+                            <input type="text" class="form-control" id="cccdInput" name="CCCD" placeholder="079xxxxxxxx..." required pattern="[0-9]{12}" title="Vui lòng nhập đúng 12 số CCCD" />
+                            <i class="fa-solid fa-id-card input-icon"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Column 2: Address and Security -->
+                <div class="col-md-6 ps-md-4">
+                    <h5 class="text-secondary mb-3 small text-uppercase fw-bold tracking-wider"><i class="fa-solid fa-location-dot me-2"></i>Địa chỉ & Bảo mật</h5>
+                    
+                    <!-- Administrative Address Lookup -->
+                    <div class="row g-2 mb-3">
+                        <!-- Tỉnh / Thành -->
+                        <div class="col-6">
+                            <label class="auth-label">Tỉnh / Thành</label>
+                            <div class="auth-input-group">
+                                <select class="form-select" id="regProvinceSelect" name="MaTinh" required>
+                                    <option value="" selected>Chọn...</option>
+                                    <option value="HCM">TP. Hồ Chí Minh</option>
+                                    <option value="HN">TP. Hà Nội</option>
+                                    <option value="DN">TP. Đà Nẵng</option>
+                                </select>
+                                <i class="fa-solid fa-city input-icon"></i>
+                            </div>
+                        </div>
+
+                        <!-- Quận / Huyện -->
+                        <div class="col-6">
+                            <label class="auth-label">Quận / Huyện</label>
+                            <div class="auth-input-group">
+                                <select class="form-select" id="regDistrictSelect" name="MaHuyen" required disabled>
+                                    <option value="" selected>Chọn...</option>
+                                </select>
+                                <i class="fa-solid fa-map input-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <!-- Xã / Phường -->
+                        <div class="col-6">
+                            <label class="auth-label">Xã / Phường</label>
+                            <div class="auth-input-group">
+                                <select class="form-select" id="regWardSelect" name="MaXa" required disabled>
+                                    <option value="" selected>Chọn...</option>
+                                </select>
+                                <i class="fa-solid fa-street-view input-icon"></i>
+                            </div>
+                        </div>
+
+                        <!-- Số nhà, đường cụ thể -->
+                        <div class="col-6">
+                            <label class="auth-label" for="streetInput">Địa chỉ cụ thể</label>
+                            <div class="auth-input-group">
+                                <input type="text" class="form-control" id="streetInput" name="DiaChiCuThe" placeholder="Số 12, Đường..." required />
+                                <i class="fa-solid fa-house input-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="mb-3">
+                        <label class="auth-label" for="regPasswordInput">Mật khẩu</label>
+                        <div class="auth-input-group">
+                            <input type="password" class="form-control" id="regPasswordInput" name="Password" placeholder="••••••••" required autocomplete="new-password" />
+                            <i class="fa-solid fa-lock input-icon"></i>
+                            <button type="button" class="btn-eye-toggle toggle-pass-btn" data-target="regPasswordInput" tabindex="-1">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Confirm Password -->
+                    <div class="mb-3">
+                        <label class="auth-label" for="regConfirmPasswordInput">Xác nhận mật khẩu</label>
+                        <div class="auth-input-group">
+                            <input type="password" class="form-control" id="regConfirmPasswordInput" name="ConfirmPassword" placeholder="••••••••" required autocomplete="new-password" />
+                            <i class="fa-solid fa-lock input-icon"></i>
+                            <button type="button" class="btn-eye-toggle toggle-pass-btn" data-target="regConfirmPasswordInput" tabindex="-1">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="text-danger small mt-1 d-none" id="passMismatchAlert">Mật khẩu xác nhận không khớp!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terms acceptance checkbox -->
+            <div class="form-check my-4 small">
+                <input class="form-check-input bg-dark border-secondary" type="checkbox" id="termsCheck" required />
+                <label class="form-check-label text-muted" for="termsCheck">
+                    Tôi đồng ý với các <a href="#" class="text-secondary text-decoration-none">Điều khoản sử dụng</a> và chính sách bảo mật của SmartParking.
+                </label>
+            </div>
+
+            <!-- Actions buttons -->
+            <div class="row g-2 align-items-center">
+                <div class="col-md-8">
+                    <button type="submit" class="btn btn-primary-custom w-100 py-3">
+                        TẠO TÀI KHOẢN KHÁCH HÀNG <i class="fa-solid fa-user-plus ms-1"></i>
+                    </button>
+                </div>
+                <div class="col-md-4 text-center text-md-end">
+                    <a asp-controller="Account" asp-action="Login" class="text-muted text-decoration-none small">
+                        Đã có tài khoản? <span class="text-secondary fw-semibold">Đăng nhập</span>
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // --- 1. Xử lý logic lọc địa giới hành chính liên kết ---
+            const districts = {
+                "HCM": [
+                    { id: "Q1", name: "Quận 1" },
+                    { id: "Q12", name: "Quận 12" },
+                    { id: "BT", name: "Bình Thạnh" }
+                ],
+                "HN": [
+                    { id: "CG", name: "Cầu Giấy" },
+                    { id: "HK", name: "Hoàn Kiếm" },
+                    { id: "HD", name: "Hà Đông" }
+                ],
+                "DN": [
+                    { id: "HC", name: "Hải Châu" },
+                    { id: "LC", name: "Liên Chiểu" },
+                    { id: "ST", name: "Sơn Trà" }
+                ]
+            };
+
+            const wards = {
+                "Q12": [
+                    { id: "QT", name: "Phường Đông Hưng Thuận" },
+                    { id: "TX", name: "Phường Thạnh Xuân" }
+                ],
+                "Q1": [
+                    { id: "BD", name: "Phường Bến Thành" },
+                    { id: "DK", name: "Phường Đa Kao" }
+                ],
+                "BT": [
+                    { id: "P25", name: "Phường 25" }
+                ]
+            };
+
+            $('#regProvinceSelect').change(function() {
+                const val = $(this).val();
+                const $dist = $('#regDistrictSelect');
+                const $ward = $('#regWardSelect');
+
+                $dist.empty().append('<option value="">Chọn...</option>');
+                $ward.empty().append('<option value="">Chọn...</option>').attr('disabled', true);
+
+                if (val && districts[val]) {
+                    districts[val].forEach(function(item) {
+                        $dist.append(`<option value="${item.id}">${item.name}</option>`);
+                    });
+                    $dist.removeAttr('disabled');
+                } else {
+                    $dist.attr('disabled', true);
+                }
+            });
+
+            $('#regDistrictSelect').change(function() {
+                const val = $(this).val();
+                const $ward = $('#regWardSelect');
+
+                $ward.empty().append('<option value="">Chọn...</option>');
+
+                if (val && wards[val]) {
+                    wards[val].forEach(function(item) {
+                        $ward.append(`<option value="${item.id}">${item.name}</option>`);
+                    });
+                    $ward.removeAttr('disabled');
+                } else {
+                    $ward.attr('disabled', true);
+                }
+            });
+
+
+            // --- 2. Ẩn / hiện mật khẩu ---
+            $('.toggle-pass-btn').click(function() {
+                const targetId = $(this).data('target');
+                const passInput = $('#' + targetId);
+                const type = passInput.attr('type') === 'password' ? 'text' : 'password';
+                passInput.attr('type', type);
+                
+                $(this).find('i').toggleClass('fa-eye fa-eye-slash');
+            });
+
+
+            // --- 3. Kiểm tra trùng khớp mật khẩu ---
+            function checkPasswordMatch() {
+                const pass = $('#regPasswordInput').val();
+                const confirmPass = $('#regConfirmPasswordInput').val();
+                const alertBox = $('#passMismatchAlert');
+
+                if (confirmPass && pass !== confirmPass) {
+                    alertBox.removeClass('d-none');
+                    return false;
+                } else {
+                    alertBox.addClass('d-none');
+                    return true;
+                }
+            }
+
+            $('#regPasswordInput, #regConfirmPasswordInput').on('keyup change', checkPasswordMatch);
+
+
+            // --- 4. Kiểm tra submit form mẫu ---
+            $('#registerForm').submit(function(e) {
+                if (!checkPasswordMatch()) {
+                    e.preventDefault();
+                    alert('Vui lòng kiểm tra lại mật khẩu xác nhận!');
+                    return;
+                }
+                
+                e.preventDefault();
+                const name = $('#fullNameInput').val();
+                const phone = $('#phoneInput').val();
+                const email = $('#emailInput').val();
+                
+                alert(`Đăng ký Khách hàng thành công (Bản Demo):\n- Họ tên: ${name}\n- Số điện thoại: ${phone}\n- Email: ${email}\n\nHệ thống sẽ gửi yêu cầu POST đến backend để lưu thông tin vào CSDL SQL Server.`);
+            });
+        });
+    </script>
+}

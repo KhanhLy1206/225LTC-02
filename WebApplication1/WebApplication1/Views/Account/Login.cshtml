@@ -1,0 +1,102 @@
+@{
+    ViewData["Title"] = "Đăng Nhập Hệ Thống - SmartParking";
+}
+
+<div class="auth-wrapper">
+    <div class="glass-card auth-card animate-fade-in-up">
+        <!-- Logo and Title -->
+        <div class="text-center mb-4">
+            <div class="fs-1 text-secondary mb-2">
+                <i class="fa-solid fa-square-parking"></i>
+            </div>
+            <h3 class="auth-title text-gradient mb-1">ĐĂNG NHẬP</h3>
+            <p class="text-muted small">Nhập tài khoản hoặc email để truy cập bãi đỗ xe</p>
+        </div>
+
+        <form method="post" action="/Account/Login" id="loginForm">
+            <!-- Username/Email Field -->
+            <div class="mb-3">
+                <label class="auth-label" for="usernameInput">Tên đăng nhập hoặc Email</label>
+                <div class="auth-input-group">
+                    <input type="text" class="form-control" id="usernameInput" name="UsernameOrEmail" placeholder="username hoặc email..." required autocomplete="username" />
+                    <i class="fa-solid fa-user input-icon"></i>
+                </div>
+            </div>
+
+            <!-- Password Field -->
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="auth-label mb-0" for="passwordInput">Mật khẩu</label>
+                </div>
+                <div class="auth-input-group">
+                    <input type="password" class="form-control" id="passwordInput" name="Password" placeholder="••••••••" required autocomplete="current-password" />
+                    <i class="fa-solid fa-lock input-icon"></i>
+                    <button type="button" class="btn-eye-toggle" id="togglePassword" tabindex="-1">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Remember me & Forgot password -->
+            <div class="d-flex justify-content-between align-items-center mb-4 small">
+                <div class="form-check">
+                    <input class="form-check-input bg-dark border-secondary" type="checkbox" id="rememberMe" name="RememberMe" />
+                    <label class="form-check-label text-muted" for="rememberMe">
+                        Ghi nhớ đăng nhập
+                    </label>
+                </div>
+                <a href="#" class="text-secondary text-decoration-none" id="forgotPasswordLink">Quên mật khẩu?</a>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-primary-custom w-100 py-3 mb-3">
+                ĐĂNG NHẬP <i class="fa-solid fa-right-to-bracket ms-1"></i>
+            </button>
+        </form>
+
+        <!-- Register Redirections -->
+        <hr class="border-secondary opacity-25 my-4">
+        
+        <div class="text-center small">
+            <span class="text-muted">Bạn chưa có tài khoản?</span>
+            <div class="d-flex justify-content-center gap-3 mt-2">
+                <a asp-controller="Account" asp-action="Register" class="text-secondary text-decoration-none fw-semibold">
+                    <i class="fa-solid fa-user-plus me-1"></i> Đăng ký Khách hàng
+                </a>
+                <span class="text-muted">|</span>
+                <a asp-controller="Account" asp-action="RegisterOwner" class="text-gradient fw-semibold">
+                    <i class="fa-solid fa-building-user me-1"></i> Hợp tác Chủ bãi
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Hiệu ứng Toggle ẩn/hiện mật khẩu
+            $('#togglePassword').click(function() {
+                const passInput = $('#passwordInput');
+                const type = passInput.attr('type') === 'password' ? 'text' : 'password';
+                passInput.attr('type', type);
+                
+                // Đổi icon con mắt
+                $(this).find('i').toggleClass('fa-eye fa-eye-slash');
+            });
+
+            // Demo click quên mật khẩu
+            $('#forgotPasswordLink').click(function(e) {
+                e.preventDefault();
+                alert('Tính năng khôi phục mật khẩu sẽ gửi email xác thực đến địa chỉ của bạn. (Liên kết API backend sẽ được cấu hình sau)');
+            });
+            
+            // Chặn submit form demo để chỉ xem giao diện
+            $('#loginForm').submit(function(e) {
+                e.preventDefault();
+                const user = $('#usernameInput').val();
+                alert(`Giao diện đăng nhập nhận thông tin:\n- Tài khoản: ${user}\n\nLệnh POST sẽ gửi tới Backend xử lý và chuyển hướng đến phân hệ tương ứng (Admin, Owner, hoặc Customer).`);
+            });
+        });
+    </script>
+}

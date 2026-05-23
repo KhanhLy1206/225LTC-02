@@ -1,0 +1,212 @@
+@{
+    ViewData["Title"] = "Đăng Ký Chủ Bãi Xe - SmartParking";
+}
+
+<div class="auth-wrapper">
+    <div class="glass-card auth-card-wide animate-fade-in-up">
+        <!-- Logo and Title -->
+        <div class="text-center mb-4">
+            <div class="fs-1 text-gradient mb-2">
+                <i class="fa-solid fa-building-user"></i>
+            </div>
+            <h3 class="auth-title text-gradient mb-1">HỢP TÁC CHỦ BÃI XE</h3>
+            <p class="text-muted small">Đăng ký thông tin bãi đỗ xe của bạn để tích hợp vào hệ thống SPMS</p>
+        </div>
+
+        <form method="post" action="/Account/RegisterOwner" id="registerOwnerForm" enctype="multipart/form-data">
+            <div class="row g-3">
+                <!-- Column 1: Owner and Lot Info -->
+                <div class="col-md-6 border-end border-secondary border-opacity-10 pe-md-4">
+                    <h5 class="text-secondary mb-3 small text-uppercase fw-bold tracking-wider"><i class="fa-solid fa-briefcase me-2"></i>Thông tin đối tác</h5>
+                    
+                    <!-- Parking Lot Name -->
+                    <div class="mb-3">
+                        <label class="auth-label" for="lotNameInput">Tên bãi đỗ xe</label>
+                        <div class="auth-input-group">
+                            <input type="text" class="form-control" id="lotNameInput" name="TenBaiXe" placeholder="Bãi Xe Thông Minh Quang Trung..." required />
+                            <i class="fa-solid fa-square-parking input-icon"></i>
+                        </div>
+                    </div>
+
+                    <!-- Contact Phone -->
+                    <div class="mb-3">
+                        <label class="auth-label" for="ownerPhoneInput">Số điện thoại liên hệ</label>
+                        <div class="auth-input-group">
+                            <input type="tel" class="form-control" id="ownerPhoneInput" name="SoDienThoai" placeholder="0912xxxxxx..." required pattern="[0-9]{10}" />
+                            <i class="fa-solid fa-phone input-icon"></i>
+                        </div>
+                    </div>
+
+                    <!-- Contact Email -->
+                    <div class="mb-3">
+                        <label class="auth-label" for="ownerEmailInput">Địa chỉ Email</label>
+                        <div class="auth-input-group">
+                            <input type="email" class="form-control" id="ownerEmailInput" name="Email" placeholder="owner@gmail.com..." required />
+                            <i class="fa-solid fa-envelope input-icon"></i>
+                        </div>
+                    </div>
+
+                    <!-- Business License Upload -->
+                    <div class="mb-3">
+                        <label class="auth-label" for="licenseUploadInput">Giấy phép kinh doanh (Hình ảnh/PDF)</label>
+                        <div class="auth-input-group">
+                            <input type="file" class="form-control" id="licenseUploadInput" name="GiayPhepKinhDoanh" required accept="image/*,application/pdf" />
+                            <i class="fa-solid fa-file-invoice input-icon"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Column 2: Lot Location -->
+                <div class="col-md-6 ps-md-4">
+                    <h5 class="text-secondary mb-3 small text-uppercase fw-bold tracking-wider"><i class="fa-solid fa-map-location-dot me-2"></i>Địa chỉ bãi đỗ xe</h5>
+                    
+                    <!-- Administrative Location Dropdowns -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="auth-label">Tỉnh / Thành</label>
+                            <div class="auth-input-group">
+                                <select class="form-select" id="ownerProvinceSelect" name="MaTinh" required>
+                                    <option value="" selected>Chọn...</option>
+                                    <option value="HCM">TP. Hồ Chí Minh</option>
+                                    <option value="HN">TP. Hà Nội</option>
+                                    <option value="DN">TP. Đà Nẵng</option>
+                                </select>
+                                <i class="fa-solid fa-city input-icon"></i>
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <label class="auth-label">Quận / Huyện</label>
+                            <div class="auth-input-group">
+                                <select class="form-select" id="ownerDistrictSelect" name="MaHuyen" required disabled>
+                                    <option value="" selected>Chọn...</option>
+                                </select>
+                                <i class="fa-solid fa-map input-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="auth-label">Xã / Phường</label>
+                            <div class="auth-input-group">
+                                <select class="form-select" id="ownerWardSelect" name="MaXa" required disabled>
+                                    <option value="" selected>Chọn...</option>
+                                </select>
+                                <i class="fa-solid fa-street-view input-icon"></i>
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <label class="auth-label" for="ownerStreetInput">Địa chỉ chi tiết</label>
+                            <div class="auth-input-group">
+                                <input type="text" class="form-control" id="ownerStreetInput" name="DiaChiChiTiet" placeholder="Số 100, Đường..." required />
+                                <i class="fa-solid fa-house input-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Description/Details -->
+                    <div class="mb-3">
+                        <label class="auth-label" for="descriptionInput">Mô tả bãi đỗ xe (Số chỗ đỗ, loại xe...)</label>
+                        <textarea class="form-control bg-dark border-secondary text-white" id="descriptionInput" name="MoTa" rows="3" placeholder="Bãi đỗ gồm 50 chỗ ô tô, có hệ thống che mưa..." style="border-radius:10px;"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="row g-2 align-items-center mt-4">
+                <div class="col-md-8">
+                    <button type="submit" class="btn btn-primary-custom w-100 py-3">
+                        GỬI ĐƠN ĐĂNG KÝ HỢP TÁC <i class="fa-solid fa-paper-plane ms-1"></i>
+                    </button>
+                </div>
+                <div class="col-md-4 text-center text-md-end">
+                    <a asp-controller="Account" asp-action="Login" class="text-muted text-decoration-none small">
+                        Đã có tài khoản? <span class="text-secondary fw-semibold">Đăng nhập</span>
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // --- 1. Địa giới hành chính liên kết ---
+            const districts = {
+                "HCM": [
+                    { id: "Q1", name: "Quận 1" },
+                    { id: "Q12", name: "Quận 12" },
+                    { id: "BT", name: "Bình Thạnh" }
+                ],
+                "HN": [
+                    { id: "CG", name: "Cầu Giấy" },
+                    { id: "HK", name: "Hoàn Kiếm" },
+                    { id: "HD", name: "Hà Đông" }
+                ],
+                "DN": [
+                    { id: "HC", name: "Hải Châu" },
+                    { id: "LC", name: "Liên Chiểu" },
+                    { id: "ST", name: "Sơn Trà" }
+                ]
+            };
+
+            const wards = {
+                "Q12": [
+                    { id: "QT", name: "Phường Đông Hưng Thuận" },
+                    { id: "TX", name: "Phường Thạnh Xuân" }
+                ],
+                "Q1": [
+                    { id: "BD", name: "Phường Bến Thành" },
+                    { id: "DK", name: "Phường Đa Kao" }
+                ],
+                "BT": [
+                    { id: "P25", name: "Phường 25" }
+                ]
+            };
+
+            $('#ownerProvinceSelect').change(function() {
+                const val = $(this).val();
+                const $dist = $('#ownerDistrictSelect');
+                const $ward = $('#ownerWardSelect');
+
+                $dist.empty().append('<option value="">Chọn...</option>');
+                $ward.empty().append('<option value="">Chọn...</option>').attr('disabled', true);
+
+                if (val && districts[val]) {
+                    districts[val].forEach(function(item) {
+                        $dist.append(`<option value="${item.id}">${item.name}</option>`);
+                    });
+                    $dist.removeAttr('disabled');
+                } else {
+                    $dist.attr('disabled', true);
+                }
+            });
+
+            $('#ownerDistrictSelect').change(function() {
+                const val = $(this).val();
+                const $ward = $('#ownerWardSelect');
+
+                $ward.empty().append('<option value="">Chọn...</option>');
+
+                if (val && wards[val]) {
+                    wards[val].forEach(function(item) {
+                        $ward.append(`<option value="${item.id}">${item.name}</option>`);
+                    });
+                    $ward.removeAttr('disabled');
+                } else {
+                    $ward.attr('disabled', true);
+                }
+            });
+
+            // --- 2. Submit form ---
+            $('#registerOwnerForm').submit(function(e) {
+                e.preventDefault();
+                const name = $('#lotNameInput').val();
+                alert(`Đăng ký đối tác bãi xe thành công (Bản Demo):\n- Tên bãi: ${name}\n\nĐơn đăng ký đã được lưu vào bảng [DangKyBaiXe] trong CSDL. Admin sẽ xem và xét duyệt bãi đỗ xe này trước khi gửi mật khẩu và kích hoạt tài khoản chủ bãi.`);
+            });
+        });
+    </script>
+}
