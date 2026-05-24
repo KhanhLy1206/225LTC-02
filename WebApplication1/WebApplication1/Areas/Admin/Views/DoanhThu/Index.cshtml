@@ -1,0 +1,424 @@
+@model WebApplication1.Areas.Admin.Models.DoanhThuViewModel
+@{
+    ViewData["Title"] = "Thống Kê Doanh Thu";
+
+    // Dữ liệu biểu đồ theo ngày
+    var days = Enumerable.Range(1, 31).ToList();
+    var dtNgay  = days.Select(d => Model.DoanhThuTheoNgay.ContainsKey(d)
+        ? (double)Model.DoanhThuTheoNgay[d] / 1000 : 0).ToList();
+    var luotNgay = days.Select(d => Model.LuotDoTheoNgay.ContainsKey(d)
+        ? Model.LuotDoTheoNgay[d] : 0).ToList();
+
+    var dtNgayJson  = "[" + string.Join(",", dtNgay.Select(v => v.ToString("F0", System.Globalization.CultureInfo.InvariantCulture))) + "]";
+    var luotNgayJson = "[" + string.Join(",", luotNgay) + "]";
+
+    // Biểu đồ 12 tháng
+    var dt12Thang = "[" + string.Join(",", Model.DoanhThuTheoThang.Select(v => v.ToString(System.Globalization.CultureInfo.InvariantCulture))) + "]";
+
+    // Phân tích loại xe
+    var loaiXeLabels = "[" + string.Join(",", Model.PhanTichLoaiXes.Select(x => $"'{x.TenLoaiXe}'")) + "]";
+    var loaiXeData   = "[" + string.Join(",", Model.PhanTichLoaiXes.Select(x => (double)x.DoanhThu / 1000)) + "]";
+
+    var tangTruong = Model.PhanTramTangTruong;
+    var tangTruongClass = tangTruong >= 0 ? "text-success" : "text-danger";
+    var tangTruongIcon  = tangTruong >= 0 ? "fa-arrow-trend-up" : "fa-arrow-trend-down";
+}
+
+@section Styles {
+<style>
+    .kpi-card { border:none; border-radius:16px; padding:22px; box-shadow:0 2px 12px rgba(0,0,0,.06); background:#fff; transition:transform .2s; }
+    .kpi-card:hover { transform:translateY(-3px); }
+    .kpi-icon { width:52px; height:52px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0; }
+    .kpi-val  { font-size:1.5rem; font-weight:800; line-height:1; }
+    .kpi-lbl  { font-size:.75rem; color:#6b7280; margin-top:3px; }
+    .kpi-sub  { font-size:.72rem; margin-top:5px; }
+    .chart-card { border:none; border-radius:14px; box-shadow:0 2px 8px rgba(0,0,0,.06); }
+    .chart-card .card-header { background:#fff; border-bottom:1px solid #f1f5f9; padding:16px 20px; font-weight:600; border-radius:14px 14px 0 0; }
+    .prog-bar { height:6px; border-radius:3px; background:#e5e7eb; overflow:hidden; }
+    .prog-fill { height:100%; border-radius:3px; }
+    .status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+    .table-hoadon thead th { background:#f8fafc; font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; border:none; padding:12px 16px; }
+    .table-hoadon tbody td { padding:12px 16px; vertical-align:middle; border-color:#f1f5f9; font-size:.86rem; }
+    .filter-select { border-radius:10px; border:1.5px solid #e5e7eb; padding:6px 12px; font-size:.88rem; }
+    .filter-select:focus { border-color:#4f46e5; outline:none; box-shadow:0 0 0 3px rgba(79,70,229,.1); }
+</style>
+}
+
+<!-- ── HEADER ── -->
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="fa-solid fa-chart-line me-2 text-success"></i>Thống Kê Doanh Thu</h4>
+        <p class="text-muted mb-0" style="font-size:.88rem">Theo dõi doanh thu, hoa hồng và hiệu suất toàn hệ thống.</p>
+    </div>
+    <form method="get" class="d-flex gap-2 align-items-center">
+        <select name="thang" class="filter-select">
+            @for (int m = 1; m <= 12; m++)
+            {
+                <option value="@m" selected="@(Model.Thang == m ? "selected" : null)">Tháng @m</option>
+            }
+        </select>
+        <select name="nam" class="filter-select">
+            @for (int y = DateTime.Now.Year; y >= DateTime.Now.Year - 3; y--)
+            {
+                <option value="@y" selected="@(Model.Nam == y ? "selected" : null)">@y</option>
+            }
+        </select>
+        <button class="btn btn-primary px-4" style="border-radius:10px">
+            <i class="fa-solid fa-filter me-1"></i>Xem
+        </button>
+    </form>
+</div>
+
+<!-- ── ROW 1: KPI CARDS ── -->
+<div class="row g-3 mb-4">
+    <div class="col-xl col-md-4 col-6">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:#dcfce7;color:#16a34a"><i class="fa-solid fa-sack-dollar"></i></div>
+            <div>
+                <div class="kpi-val">@((Model.TongDoanhThu/1_000_000).ToString("F1"))M</div>
+                <div class="kpi-lbl">Tổng Doanh Thu (VNĐ)</div>
+                <div class="kpi-sub @tangTruongClass">
+                    <i class="fa-solid @tangTruongIcon me-1"></i>@Math.Abs(tangTruong)% so tháng trước
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl col-md-4 col-6">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:#fef9c3;color:#ca8a04"><i class="fa-solid fa-percent"></i></div>
+            <div>
+                <div class="kpi-val">@((Model.TongHoaHong/1_000).ToString("N0"))K</div>
+                <div class="kpi-lbl">Hoa Hồng Admin</div>
+                <div class="kpi-sub text-muted">
+                    @(Model.TongDoanhThu > 0 ? (int)(Model.TongHoaHong / Model.TongDoanhThu * 100) : 0)% tổng doanh thu
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl col-md-4 col-6">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:#dbeafe;color:#2563eb"><i class="fa-solid fa-building"></i></div>
+            <div>
+                <div class="kpi-val">@((Model.TongChuBaiNhan/1_000_000).ToString("F1"))M</div>
+                <div class="kpi-lbl">Chủ Bãi Nhận</div>
+                <div class="kpi-sub text-muted">Sau khi trừ hoa hồng</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl col-md-4 col-6">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:#ede9fe;color:#7c3aed"><i class="fa-solid fa-receipt"></i></div>
+            <div>
+                <div class="kpi-val">@Model.TongGiaoDich</div>
+                <div class="kpi-lbl">Tổng Giao Dịch</div>
+                <div class="kpi-sub text-success">@Model.GiaoDichDaThanhToan đã thanh toán</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl col-md-4 col-6">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:#fee2e2;color:#dc2626"><i class="fa-solid fa-rotate-left"></i></div>
+            <div>
+                <div class="kpi-val">@Model.GiaoDichHoanTien</div>
+                <div class="kpi-lbl">Đã Hoàn Tiền</div>
+                <div class="kpi-sub text-warning">@Model.GiaoDichChuaThanhToan chưa thanh toán</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── ROW 2: BIỂU ĐỒ THEO NGÀY + TRẠNG THÁI ── -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-8">
+        <div class="chart-card card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fa-solid fa-chart-area me-2 text-primary"></i>Doanh Thu & Lượt Đỗ Theo Ngày — Tháng @Model.Thang/@Model.Nam</span>
+            </div>
+            <div class="card-body">
+                <canvas id="chartNgay" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="chart-card card h-100">
+            <div class="card-header"><i class="fa-solid fa-circle-half-stroke me-2 text-warning"></i>Trạng Thái Giao Dịch</div>
+            <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                <canvas id="chartTrangThai" width="180" height="180"></canvas>
+                <div class="mt-3 w-100">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span><span class="status-dot me-2" style="background:#16a34a"></span>Đã thanh toán</span>
+                        <span class="fw-bold text-success">@Model.GiaoDichDaThanhToan</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span><span class="status-dot me-2" style="background:#ca8a04"></span>Chưa thanh toán</span>
+                        <span class="fw-bold text-warning">@Model.GiaoDichChuaThanhToan</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span><span class="status-dot me-2" style="background:#2563eb"></span>Đã hoàn tiền</span>
+                        <span class="fw-bold text-primary">@Model.GiaoDichHoanTien</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── ROW 3: BIỂU ĐỒ 12 THÁNG + PHÂN TÍCH LOẠI XE ── -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-7">
+        <div class="chart-card card">
+            <div class="card-header"><i class="fa-solid fa-chart-bar me-2 text-indigo"></i>Doanh Thu 12 Tháng — Năm @Model.Nam</div>
+            <div class="card-body">
+                <canvas id="chart12Thang" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-5">
+        <div class="chart-card card h-100">
+            <div class="card-header"><i class="fa-solid fa-car me-2 text-primary"></i>Phân Tích Theo Loại Xe</div>
+            <div class="card-body">
+                @if (!Model.PhanTichLoaiXes.Any())
+                {
+                    <div class="text-center py-4 text-muted">Chưa có dữ liệu</div>
+                }
+                else
+                {
+                    <canvas id="chartLoaiXe" height="160" class="mb-3"></canvas>
+                    @foreach (var lx in Model.PhanTichLoaiXes)
+                    {
+                        var maxLX = Model.PhanTichLoaiXes.Max(x => x.DoanhThu);
+                        var pctLX = maxLX > 0 ? (int)(lx.DoanhThu / maxLX * 100) : 0;
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between mb-1" style="font-size:.82rem">
+                                <span class="fw-semibold">@lx.TenLoaiXe</span>
+                                <span class="text-success fw-semibold">@((lx.DoanhThu/1_000).ToString("N0"))K · @lx.SoLuot lượt</span>
+                            </div>
+                            <div class="prog-bar">
+                                <div class="prog-fill" style="width:@pctLX%;background:#4f46e5"></div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── ROW 4: TOP BÃI XE ── -->
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="chart-card card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fa-solid fa-trophy me-2 text-warning"></i>Top Bãi Xe Doanh Thu Cao — Tháng @Model.Thang/@Model.Nam</span>
+            </div>
+            <div class="card-body">
+                @if (!Model.TopBaiXe.Any())
+                {
+                    <div class="text-center py-4 text-muted">Chưa có dữ liệu doanh thu tháng này.</div>
+                }
+                else
+                {
+                    var medals = new[] { "🥇", "🥈", "🥉", "4️⃣", "5️⃣" };
+                    var colors = new[] { "#4f46e5", "#0891b2", "#16a34a", "#ca8a04", "#9ca3af" };
+                    <div class="row g-3">
+                        @for (int i = 0; i < Model.TopBaiXe.Count; i++)
+                        {
+                            var item = Model.TopBaiXe[i];
+                            <div class="col-xl col-md-6">
+                                <div class="p-3 rounded-3" style="background:#f8fafc;border:1.5px solid #e5e7eb">
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <span style="font-size:1.3rem">@medals[i]</span>
+                                        <div class="flex-fill">
+                                            <div class="fw-bold" style="font-size:.88rem">@item.TenBai</div>
+                                            <small class="text-muted">@item.TenChuBai</small>
+                                        </div>
+                                    </div>
+                                    <div class="prog-bar mb-2">
+                                        <div class="prog-fill" style="width:@item.PhanTram%;background:@colors[i]"></div>
+                                    </div>
+                                    <div class="d-flex justify-content-between" style="font-size:.8rem">
+                                        <span class="fw-bold" style="color:@colors[i]">@((item.DoanhThu/1_000).ToString("N0"))K₫</span>
+                                        <span class="text-muted">@item.SoLuot lượt · HH: @((item.HoaHong/1_000).ToString("N0"))K</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── ROW 5: BẢNG HÓA ĐƠN ── -->
+<div class="chart-card card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fa-solid fa-list me-2"></i>Chi Tiết Hóa Đơn — Tháng @Model.Thang/@Model.Nam</span>
+        <span class="badge bg-light text-muted border">@Model.HoaDons.Count hóa đơn</span>
+    </div>
+    <div class="card-body p-0">
+        @if (!Model.HoaDons.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="fa-solid fa-receipt fa-3x mb-3 opacity-20 d-block"></i>
+                <p>Chưa có hóa đơn nào trong tháng @Model.Thang/@Model.Nam.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hoadon mb-0">
+                    <thead>
+                        <tr>
+                            <th>#HĐ</th>
+                            <th>Khách Hàng</th>
+                            <th>Bãi Xe</th>
+                            <th>Tổng Tiền</th>
+                            <th>Hoa Hồng</th>
+                            <th>Chủ Bãi Nhận</th>
+                            <th>Ngày Tạo</th>
+                            <th>Trạng Thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var hd in Model.HoaDons)
+                        {
+                            var tenBai = hd.DatCho?.ChoDauXe?.KhuVuc?.BaiXe?.TenBai ?? "—";
+                            var tenKH  = hd.DatCho?.KhachHang?.HoTen ?? "—";
+                            <tr>
+                                <td class="text-muted fw-semibold">#@hd.ID</td>
+                                <td>
+                                    <div class="fw-semibold">@tenKH</div>
+                                    <small class="text-muted">@(hd.DatCho?.BienSoXe ?? "")</small>
+                                </td>
+                                <td><small>@tenBai</small></td>
+                                <td class="fw-bold">@hd.TongTien.ToString("N0")₫</td>
+                                <td class="text-warning fw-semibold">@hd.TienChietKhauAdmin.ToString("N0")₫</td>
+                                <td class="text-success fw-semibold">@hd.TienChuBaiNhan.ToString("N0")₫</td>
+                                <td><small>@hd.NgayTao.ToString("dd/MM/yyyy HH:mm")</small></td>
+                                <td>
+                                    @if (hd.TrangThai == "Đã thanh toán")
+                                    { <span class="badge bg-success">Đã thanh toán</span> }
+                                    else if (hd.TrangThai == "Đã hoàn tiền")
+                                    { <span class="badge bg-info text-dark">Đã hoàn tiền</span> }
+                                    else
+                                    { <span class="badge bg-warning text-dark">Chưa thanh toán</span> }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot style="background:#f8fafc">
+                        <tr>
+                            <td colspan="3" class="fw-bold text-end px-4 py-3">Tổng cộng:</td>
+                            <td class="fw-bold text-dark">@Model.TongDoanhThu.ToString("N0")₫</td>
+                            <td class="fw-bold text-warning">@Model.TongHoaHong.ToString("N0")₫</td>
+                            <td class="fw-bold text-success">@Model.TongChuBaiNhan.ToString("N0")₫</td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const PURPLE = 'rgba(79,70,229,0.75)';
+const GREEN  = '#16a34a';
+const YELLOW = '#ca8a04';
+const BLUE   = '#2563eb';
+
+// ── Biểu đồ theo ngày ──
+new Chart(document.getElementById('chartNgay'), {
+    data: {
+        labels: @Html.Raw("[" + string.Join(",", Enumerable.Range(1,31)) + "]"),
+        datasets: [
+            {
+                type: 'bar',
+                label: 'Doanh thu (nghìn đ)',
+                data: @Html.Raw(dtNgayJson),
+                backgroundColor: PURPLE,
+                borderRadius: 5,
+                yAxisID: 'y'
+            },
+            {
+                type: 'line',
+                label: 'Lượt đỗ',
+                data: @Html.Raw(luotNgayJson),
+                borderColor: GREEN,
+                backgroundColor: 'rgba(22,163,74,.08)',
+                tension: .4, fill: true, pointRadius: 3,
+                yAxisID: 'y1'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { position: 'top' } },
+        scales: {
+            y:  { beginAtZero: true, position: 'left',  title: { display: true, text: 'Nghìn đồng' } },
+            y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Lượt' } }
+        }
+    }
+});
+
+// ── Biểu đồ trạng thái (donut) ──
+new Chart(document.getElementById('chartTrangThai'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Đã thanh toán', 'Chưa thanh toán', 'Đã hoàn tiền'],
+        datasets: [{
+            data: [@Model.GiaoDichDaThanhToan, @Model.GiaoDichChuaThanhToan, @Model.GiaoDichHoanTien],
+            backgroundColor: ['#16a34a', '#ca8a04', '#2563eb'],
+            borderWidth: 2, borderColor: '#fff'
+        }]
+    },
+    options: {
+        cutout: '65%',
+        plugins: { legend: { display: false } }
+    }
+});
+
+// ── Biểu đồ 12 tháng ──
+new Chart(document.getElementById('chart12Thang'), {
+    type: 'bar',
+    data: {
+        labels: ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'],
+        datasets: [{
+            label: 'Doanh thu (nghìn đ)',
+            data: @Html.Raw(dt12Thang),
+            backgroundColor: Array.from({length:12}, (_,i) =>
+                i+1 === @Model.Thang ? PURPLE : 'rgba(79,70,229,0.3)'),
+            borderRadius: 6
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, title: { display: true, text: 'Nghìn đồng' } } }
+    }
+});
+
+// ── Biểu đồ loại xe (pie) ──
+const ctxLoai = document.getElementById('chartLoaiXe');
+if (ctxLoai && @Html.Raw(Model.PhanTichLoaiXes.Any() ? "true" : "false")) {
+    new Chart(ctxLoai, {
+        type: 'pie',
+        data: {
+            labels: @Html.Raw(loaiXeLabels),
+            datasets: [{
+                data: @Html.Raw(loaiXeData),
+                backgroundColor: ['#4f46e5','#0891b2','#16a34a','#ca8a04','#9ca3af'],
+                borderWidth: 2, borderColor: '#fff'
+            }]
+        },
+        options: {
+            plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } }
+        }
+    });
+}
+</script>
+}
