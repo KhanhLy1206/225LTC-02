@@ -182,4 +182,106 @@
         </div>
     </div>
 </div>
+<!-- Modal Đăng Ký Bãi Xe -->
+<div class="modal fade" id="addBaiXeModal" tabindex="-1" aria-labelledby="addBaiXeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header px-4 py-3 border-bottom border-light">
+                <h5 class="modal-title fw-bold text-dark" id="addBaiXeModalLabel"><i class="fa-solid fa-file-signature text-primary me-2"></i> Đăng ký bãi xe mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addBaiXeForm" method="post" enctype="multipart/form-data">
+                <div class="modal-body p-4">
+                    <p class="small text-muted mb-4">Các thông tin sau sẽ được hệ thống chuyển tiếp đến bộ phận Quản trị viên (Admin) phê duyệt. Tài khoản bãi đỗ xe và các khu vực sẽ được khởi tạo khi được phê duyệt.</p>
+                    
+                    <div class="row g-3">
+                        <!-- Tên bãi xe -->
+                        <div class="col-md-12">
+                            <label class="form-label small fw-bold text-dark">Tên bãi xe <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control rounded-3" placeholder="Ví dụ: Bãi đỗ xe thông minh SPMS - Quận 1" required>
+                        </div>
+                        
+                        <!-- Số điện thoại & Giờ hoạt động -->
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">Số điện thoại liên hệ <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control rounded-3" placeholder="Ví dụ: 0987654321" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">Giờ hoạt động <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control rounded-3" placeholder="Ví dụ: 24/7 hoặc 06:00 - 23:30" required>
+                        </div>
+                        
+                        <!-- Địa chỉ hành chính -->
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-dark">Tỉnh / Thành phố <span class="text-danger">*</span></label>
+                            <select class="form-select rounded-3" required>
+                                <option value="" selected disabled>Chọn Tỉnh / TP</option>
+                                <option value="HCM">Thành phố Hồ Chí Minh</option>
+                                <option value="HN">Thành phố Hà Nội</option>
+                                <option value="DN">Thành phố Đà Nẵng</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-dark">Quận / Huyện <span class="text-danger">*</span></label>
+                            <select class="form-select rounded-3" required>
+                                <option value="" selected disabled>Chọn Quận / Huyện</option>
+                                <option value="Q1">Quận 1</option>
+                                <option value="Q7">Quận 7</option>
+                                <option value="BT">Quận Bình Thạnh</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-dark">Phường / Xã <span class="text-danger">*</span></label>
+                            <select class="form-select rounded-3" required>
+                                <option value="" selected disabled>Chọn Phường / Xã</option>
+                                <option value="1">Phường Bến Nghé</option>
+                                <option value="2">Phường Tân Phong</option>
+                                <option value="3">Phường 22</option>
+                            </select>
+                        </div>
+
+                        <!-- Địa chỉ chi tiết -->
+                        <div class="col-md-9">
+                            <label class="form-label small fw-bold text-dark">Địa chỉ chi tiết (Số nhà, đường) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control rounded-3" placeholder="Ví dụ: 12 Lê Lợi" required>
+                        </div>
+                        
+                        <!-- Sức chứa -->
+                        <div class="col-md-3">
+                            <label class="form-label small fw-bold text-dark">Sức chứa (Ô tô) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control rounded-3" min="10" placeholder="50" required>
+                        </div>
+
+                        <!-- File Uploads -->
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">Giấy phép kinh doanh bãi xe <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control rounded-3" accept=".pdf,image/*" required>
+                            <span class="small text-muted" style="font-size: 0.75rem;">Định dạng PDF hoặc hình ảnh rõ nét.</span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">Hình ảnh bãi đỗ xe <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control rounded-3" accept="image/*" required>
+                            <span class="small text-muted" style="font-size: 0.75rem;">Hình ảnh chụp thực tế bãi đỗ.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer px-4 py-3 border-top border-light d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-outline-secondary rounded-3 px-4 py-2" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-primary-custom px-4 py-2">Gửi hồ sơ đăng ký</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('addBaiXeForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            alert('Hồ sơ đăng ký bãi xe đã được gửi thành công và đang chờ Admin xét duyệt!');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addBaiXeModal'));
+            modal.hide();
+        });
+    </script>
+}
 
