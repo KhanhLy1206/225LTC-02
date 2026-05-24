@@ -1,0 +1,773 @@
+@{
+    ViewData["Title"] = "Sơ đồ bãi đỗ";
+}
+
+<!-- Custom Styles for Interactive Spot Grid -->
+<style>
+    .spot-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 16px;
+    }
+
+    .spot-card {
+        background-color: var(--owner-card-bg);
+        border: 1px solid var(--owner-border);
+        border-radius: 12px;
+        padding: 16px;
+        position: relative;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 150px;
+        box-shadow: var(--owner-shadow-sm);
+    }
+
+    .spot-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--owner-shadow);
+        border-color: var(--owner-primary);
+    }
+
+    /* Spot States Styling */
+    .spot-card.state-trong {
+        border-left: 5px solid var(--owner-success);
+    }
+    .spot-card.state-trong .spot-icon {
+        color: var(--owner-success);
+    }
+    .spot-card.state-trong .spot-status-text {
+        color: var(--owner-success);
+        background-color: var(--owner-success-light);
+    }
+
+    .spot-card.state-dangdo {
+        border-left: 5px solid var(--owner-warning);
+    }
+    .spot-card.state-dangdo .spot-icon {
+        color: var(--owner-warning);
+    }
+    .spot-card.state-dangdo .spot-status-text {
+        color: var(--owner-warning);
+        background-color: var(--owner-warning-light);
+    }
+
+    .spot-card.state-dadat {
+        border-left: 5px solid var(--owner-primary);
+    }
+    .spot-card.state-dadat .spot-icon {
+        color: var(--owner-primary);
+    }
+    .spot-card.state-dadat .spot-status-text {
+        color: var(--owner-primary);
+        background-color: var(--owner-primary-light);
+    }
+
+    .spot-card.state-baotri {
+        border-left: 5px solid var(--owner-danger);
+        background-color: #fafafa;
+    }
+    .spot-card.state-baotri .spot-icon {
+        color: var(--owner-danger);
+    }
+    .spot-card.state-baotri .spot-status-text {
+        color: var(--owner-danger);
+        background-color: var(--owner-danger-light);
+    }
+
+    .spot-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .spot-name {
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: var(--owner-text-main);
+    }
+
+    .spot-lock-badge {
+        font-size: 0.85rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
+    .spot-body {
+        text-align: center;
+        margin-bottom: 12px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .spot-icon {
+        font-size: 2rem;
+        margin-bottom: 6px;
+        transition: transform 0.2s ease;
+    }
+
+    .spot-card:hover .spot-icon {
+        transform: scale(1.15);
+    }
+
+    .spot-plate {
+        font-family: 'Plus Jakarta Sans', monospace;
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: var(--owner-text-main);
+        background-color: #f1f5f9;
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px dashed #cbd5e1;
+    }
+
+    .spot-status-text {
+        font-size: 0.72rem;
+        font-weight: 800;
+        padding: 4px 8px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Interactive area filter buttons */
+    .filter-btn {
+        border-radius: 30px;
+        padding: 6px 18px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        transition: var(--owner-transition);
+        border: 1px solid var(--owner-border);
+        background-color: #ffffff;
+        color: var(--owner-text-muted);
+    }
+
+    .filter-btn:hover {
+        background-color: #f1f5f9;
+        color: var(--owner-text-main);
+    }
+
+    .filter-btn.active {
+        background-color: var(--owner-primary);
+        border-color: var(--owner-primary);
+        color: #ffffff;
+        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
+    }
+
+    /* Modal Styling */
+    .modal-detail-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: var(--owner-text-muted);
+        letter-spacing: 0.5px;
+        margin-bottom: 2px;
+    }
+
+    .modal-detail-val {
+        font-size: 0.95rem;
+        font-weight: 650;
+        color: var(--owner-text-main);
+        margin-bottom: 12px;
+    }
+
+    .barrier-ctrl-btn {
+        transition: all 0.2s ease;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="owner-page-title">Sơ đồ bãi đỗ xe</h1>
+        <p class="owner-page-subtitle">Giám sát vị trí đỗ, trạng thái khóa thông minh và xử lý khẩn cấp.</p>
+    </div>
+    <!-- Lot Selection -->
+    <div style="min-width: 250px;">
+        <select class="form-select rounded-3 border-light shadow-sm py-2" id="lotSelect">
+            <option value="1" selected>SPMS Cống Quỳnh - Quận 1</option>
+            <option value="2">SPMS Sunrise City - Quận 7</option>
+            <option value="3">SPMS Landmark Plus - Bình Thạnh (Chờ duyệt)</option>
+        </select>
+    </div>
+</div>
+
+<!-- KPI Stats Summary Row -->
+<div class="row g-4 mb-4">
+    <!-- Spot Count -->
+    <div class="col-xl-3 col-md-6">
+        <div class="owner-kpi-card py-3 px-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1 text-muted text-uppercase small font-weight-bold">Tổng chỗ đỗ</h6>
+                    <div class="owner-kpi-value text-dark" id="stat-total" style="font-size: 1.5rem;">50 chỗ</div>
+                </div>
+                <div class="owner-kpi-icon-box primary" style="width: 40px; height: 40px; font-size: 1.1rem;">
+                    <i class="fa-solid fa-square-parking"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Available -->
+    <div class="col-xl-3 col-md-6">
+        <div class="owner-kpi-card py-3 px-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1 text-muted text-uppercase small font-weight-bold">Chỗ trống</h6>
+                    <div class="owner-kpi-value text-success" id="stat-trong" style="font-size: 1.5rem;">18 chỗ</div>
+                </div>
+                <div class="owner-kpi-icon-box success" style="width: 40px; height: 40px; font-size: 1.1rem;">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Occupied & Reserved -->
+    <div class="col-xl-3 col-md-6">
+        <div class="owner-kpi-card py-3 px-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1 text-muted text-uppercase small font-weight-bold">Đang đỗ / Đã đặt</h6>
+                    <div class="owner-kpi-value text-warning" id="stat-doing" style="font-size: 1.5rem;">22 / 8 chỗ</div>
+                </div>
+                <div class="owner-kpi-icon-box warning" style="width: 40px; height: 40px; font-size: 1.1rem;">
+                    <i class="fa-solid fa-car-side"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Maintenance -->
+    <div class="col-xl-3 col-md-6">
+        <div class="owner-kpi-card py-3 px-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1 text-muted text-uppercase small font-weight-bold">Bảo trì / Lỗi khóa</h6>
+                    <div class="owner-kpi-value text-danger" id="stat-baotri" style="font-size: 1.5rem;">2 chỗ</div>
+                </div>
+                <div class="owner-kpi-icon-box danger" style="width: 40px; height: 40px; font-size: 1.1rem; background-color: var(--owner-danger-light); color: var(--owner-danger);">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters & Search Toolbar -->
+<div class="owner-table-card border-0 mb-4">
+    <div class="p-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <!-- Area Filter Tabs -->
+        <div class="d-flex flex-wrap gap-2" id="areaFilterContainer">
+            <button class="filter-btn active" data-filter="all">Tất cả</button>
+            <button class="filter-btn" data-filter="A">Khu A - Ô tô</button>
+            <button class="filter-btn" data-filter="B">Khu B - Ô tô</button>
+        </div>
+        
+        <!-- Search Input -->
+        <div class="owner-search m-0" style="max-width: 350px;">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" class="owner-search-input" id="spotSearchInput" placeholder="Tìm tên chỗ đỗ hoặc biển số xe..." />
+        </div>
+    </div>
+</div>
+
+<!-- Interactive Spot Grid Section -->
+<div class="owner-table-card border-0 p-4">
+    <div class="spot-grid" id="spotGridContainer">
+        <!-- Dynamic spots generated by JS -->
+    </div>
+</div>
+
+<!-- Spot Detail Modal -->
+<div class="modal fade" id="spotDetailModal" tabindex="-1" aria-labelledby="spotDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header px-4 py-3 border-bottom border-light">
+                <h5 class="modal-title fw-bold text-dark" id="spotDetailModalLabel">
+                    <i class="fa-solid fa-circle-info text-primary me-2"></i> Chi tiết chỗ đỗ: <span id="modalSpotName">A-01</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row">
+                    <!-- Spot Properties -->
+                    <div class="col-6">
+                        <div class="modal-detail-label">Khu vực</div>
+                        <div class="modal-detail-val" id="modalArea">Khu A - Ô tô</div>
+                        
+                        <div class="modal-detail-label">Kích thước</div>
+                        <div class="modal-detail-val" id="modalSize">5 x 2.5 m</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="modal-detail-label">Mã số khóa</div>
+                        <div class="modal-detail-val font-monospace text-primary" id="modalLockCode">LOCK-QT-A01</div>
+                        
+                        <div class="modal-detail-label">Trạng thái ô đỗ</div>
+                        <div class="modal-detail-val" id="modalSpotState">Trống</div>
+                    </div>
+
+                    <hr class="my-3 opacity-25">
+
+                    <!-- Customer / Rental Details -->
+                    <div class="col-12" id="modalRentalInfo">
+                        <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-circle-user text-muted me-2"></i> Thông tin đặt chỗ</h6>
+                        <div class="row bg-light rounded-3 p-3 mb-3 border">
+                            <div class="col-6 mb-2">
+                                <div class="modal-detail-label">Khách hàng</div>
+                                <div class="modal-detail-val mb-0" id="modalCustomerName">Nguyễn Văn A</div>
+                            </div>
+                            <div class="col-6 mb-2">
+                                <div class="modal-detail-label">Số điện thoại</div>
+                                <div class="modal-detail-val mb-0" id="modalCustomerPhone">0912345678</div>
+                            </div>
+                            <div class="col-6 mb-2">
+                                <div class="modal-detail-label">Biển số đăng ký</div>
+                                <div class="modal-detail-val mb-0" id="modalCustomerPlate">81A-123.45</div>
+                            </div>
+                            <div class="col-6 mb-2">
+                                <div class="modal-detail-label">Mã đặt chỗ</div>
+                                <div class="modal-detail-val mb-0 text-success" id="modalBookingCode">#DC1024</div>
+                            </div>
+                            <div class="col-12">
+                                <div class="modal-detail-label">Thời gian đặt</div>
+                                <div class="modal-detail-val mb-0 text-primary" id="modalRentalTime">14:00 - 18:00 (24/05/2026)</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Physical Lock State -->
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center bg-light rounded-3 p-3 border">
+                            <div>
+                                <span class="d-block small text-muted modal-detail-label">Trạng thái khóa vật lý</span>
+                                <strong class="text-dark fs-5" id="modalPhysicalLockStatus">
+                                    <i class="fa-solid fa-lock text-danger me-1"></i> Đang đóng
+                                </strong>
+                            </div>
+                            <div class="d-flex gap-2" id="modalLockControlActions">
+                                <button class="btn btn-sm btn-outline-primary py-2 px-3 barrier-ctrl-btn" id="btnToggleLock">Mở khóa</button>
+                                <button class="btn btn-sm btn-outline-danger py-2 px-3 barrier-ctrl-btn" id="btnReportError">Báo lỗi</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer px-4 py-3 border-top border-light d-flex justify-content-between">
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-warning" id="btnToggleMaintenance">Đưa vào bảo trì</button>
+                </div>
+                <button type="button" class="btn btn-sm btn-secondary rounded-3 px-3 py-2" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Mock Data reflecting database schema entities
+        const spotsData = {
+            1: [
+                // Area A (Ô tô)
+                { id: 1, area: 'A', name: 'A-01', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A01', lockState: 'Đóng', occupancyState: 'Đang đỗ', plate: '81A-123.45', bookingCode: '#DC1024', customerName: 'Nguyễn Văn A', customerPhone: '0912345678', rentalTime: '14:00 - 18:00 (Hôm nay)' },
+                { id: 2, area: 'A', name: 'A-02', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A02', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 3, area: 'A', name: 'A-03', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A03', lockState: 'Mở', occupancyState: 'Đã đặt', plate: '30F-999.99', bookingCode: '#DC1025', customerName: 'Trần Thị B', customerPhone: '0987654321', rentalTime: '16:00 - 20:00 (Hôm nay)' },
+                { id: 4, area: 'A', name: 'A-04', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A04', lockState: 'Đóng', occupancyState: 'Đang đỗ', plate: '29C-555.55', bookingCode: '#DC1026', customerName: 'Phạm Văn C', customerPhone: '0901234567', rentalTime: '10:00 - 22:00 (Hôm nay)' },
+                { id: 5, area: 'A', name: 'A-05', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A05', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 6, area: 'A', name: 'A-06', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A06', lockState: 'Lỗi', occupancyState: 'Bảo trì', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 7, area: 'A', name: 'A-07', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A07', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 8, area: 'A', name: 'A-08', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A08', lockState: 'Đóng', occupancyState: 'Đang đỗ', plate: '43A-777.77', bookingCode: '#DC1027', customerName: 'Lê Hoàng D', customerPhone: '0933888999', rentalTime: '13:00 - 15:00 (Hôm nay)' },
+                { id: 9, area: 'A', name: 'A-09', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A09', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 10, area: 'A', name: 'A-10', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A10', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 11, area: 'A', name: 'A-11', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A11', lockState: 'Đóng', occupancyState: 'Đang đỗ', plate: '51G-888.88', bookingCode: '#DC1028', customerName: 'Ngô Thu E', customerPhone: '0909666777', rentalTime: '08:00 - 12:00 (Ngày mai)' },
+                { id: 12, area: 'A', name: 'A-12', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A12', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 13, area: 'A', name: 'A-13', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A13', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 14, area: 'A', name: 'A-14', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A14', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 15, area: 'A', name: 'A-15', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A15', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 16, area: 'A', name: 'A-16', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A16', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 17, area: 'A', name: 'A-17', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A17', lockState: 'Mở', occupancyState: 'Đã đặt', plate: '30E-222.11', bookingCode: '#DC1029', customerName: 'Hoàng Văn F', customerPhone: '0977112233', rentalTime: '18:00 - 22:00 (Hôm nay)' },
+                { id: 18, area: 'A', name: 'A-18', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A18', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 19, area: 'A', name: 'A-19', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A19', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 20, area: 'A', name: 'A-20', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A20', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 21, area: 'A', name: 'A-21', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A21', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 22, area: 'A', name: 'A-22', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A22', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 23, area: 'A', name: 'A-23', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A23', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 24, area: 'A', name: 'A-24', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A24', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 25, area: 'A', name: 'A-25', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A25', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 26, area: 'A', name: 'A-26', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A26', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 27, area: 'A', name: 'A-27', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A27', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 28, area: 'A', name: 'A-28', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A28', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 29, area: 'A', name: 'A-29', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A29', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 30, area: 'A', name: 'A-30', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-A30', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+
+                // Area B (Ô tô)
+                { id: 31, area: 'B', name: 'B-01', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B01', lockState: 'Đóng', occupancyState: 'Đang đỗ', plate: '81A-678.90', bookingCode: '#DC1030', customerName: 'Trần Văn X', customerPhone: '0988222333', rentalTime: '07:00 - 19:00 (Hôm nay)' },
+                { id: 32, area: 'B', name: 'B-02', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B02', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 33, area: 'B', name: 'B-03', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B03', lockState: 'Mở', occupancyState: 'Đã đặt', plate: '29A-123.45', bookingCode: '#DC1031', customerName: 'Mai Thị Y', customerPhone: '0966444555', rentalTime: '15:00 - 18:00 (Hôm nay)' },
+                { id: 34, area: 'B', name: 'B-04', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B04', lockState: 'Đóng', occupancyState: 'Đang đỗ', plate: '43A-987.65', bookingCode: '#DC1032', customerName: 'Bùi Văn Z', customerPhone: '0977555666', rentalTime: '08:00 - 17:00 (Hôm nay)' },
+                { id: 35, area: 'B', name: 'B-05', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B05', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 36, area: 'B', name: 'B-06', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B06', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 37, area: 'B', name: 'B-07', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B07', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 38, area: 'B', name: 'B-08', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B08', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 39, area: 'B', name: 'B-09', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B09', lockState: 'Lỗi', occupancyState: 'Bảo trì', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 40, area: 'B', name: 'B-10', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B10', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 41, area: 'B', name: 'B-11', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B11', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 42, area: 'B', name: 'B-12', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B12', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 43, area: 'B', name: 'B-13', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B13', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 44, area: 'B', name: 'B-14', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B14', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 45, area: 'B', name: 'B-15', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B15', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 46, area: 'B', name: 'B-16', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B16', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 47, area: 'B', name: 'B-17', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B17', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 48, area: 'B', name: 'B-18', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B18', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 49, area: 'B', name: 'B-19', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B19', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 50, area: 'B', name: 'B-20', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-QT-B20', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+            ],
+            2: [
+                { id: 1, area: 'A', name: 'A-01', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-SR-A01', lockState: 'Đóng', occupancyState: 'Đang đỗ', plate: '51F-123.45', bookingCode: '#DC2001', customerName: 'Hoàng Văn M', customerPhone: '0912111222', rentalTime: '10:00 - 15:00 (Hôm nay)' },
+                { id: 2, area: 'A', name: 'A-02', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-SR-A02', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 3, area: 'A', name: 'A-03', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-SR-A03', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+                { id: 4, area: 'B', name: 'B-01', type: 'oto', size: '5x2.5m', lockCode: 'LOCK-SR-B01', lockState: 'Đóng', occupancyState: 'Trống', plate: '', bookingCode: '', customerName: '', customerPhone: '', rentalTime: '' },
+            ],
+            3: [] // Empty mock for lot awaiting approval
+        };
+
+        let currentActiveLot = 1;
+        let selectedSpotId = null;
+        let areaFilter = 'all';
+        let searchQuery = '';
+
+        // Initial setup on document ready
+        $(document).ready(function() {
+            renderSpots();
+            updateStats();
+
+            // Handle lot change
+            $('#lotSelect').change(function() {
+                currentActiveLot = parseInt($(this).val());
+                renderSpots();
+                updateStats();
+            });
+
+            // Handle area filter tab click
+            $('#areaFilterContainer').on('click', '.filter-btn', function() {
+                $('#areaFilterContainer .filter-btn').removeClass('active');
+                $(this).addClass('active');
+                areaFilter = $(this).data('filter');
+                renderSpots();
+            });
+
+            // Handle live search
+            $('#spotSearchInput').on('input', function() {
+                searchQuery = $(this).val().toLowerCase().trim();
+                renderSpots();
+            });
+
+            // Set up Modal action buttons listeners
+            $('#btnToggleLock').click(function() {
+                if (selectedSpotId !== null) {
+                    const spot = spotsData[currentActiveLot].find(s => s.id === selectedSpotId);
+                    if (spot) {
+                        const newLockState = (spot.lockState === 'Mở') ? 'Đóng' : 'Mở';
+                        
+                        // Simulation delay for API request call
+                        $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang truyền lệnh...');
+                        
+                        setTimeout(() => {
+                            spot.lockState = newLockState;
+                            
+                            // Log inside control history simulator
+                            console.log(`[IoT Command] ${spot.lockCode} changed physical state to: ${newLockState}`);
+                            
+                            // Re-enable and update modal UI
+                            $(this).prop('disabled', false).text(newLockState === 'Mở' ? 'Đóng khóa' : 'Mở khóa');
+                            
+                            updateSpotCardUI(spot);
+                            showPhysicalLockStatus(spot);
+                            updateStats();
+                            
+                            alert(`Gửi lệnh điều khiển khóa ${spot.lockCode} sang trạng thái [${newLockState}] THÀNH CÔNG!`);
+                        }, 800);
+                    }
+                }
+            });
+
+            $('#btnReportError').click(function() {
+                if (selectedSpotId !== null) {
+                    const spot = spotsData[currentActiveLot].find(s => s.id === selectedSpotId);
+                    if (spot) {
+                        const confirmReport = confirm(`Bạn có chắc muốn báo lỗi khóa cho chỗ đỗ ${spot.name}? Trạng thái khóa sẽ chuyển sang Lỗi.`);
+                        if (confirmReport) {
+                            spot.lockState = 'Lỗi';
+                            spot.occupancyState = 'Bảo trì';
+                            updateSpotCardUI(spot);
+                            showPhysicalLockStatus(spot);
+                            updateStats();
+                            $('#spotDetailModal').modal('hide');
+                            alert(`Đã báo lỗi chỗ đỗ ${spot.name}. Hệ thống sẽ ghi nhận và tạo lệnh bảo trì.`);
+                        }
+                    }
+                }
+            });
+
+            $('#btnToggleMaintenance').click(function() {
+                if (selectedSpotId !== null) {
+                    const spot = spotsData[currentActiveLot].find(s => s.id === selectedSpotId);
+                    if (spot) {
+                        if (spot.occupancyState === 'Bảo trì') {
+                            spot.occupancyState = 'Trống';
+                            spot.lockState = 'Đóng';
+                            alert(`Đã mở khóa chỗ đỗ ${spot.name} và đưa vào hoạt động bình thường.`);
+                        } else {
+                            const confirmMaint = confirm(`Chuyển chỗ đỗ ${spot.name} sang trạng thái bảo trì? Chỗ đỗ sẽ bị đóng băng và không thể đặt.`);
+                            if (confirmMaint) {
+                                spot.occupancyState = 'Bảo trì';
+                                spot.lockState = 'Lỗi';
+                                alert(`Đã chuyển chỗ đỗ ${spot.name} sang bảo trì.`);
+                            }
+                        }
+                        updateSpotCardUI(spot);
+                        updateStats();
+                        $('#spotDetailModal').modal('hide');
+                    }
+                }
+            });
+        });
+
+        // Calculate and update stats counter
+        function updateStats() {
+            const list = spotsData[currentActiveLot] || [];
+            
+            let total = list.length;
+            let trong = list.filter(s => s.occupancyState === 'Trống').length;
+            let dangdo = list.filter(s => s.occupancyState === 'Đang đỗ').length;
+            let dadat = list.filter(s => s.occupancyState === 'Đã đặt').length;
+            let baotri = list.filter(s => s.occupancyState === 'Bảo trì').length;
+
+            $('#stat-total').text(total + ' chỗ');
+            $('#stat-trong').text(trong + ' chỗ');
+            $('#stat-doing').text(`${dangdo} / ${dadat} chỗ`);
+            $('#stat-baotri').text(baotri + ' chỗ');
+        }
+
+        // Render Spot Cards Grid with current active filters
+        function renderSpots() {
+            const container = $('#spotGridContainer');
+            container.empty();
+
+            const list = spotsData[currentActiveLot] || [];
+
+            if (list.length === 0) {
+                container.html('<div class="col-12 text-center p-5 text-muted"><i class="fa-solid fa-hourglass-empty fs-2 mb-3"></i><p>Không có dữ liệu chỗ đỗ hoặc bãi xe chưa được phê duyệt.</p></div>');
+                return;
+            }
+
+            // Apply Filters
+            let filteredList = list;
+            
+            // Area tab filter
+            if (areaFilter !== 'all') {
+                filteredList = filteredList.filter(s => s.area === areaFilter);
+            }
+
+            // Search query filter
+            if (searchQuery !== '') {
+                filteredList = filteredList.filter(s => {
+                    return s.name.toLowerCase().includes(searchQuery) || 
+                           s.plate.toLowerCase().includes(searchQuery) ||
+                           s.customerName.toLowerCase().includes(searchQuery);
+                });
+            }
+
+            if (filteredList.length === 0) {
+                container.html('<div class="col-12 text-center p-5 text-muted"><i class="fa-solid fa-magnifying-glass fs-2 mb-3"></i><p>Không tìm thấy chỗ đỗ phù hợp.</p></div>');
+                return;
+            }
+
+            // Generate HTML elements
+            filteredList.forEach(spot => {
+                let stateClass = '';
+                let statusText = '';
+                let vehicleIcon = spot.type === 'oto' ? 'fa-car' : 'fa-motorcycle';
+                
+                switch (spot.occupancyState) {
+                    case 'Trống':
+                        stateClass = 'state-trong';
+                        statusText = 'Trống';
+                        break;
+                    case 'Đang đỗ':
+                        stateClass = 'state-dangdo';
+                        statusText = 'Đang đỗ';
+                        break;
+                    case 'Đã đặt':
+                        stateClass = 'state-dadat';
+                        statusText = 'Đã đặt';
+                        break;
+                    case 'Bảo trì':
+                        stateClass = 'state-baotri';
+                        statusText = 'Bảo trì';
+                        break;
+                }
+
+                // Show plate instead of state if occupied
+                let centerContent = '';
+                if (spot.occupancyState === 'Đang đỗ' && spot.plate) {
+                    centerContent = `<span class="spot-plate">${spot.plate}</span>`;
+                } else if (spot.occupancyState === 'Đã đặt' && spot.plate) {
+                    centerContent = `<span class="spot-plate bg-light border-primary-subtle text-primary">${spot.plate}</span>`;
+                } else {
+                    centerContent = `<span class="spot-status-text">${statusText}</span>`;
+                }
+
+                let lockIcon = '';
+                let lockBg = '';
+                if (spot.lockState === 'Mở') {
+                    lockIcon = 'fa-lock-open text-primary';
+                    lockBg = 'bg-primary-light';
+                } else if (spot.lockState === 'Đóng') {
+                    lockIcon = 'fa-lock text-muted';
+                    lockBg = 'bg-light';
+                } else {
+                    lockIcon = 'fa-circle-exclamation text-danger';
+                    lockBg = 'bg-danger-light';
+                }
+
+                const cardHtml = `
+                    <div class="spot-card ${stateClass}" id="spot-card-${spot.id}" onclick="openSpotDetail(${spot.id})">
+                        <div class="spot-header">
+                            <span class="spot-name">${spot.name}</span>
+                            <span class="spot-lock-badge ${lockBg}">
+                                <i class="fa-solid ${lockIcon}"></i>
+                            </span>
+                        </div>
+                        <div class="spot-body">
+                            <i class="fa-solid ${vehicleIcon} spot-icon"></i>
+                            ${centerContent}
+                        </div>
+                    </div>
+                `;
+                container.append(cardHtml);
+            });
+        }
+
+        // Single spot card DOM update to prevent redraw
+        function updateSpotCardUI(spot) {
+            const card = $(`#spot-card-${spot.id}`);
+            if (card.length === 0) return;
+
+            // Remove previous classes
+            card.removeClass('state-trong state-dangdo state-dadat state-baotri');
+
+            let stateClass = '';
+            let statusText = '';
+            switch (spot.occupancyState) {
+                case 'Trống':
+                    stateClass = 'state-trong';
+                    statusText = 'Trống';
+                    break;
+                case 'Đang đỗ':
+                    stateClass = 'state-dangdo';
+                    statusText = 'Đang đỗ';
+                    break;
+                case 'Đã đặt':
+                    stateClass = 'state-dadat';
+                    statusText = 'Đã đặt';
+                    break;
+                case 'Bảo trì':
+                    stateClass = 'state-baotri';
+                    statusText = 'Bảo trì';
+                    break;
+            }
+            card.addClass(stateClass);
+
+            // Update body
+            const body = card.find('.spot-body');
+            let vehicleIcon = spot.type === 'oto' ? 'fa-car' : 'fa-motorcycle';
+            
+            let centerContent = '';
+            if (spot.occupancyState === 'Đang đỗ' && spot.plate) {
+                centerContent = `<span class="spot-plate">${spot.plate}</span>`;
+            } else if (spot.occupancyState === 'Đã đặt' && spot.plate) {
+                centerContent = `<span class="spot-plate bg-light border-primary-subtle text-primary">${spot.plate}</span>`;
+            } else {
+                centerContent = `<span class="spot-status-text">${statusText}</span>`;
+            }
+            body.html(`<i class="fa-solid ${vehicleIcon} spot-icon"></i> ${centerContent}`);
+
+            // Update lock badge
+            const badge = card.find('.spot-lock-badge');
+            badge.removeClass('bg-primary-light bg-light bg-danger-light');
+            
+            let lockIcon = '';
+            let lockBg = '';
+            if (spot.lockState === 'Mở') {
+                lockIcon = 'fa-lock-open text-primary';
+                lockBg = 'bg-primary-light';
+            } else if (spot.lockState === 'Đóng') {
+                lockIcon = 'fa-lock text-muted';
+                lockBg = 'bg-light';
+            } else {
+                lockIcon = 'fa-circle-exclamation text-danger';
+                lockBg = 'bg-danger-light';
+            }
+            badge.addClass(lockBg).html(`<i class="fa-solid ${lockIcon}"></i>`);
+        }
+
+        // Open detailed info of clicked parking slot
+        function openSpotDetail(id) {
+            selectedSpotId = id;
+            const spot = spotsData[currentActiveLot].find(s => s.id === id);
+            if (!spot) return;
+
+            $('#modalSpotName').text(spot.name);
+            $('#modalArea').text(spot.area === 'A' ? 'Khu A - Ô tô' : 'Khu B - Ô tô');
+            $('#modalSize').text(spot.size);
+            $('#modalLockCode').text(spot.lockCode);
+            $('#modalSpotState').text(spot.occupancyState);
+
+            // Show or hide rental info based on state
+            if (spot.occupancyState === 'Đang đỗ' || spot.occupancyState === 'Đã đặt') {
+                $('#modalRentalInfo').show();
+                $('#modalCustomerName').text(spot.customerName);
+                $('#modalCustomerPhone').text(spot.customerPhone);
+                $('#modalCustomerPlate').text(spot.plate);
+                $('#modalBookingCode').text(spot.bookingCode);
+                $('#modalRentalTime').text(spot.rentalTime);
+            } else {
+                $('#modalRentalInfo').hide();
+            }
+
+            showPhysicalLockStatus(spot);
+
+            // Change maintenance button label based on current state
+            if (spot.occupancyState === 'Bảo trì') {
+                $('#btnToggleMaintenance').text('Khôi phục hoạt động').removeClass('btn-outline-warning').addClass('btn-success');
+            } else {
+                $('#btnToggleMaintenance').text('Đưa vào bảo trì').removeClass('btn-success').addClass('btn-outline-warning');
+            }
+
+            // Open Modal
+            const myModal = new bootstrap.Modal(document.getElementById('spotDetailModal'));
+            myModal.show();
+        }
+
+        // Show Physical Lock Status details inside modal
+        function showPhysicalLockStatus(spot) {
+            const statusEl = $('#modalPhysicalLockStatus');
+            const toggleBtn = $('#btnToggleLock');
+            
+            if (spot.lockState === 'Mở') {
+                statusEl.html('<i class="fa-solid fa-lock-open text-success me-1"></i> Đang mở (🔓)');
+                toggleBtn.text('Đóng khóa').removeClass('btn-outline-primary').addClass('btn-outline-danger');
+            } else if (spot.lockState === 'Đóng') {
+                statusEl.html('<i class="fa-solid fa-lock text-danger me-1"></i> Đang đóng (🔒)');
+                toggleBtn.text('Mở khóa').removeClass('btn-outline-danger').addClass('btn-outline-primary');
+            } else {
+                statusEl.html('<i class="fa-solid fa-circle-exclamation text-warning me-1"></i> Lỗi kết nối / Kẹt khóa (⚠️)');
+                toggleBtn.text('Thử mở khóa').removeClass('btn-outline-danger').addClass('btn-outline-primary');
+            }
+        }
+    </script>
+}
