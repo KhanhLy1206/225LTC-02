@@ -1,0 +1,174 @@
+@using WebApplication1.Models.Entities
+@{
+    ViewData["Title"] = "Quản Lý Khiếu Nại";
+    var khieuNais = ViewBag.KhieuNais as List<KhieuNai> ?? new();
+}
+
+<div class="page-header">
+    <h4><i class="fa-solid fa-triangle-exclamation me-2 text-danger"></i>Quản Lý Khiếu Nại</h4>
+    <p>Tiếp nhận và xử lý khiếu nại từ khách hàng.</p>
+</div>
+
+<!-- Stat mini -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card card-admin text-center py-3">
+            <div class="fw-bold fs-4 text-warning">@ViewBag.SoChoXuLy</div>
+            <small class="text-muted">Chờ xử lý</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-admin text-center py-3">
+            <div class="fw-bold fs-4 text-primary">@ViewBag.SoDangXuLy</div>
+            <small class="text-muted">Đang xử lý</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-admin text-center py-3">
+            <div class="fw-bold fs-4 text-success">@ViewBag.SoDaGiaiQuyet</div>
+            <small class="text-muted">Đã giải quyết</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-admin text-center py-3">
+            <div class="fw-bold fs-4 text-secondary">@ViewBag.SoTuChoi</div>
+            <small class="text-muted">Từ chối</small>
+        </div>
+    </div>
+</div>
+
+<!-- Bộ lọc -->
+<form method="get" class="mb-3 d-flex gap-2 flex-wrap">
+    <input type="text" name="search" value="@ViewBag.Search"
+           class="form-control" placeholder="Tìm tiêu đề, khách hàng..." style="max-width:260px">
+    <select name="trangThai" class="form-select" style="max-width:180px">
+        <option value="">Tất cả trạng thái</option>
+        <option value="Chờ xử lý"    selected="@(ViewBag.TrangThai == "Chờ xử lý"    ? "selected" : null)">Chờ xử lý</option>
+        <option value="Đang xử lý"   selected="@(ViewBag.TrangThai == "Đang xử lý"   ? "selected" : null)">Đang xử lý</option>
+        <option value="Đã giải quyết"selected="@(ViewBag.TrangThai == "Đã giải quyết"? "selected" : null)">Đã giải quyết</option>
+        <option value="Từ chối"      selected="@(ViewBag.TrangThai == "Từ chối"      ? "selected" : null)">Từ chối</option>
+    </select>
+    <button class="btn btn-primary"><i class="fa-solid fa-search me-1"></i>Lọc</button>
+    <a href="/Admin/KhieuNai" class="btn btn-outline-secondary">Xóa lọc</a>
+</form>
+
+<div class="card card-admin">
+    <div class="card-body p-0">
+        @if (!khieuNais.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="fa-solid fa-face-smile fa-3x mb-3 opacity-25"></i>
+                <p>Không có khiếu nại nào.</p>
+            </div>
+        }
+        else
+        {
+            <table class="table admin-table mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Khách Hàng</th>
+                        <th>Bãi Xe</th>
+                        <th>Tiêu Đề</th>
+                        <th>Ngày Gửi</th>
+                        <th>Trạng Thái</th>
+                        <th>Thao Tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var kn in khieuNais)
+                    {
+                        <tr>
+                            <td class="text-muted">@kn.ID</td>
+                            <td>
+                                <div class="fw-semibold">@kn.KhachHang.HoTen</div>
+                                <small class="text-muted">@kn.KhachHang.Email</small>
+                            </td>
+                            <td><small>@kn.BaiXe.TenBai</small></td>
+                            <td>@kn.TieuDe</td>
+                            <td>@kn.NgayGui.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                @switch (kn.TrangThai)
+                                {
+                                    case "Chờ xử lý":
+                                        <span class="badge bg-warning text-dark">Chờ xử lý</span>
+                                        break;
+                                    case "Đang xử lý":
+                                        <span class="badge bg-primary">Đang xử lý</span>
+                                        break;
+                                    case "Đã giải quyết":
+                                        <span class="badge bg-success">Đã giải quyết</span>
+                                        break;
+                                    default:
+                                        <span class="badge bg-secondary">Từ chối</span>
+                                        break;
+                                }
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-primary"
+                                        data-bs-toggle="modal" data-bs-target="#modalXuLy"
+                                        data-id="@kn.ID"
+                                        data-tieude="@kn.TieuDe"
+                                        data-noidung="@kn.NoiDung"
+                                        data-trangthai="@kn.TrangThai">
+                                    <i class="fa-solid fa-gavel me-1"></i>Xử Lý
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+<!-- Modal Xử Lý -->
+<div class="modal fade" id="modalXuLy" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form method="post" action="/Admin/KhieuNai/XuLy">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa-solid fa-gavel me-2 text-primary"></i>Xử Lý Khiếu Nại</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="xuLyId" />
+                    <div class="p-3 rounded mb-3" style="background:#f8fafc;border-left:4px solid #4f46e5">
+                        <div class="fw-bold mb-1" id="xuLyTieuDe"></div>
+                        <p class="mt-2 mb-0" style="font-size:.88rem" id="xuLyNoiDung"></p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Cập nhật trạng thái</label>
+                        <select name="trangThai" id="xuLyTrangThai" class="form-select">
+                            <option value="Đang xử lý">Đang xử lý</option>
+                            <option value="Đã giải quyết">Đã giải quyết</option>
+                            <option value="Từ chối">Từ chối</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label fw-semibold">Ghi chú xử lý</label>
+                        <textarea name="ghiChu" class="form-control" rows="3"
+                                  placeholder="Nhập nội dung phản hồi..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu Xử Lý</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.querySelectorAll('[data-bs-target="#modalXuLy"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('xuLyId').value       = btn.dataset.id;
+            document.getElementById('xuLyTieuDe').textContent  = btn.dataset.tieude;
+            document.getElementById('xuLyNoiDung').textContent = btn.dataset.noidung;
+            document.getElementById('xuLyTrangThai').value     = btn.dataset.trangthai;
+        });
+    });
+</script>
+}
