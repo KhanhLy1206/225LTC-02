@@ -182,18 +182,25 @@
     }
 </style>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
     <div>
         <h1 class="owner-page-title">Sơ đồ bãi đỗ xe</h1>
         <p class="owner-page-subtitle">Giám sát vị trí đỗ, trạng thái khóa thông minh và xử lý khẩn cấp.</p>
     </div>
-    <!-- Lot Selection -->
-    <div style="min-width: 250px;">
-        <select class="form-select rounded-3 border-light shadow-sm py-2" id="lotSelect">
-            <option value="1" selected>SPMS Cống Quỳnh - Quận 1</option>
-            <option value="2">SPMS Sunrise City - Quận 7</option>
-            <option value="3">SPMS Landmark Plus - Bình Thạnh (Chờ duyệt)</option>
-        </select>
+    <!-- Actions Group -->
+    <div class="d-flex gap-2 align-items-center">
+        <!-- Lot Selection -->
+        <div style="min-width: 250px;">
+            <select class="form-select rounded-3 border-light shadow-sm py-2" id="lotSelect">
+                <option value="1" selected>SPMS Cống Quỳnh - Quận 1</option>
+                <option value="2">SPMS Sunrise City - Quận 7</option>
+                <option value="3">SPMS Landmark Plus - Bình Thạnh (Chờ duyệt)</option>
+            </select>
+        </div>
+        <!-- Add Area Button -->
+        <button class="btn btn-primary rounded-3 py-2 px-3 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#addAreaModal">
+            <i class="fa-solid fa-plus me-1"></i> Thêm khu vực
+        </button>
     </div>
 </div>
 
@@ -262,9 +269,7 @@
     <div class="p-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
         <!-- Area Filter Tabs -->
         <div class="d-flex flex-wrap gap-2" id="areaFilterContainer">
-            <button class="filter-btn active" data-filter="all">Tất cả</button>
-            <button class="filter-btn" data-filter="A">Khu A - Ô tô</button>
-            <button class="filter-btn" data-filter="B">Khu B - Ô tô</button>
+            <!-- Dynamically populated by JS -->
         </div>
         
         <!-- Search Input -->
@@ -366,8 +371,93 @@
     </div>
 </div>
 
+<!-- Add Area Modal -->
+<div class="modal fade" id="addAreaModal" tabindex="-1" aria-labelledby="addAreaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <form id="addAreaForm">
+                <div class="modal-header px-4 py-3 border-bottom border-light">
+                    <h5 class="modal-title fw-bold text-dark" id="addAreaModalLabel">
+                        <i class="fa-solid fa-square-plus text-primary me-2"></i> Thêm khu vực đỗ xe mới
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Lot selection -->
+                    <div class="mb-3">
+                        <label for="addAreaLotSelect" class="form-label fw-semibold text-dark">Chọn bãi đỗ xe</label>
+                        <select class="form-select rounded-3" id="addAreaLotSelect" required>
+                            <option value="1">SPMS Cống Quỳnh - Quận 1</option>
+                            <option value="2">SPMS Sunrise City - Quận 7</option>
+                            <option value="3">SPMS Landmark Plus - Bình Thạnh (Chờ duyệt)</option>
+                        </select>
+                    </div>
+
+                    <!-- Area Code/Name -->
+                    <div class="mb-3">
+                        <label for="addAreaNameInput" class="form-label fw-semibold text-dark">Tên khu vực (Ký hiệu)</label>
+                        <input type="text" class="form-control rounded-3" id="addAreaNameInput" placeholder="Ví dụ: C, D, E..." required maxlength="5" pattern="^[a-zA-Z0-9]+$" title="Vui lòng chỉ nhập chữ và số">
+                        <div class="form-text">Nhập ký hiệu ngắn gọn của khu vực. Hệ thống sẽ tự động ghép tên ô (Ví dụ: C-01, C-02...)</div>
+                    </div>
+
+                    <!-- Vehicle Type -->
+                    <div class="mb-3">
+                        <label for="addAreaVehicleType" class="form-label fw-semibold text-dark">Loại xe áp dụng</label>
+                        <select class="form-select rounded-3" id="addAreaVehicleType" required>
+                            <option value="oto">Ô tô con</option>
+                            <option value="xebantai">Xe bán tải</option>
+                            <option value="xebuyt">Xe buýt</option>
+                            <option value="xetai">Xe tải</option>
+                        </select>
+                    </div>
+
+                    <!-- Spot Count -->
+                    <div class="mb-3">
+                        <label for="addAreaSpotCount" class="form-label fw-semibold text-dark">Số lượng chỗ đỗ xe</label>
+                        <input type="number" class="form-control rounded-3" id="addAreaSpotCount" min="1" max="100" placeholder="Nhập số chỗ cần thêm, tối đa 100" required>
+                    </div>
+                </div>
+                <div class="modal-footer px-4 py-3 border-top border-light">
+                    <button type="button" class="btn btn-secondary rounded-3 px-3 py-2" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary rounded-3 px-4 py-2 fw-bold">
+                        <i class="fa-solid fa-check me-1"></i> Xác nhận thêm
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
+        // Vehicle Type Configs
+        const vehicleTypeNames = {
+            'oto': 'Ô tô con',
+            'xebantai': 'Xe bán tải',
+            'xebuyt': 'Xe buýt',
+            'xetai': 'Xe tải',
+            'xemay': 'Xe máy',
+            'xedapdien': 'Xe đạp điện'
+        };
+
+        const vehicleTypeIcons = {
+            'oto': 'fa-car',
+            'xebantai': 'fa-truck-pickup',
+            'xebuyt': 'fa-bus',
+            'xetai': 'fa-truck',
+            'xemay': 'fa-motorcycle',
+            'xedapdien': 'fa-bicycle'
+        };
+
+        const vehicleSizes = {
+            'oto': '5x2.5m',
+            'xebantai': '5.5x2.6m',
+            'xebuyt': '12x3.0m',
+            'xetai': '8x2.8m',
+            'xemay': '2x1.0m',
+            'xedapdien': '1.8x0.8m'
+        };
+
         // Mock Data reflecting database schema entities
         const spotsData = {
             1: [
@@ -441,12 +531,17 @@
 
         // Initial setup on document ready
         $(document).ready(function() {
+            renderAreaFilters();
             renderSpots();
             updateStats();
 
             // Handle lot change
             $('#lotSelect').change(function() {
                 currentActiveLot = parseInt($(this).val());
+                areaFilter = 'all';
+                searchQuery = '';
+                $('#spotSearchInput').val('');
+                renderAreaFilters();
                 renderSpots();
                 updateStats();
             });
@@ -534,6 +629,101 @@
                     }
                 }
             });
+
+            // Handle Add Area Form Submit
+            $('#addAreaForm').submit(function(e) {
+                e.preventDefault();
+
+                const lotId = parseInt($('#addAreaLotSelect').val());
+                const areaName = $('#addAreaNameInput').val().trim().toUpperCase();
+                const vehicleType = $('#addAreaVehicleType').val();
+                const spotCount = parseInt($('#addAreaSpotCount').val());
+
+                if (!areaName) {
+                    alert('Vui lòng nhập tên khu vực!');
+                    return;
+                }
+
+                if (spotCount <= 0 || spotCount > 100) {
+                    alert('Số lượng chỗ đỗ xe không hợp lệ (từ 1 đến 100).');
+                    return;
+                }
+
+                // Retrieve spots list for selected lot
+                if (!spotsData[lotId]) {
+                    spotsData[lotId] = [];
+                }
+
+                const list = spotsData[lotId];
+
+                // Check if areaName already exists in this lot
+                const areaExists = list.some(s => s.area === areaName);
+                if (areaExists) {
+                    alert(`Khu vực "${areaName}" đã tồn tại trong bãi xe được chọn! Vui lòng chọn ký hiệu khác.`);
+                    return;
+                }
+
+                // Generate spots for the new area
+                let maxId = 0;
+                Object.keys(spotsData).forEach(lId => {
+                    spotsData[lId].forEach(spot => {
+                        if (spot.id > maxId) {
+                            maxId = spot.id;
+                        }
+                    });
+                });
+
+                const size = vehicleSizes[vehicleType] || '5x2.5m';
+                const lotPrefix = lotId === 1 ? 'QT' : (lotId === 2 ? 'SR' : 'LM');
+
+                for (let i = 1; i <= spotCount; i++) {
+                    maxId++;
+                    const spotNum = i < 10 ? `0${i}` : `${i}`;
+                    const spotName = `${areaName}-${spotNum}`;
+                    const lockCode = `LOCK-${lotPrefix}-${areaName}${spotNum}`;
+
+                    const newSpot = {
+                        id: maxId,
+                        area: areaName,
+                        name: spotName,
+                        type: vehicleType,
+                        size: size,
+                        lockCode: lockCode,
+                        lockState: 'Đóng',
+                        occupancyState: 'Trống',
+                        plate: '',
+                        bookingCode: '',
+                        customerName: '',
+                        customerPhone: '',
+                        rentalTime: ''
+                    };
+
+                    list.push(newSpot);
+                }
+
+                // Switch to the lot where the area was added
+                if (currentActiveLot !== lotId) {
+                    currentActiveLot = lotId;
+                    $('#lotSelect').val(lotId);
+                }
+
+                // Reset filter to 'all'
+                areaFilter = 'all';
+
+                // Reset form fields
+                $('#addAreaNameInput').val('');
+                $('#addAreaSpotCount').val('');
+
+                // Hide Modal
+                bootstrap.Modal.getInstance(document.getElementById('addAreaModal')).hide();
+
+                // Refresh UI
+                renderAreaFilters();
+                renderSpots();
+                updateStats();
+
+                alert(`Đã thêm thành công khu vực "${areaName}" với ${spotCount} chỗ đỗ xe cho loại xe [${vehicleTypeNames[vehicleType]}].`);
+            });
         });
 
         // Calculate and update stats counter
@@ -550,6 +740,35 @@
             $('#stat-trong').text(trong + ' chỗ');
             $('#stat-doing').text(`${dangdo} / ${dadat} chỗ`);
             $('#stat-baotri').text(baotri + ' chỗ');
+        }
+
+        // Generate area tab filters dynamically
+        function renderAreaFilters() {
+            const container = $('#areaFilterContainer');
+            container.empty();
+
+            // Default "All" tab
+            let allActive = areaFilter === 'all' ? 'active' : '';
+            container.append(`<button class="filter-btn ${allActive}" data-filter="all">Tất cả</button>`);
+
+            const list = spotsData[currentActiveLot] || [];
+            const uniqueAreas = {};
+
+            list.forEach(spot => {
+                if (!uniqueAreas[spot.area]) {
+                    uniqueAreas[spot.area] = spot.type;
+                }
+            });
+
+            // Sort areas alphabetically
+            const sortedAreaKeys = Object.keys(uniqueAreas).sort();
+
+            sortedAreaKeys.forEach(areaKey => {
+                const type = uniqueAreas[areaKey];
+                const typeName = vehicleTypeNames[type] || 'Ô tô con';
+                const activeClass = areaFilter === areaKey ? 'active' : '';
+                container.append(`<button class="filter-btn ${activeClass}" data-filter="${areaKey}">Khu ${areaKey} - ${typeName}</button>`);
+            });
         }
 
         // Render Spot Cards Grid with current active filters
@@ -590,7 +809,7 @@
             filteredList.forEach(spot => {
                 let stateClass = '';
                 let statusText = '';
-                let vehicleIcon = spot.type === 'oto' ? 'fa-car' : 'fa-motorcycle';
+                let vehicleIcon = vehicleTypeIcons[spot.type] || 'fa-car';
                 
                 switch (spot.occupancyState) {
                     case 'Trống':
@@ -684,7 +903,7 @@
 
             // Update body
             const body = card.find('.spot-body');
-            let vehicleIcon = spot.type === 'oto' ? 'fa-car' : 'fa-motorcycle';
+            let vehicleIcon = vehicleTypeIcons[spot.type] || 'fa-car';
             
             let centerContent = '';
             if (spot.occupancyState === 'Đang đỗ' && spot.plate) {
@@ -722,7 +941,8 @@
             if (!spot) return;
 
             $('#modalSpotName').text(spot.name);
-            $('#modalArea').text(spot.area === 'A' ? 'Khu A - Ô tô' : 'Khu B - Ô tô');
+            const typeName = vehicleTypeNames[spot.type] || 'Ô tô con';
+            $('#modalArea').text(`Khu ${spot.area} - ${typeName}`);
             $('#modalSize').text(spot.size);
             $('#modalLockCode').text(spot.lockCode);
             $('#modalSpotState').text(spot.occupancyState);
