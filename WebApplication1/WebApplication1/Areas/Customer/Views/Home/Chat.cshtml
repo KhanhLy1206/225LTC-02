@@ -1,0 +1,181 @@
+@{
+    Layout = "~/Areas/Customer/Views/Shared/_CustomerLayout.cshtml";
+    ViewData["Title"] = "Trò Chuyện Với Chủ Bãi";
+}
+
+<div class="glass-card p-0 overflow-hidden" style="height: calc(100vh - 200px); min-height: 500px;">
+    <div class="row g-0 h-100">
+        <!-- Chat Partners Sidebar -->
+        <div class="col-md-4 border-end border-secondary border-opacity-10 h-100 d-flex flex-column bg-dark bg-opacity-20">
+            <div class="p-3 border-bottom border-secondary border-opacity-10">
+                <div class="auth-input-group mb-0">
+                    <input type="text" class="form-control" placeholder="Tìm kiếm liên hệ..." style="padding: 10px 15px 10px 40px;" />
+                    <i class="fa-solid fa-magnifying-glass input-icon" style="left: 15px;"></i>
+                </div>
+            </div>
+
+            <!-- Contacts list -->
+            <div class="flex-grow-1 overflow-y-auto" style="max-height: calc(100vh - 280px);">
+                <!-- Contact 1 -->
+                <div class="d-flex align-items-center gap-3 p-3 border-bottom border-secondary border-opacity-5 active-chat-contact" style="background: rgba(99,102,241,0.1); border-left: 3px solid var(--secondary); cursor: pointer;">
+                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; font-weight:700;">
+                        QT
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="d-flex justify-content-between">
+                            <strong class="text-white text-truncate small">Bãi Xe Quang Trung (Anh Tuấn)</strong>
+                            <span class="text-muted" style="font-size: 0.7rem;">10:02</span>
+                        </div>
+                        <p class="text-muted small mb-0 text-truncate" id="lastMessageSnippet">Mình vừa mở barie cho bạn...</p>
+                    </div>
+                </div>
+
+                <!-- Contact 2 -->
+                <div class="d-flex align-items-center gap-3 p-3 border-bottom border-secondary border-opacity-5" style="cursor: pointer;">
+                    <div class="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center border border-secondary" style="width: 45px; height: 45px; font-weight:700;">
+                        AD
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="d-flex justify-content-between">
+                            <strong class="text-white text-truncate small">Hỗ Trợ Hệ Thống (Admin)</strong>
+                            <span class="text-muted" style="font-size: 0.7rem;">Hôm qua</span>
+                        </div>
+                        <p class="text-muted small mb-0 text-truncate">Đã xử lý khiếu nại hoàn tiền...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Chat Window -->
+        <div class="col-md-8 h-100 d-flex flex-column">
+            <!-- Active Header -->
+            <div class="p-3 border-bottom border-secondary border-opacity-10 d-flex justify-content-between align-items-center bg-dark bg-opacity-10">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; font-weight:700;">
+                        QT
+                    </div>
+                    <div>
+                        <strong class="text-white d-block" style="font-size: 0.95rem;">Bãi Xe Quang Trung (Anh Tuấn)</strong>
+                        <span class="text-success small" style="font-size: 0.8rem;"><i class="fa-solid fa-circle text-success me-1" style="font-size: 0.6rem;"></i>Đang trực tuyến</span>
+                    </div>
+                </div>
+                <div>
+                    <button class="btn btn-secondary-custom btn-sm"><i class="fa-solid fa-phone"></i></button>
+                    <button class="btn btn-secondary-custom btn-sm"><i class="fa-solid fa-circle-info"></i></button>
+                </div>
+            </div>
+
+            <!-- Messages Stream Area -->
+            <div class="flex-grow-1 overflow-y-auto p-3" id="chatMessageArea" style="max-height: calc(100vh - 350px);">
+                <!-- Message Left -->
+                <div class="d-flex align-items-end gap-2 mb-3">
+                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-weight:700; font-size: 0.75rem;">
+                        QT
+                    </div>
+                    <div class="bg-dark text-white rounded p-3" style="max-width: 70%; border-radius: 15px 15px 15px 0 !important; border: 1px solid var(--border-color);">
+                        <p class="mb-0 small">Xin chào! Tôi có thể giúp gì cho bạn về bãi đỗ xe Quang Trung?</p>
+                        <span class="text-muted d-block text-end mt-1" style="font-size: 0.65rem;">09:59</span>
+                    </div>
+                </div>
+
+                <!-- Message Right -->
+                <div class="d-flex align-items-end justify-content-end gap-2 mb-3">
+                    <div class="bg-primary text-white rounded p-3" style="max-width: 70%; border-radius: 15px 15px 0 15px !important; box-shadow: 0 4px 10px var(--primary-glow);">
+                        <p class="mb-0 small">Chào anh, tôi vừa đỗ xe vào chỗ A-03 mà hệ thống báo lỗi không mở được barie từ xa?</p>
+                        <span class="text-white-50 d-block text-end mt-1" style="font-size: 0.65rem;">10:01</span>
+                    </div>
+                </div>
+
+                <!-- Message Left -->
+                <div class="d-flex align-items-end gap-2 mb-3" id="lastMessageMarker">
+                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-weight:700; font-size: 0.75rem;">
+                        QT
+                    </div>
+                    <div class="bg-dark text-white rounded p-3" style="max-width: 70%; border-radius: 15px 15px 15px 0 !important; border: 1px solid var(--border-color);">
+                        <p class="mb-0 small">Mình vừa kiểm tra lại thiết bị BAR-9923 trên bảng điều khiển chủ bãi. Mình đã mở cưỡng bức từ xa rồi nhé, bạn xem barie đã hạ xuống chưa?</p>
+                        <span class="text-muted d-block text-end mt-1" style="font-size: 0.65rem;">10:02</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Typing Indicator (Hidden by default) -->
+            <div class="px-3 py-2 d-none" id="typingIndicator">
+                <span class="text-muted small"><i class="fa-solid fa-ellipsis fa-fade me-1"></i> Anh Tuấn đang nhập phản hồi...</span>
+            </div>
+
+            <!-- Input area -->
+            <div class="p-3 border-top border-secondary border-opacity-10 bg-dark bg-opacity-10">
+                <form id="chatSubmitForm" class="d-flex gap-2">
+                    <input type="text" class="form-control bg-dark text-white border-secondary" id="chatMessageInput" placeholder="Nhập tin nhắn..." required autocomplete="off" />
+                    <button type="submit" class="btn btn-primary-custom px-4">
+                        Gửi <i class="fa-solid fa-paper-plane ms-1"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Tự động cuộn xuống cuối đoạn chat
+            const $chatArea = $('#chatMessageArea');
+            $chatArea.scrollTop($chatArea[0].scrollHeight);
+
+            // Gửi tin nhắn
+            $('#chatSubmitForm').submit(function(e) {
+                e.preventDefault();
+                const msg = $('#chatMessageInput').val();
+                if (!msg) return;
+
+                const time = new Date().toTimeString().split(' ')[0].substring(0, 5);
+
+                const msgHTML = `
+                    <div class="d-flex align-items-end justify-content-end gap-2 mb-3">
+                        <div class="bg-primary text-white rounded p-3" style="max-width: 70%; border-radius: 15px 15px 0 15px !important; box-shadow: 0 4px 10px var(--primary-glow);">
+                            <p class="mb-0 small">${msg}</p>
+                            <span class="text-white-50 d-block text-end mt-1" style="font-size: 0.65rem;">${time}</span>
+                        </div>
+                    </div>
+                `;
+
+                $('#chatMessageArea').append(msgHTML);
+                $('#chatMessageInput').val('');
+                $chatArea.scrollTop($chatArea[0].scrollHeight);
+
+                // Cập nhật tin nhắn cuối cùng bên sidebar
+                $('#lastMessageSnippet').text(msg);
+
+                // Kích hoạt phản hồi tự động giả lập sau 1.5s
+                $('#typingIndicator').removeClass('d-none');
+                
+                setTimeout(function() {
+                    $('#typingIndicator').addClass('d-none');
+                    const replyTime = new Date().toTimeString().split(' ')[0].substring(0, 5);
+                    const replies = [
+                        "Dạ vâng bạn, bạn kiểm tra lại xem barie đã hoạt động chưa?",
+                        "Cảm ơn bạn đã phản hồi, mình sẽ cử bộ phận kỹ thuật kiểm tra lại khóa thông minh này ngay.",
+                        "Hệ thống khóa thông minh tự động hoàn toàn, nếu có vấn đề gì bạn cứ nhắn mình hỗ trợ nhé!"
+                    ];
+                    const randomReply = replies[Math.floor(Math.random() * replies.length)];
+
+                    const replyHTML = `
+                        <div class="d-flex align-items-end gap-2 mb-3">
+                            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-weight:700; font-size: 0.75rem;">
+                                QT
+                            </div>
+                            <div class="bg-dark text-white rounded p-3" style="max-width: 70%; border-radius: 15px 15px 15px 0 !important; border: 1px solid var(--border-color);">
+                                <p class="mb-0 small">${randomReply}</p>
+                                <span class="text-muted d-block text-end mt-1" style="font-size: 0.65rem;">${replyTime}</span>
+                            </div>
+                        </div>
+                    `;
+                    $('#chatMessageArea').append(replyHTML);
+                    $chatArea.scrollTop($chatArea[0].scrollHeight);
+                    $('#lastMessageSnippet').text(randomReply);
+                }, 1800);
+            });
+        });
+    </script>
+}
