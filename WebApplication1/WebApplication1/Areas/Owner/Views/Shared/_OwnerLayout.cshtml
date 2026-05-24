@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - SmartParking Owner Panel</title>
+    <!-- Google Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" />
+    <!-- Bootstrap & FontAwesome -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Custom Owner Stylesheet -->
+    <link rel="stylesheet" href="~/css/owner-style.css" asp-append-version="true" />
+</head>
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+}
+<body class="owner-body">
+    <div class="owner-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="owner-sidebar" id="ownerSidebar">
+            <a href="/Owner" class="owner-brand">
+                <i class="fa-solid fa-square-parking"></i>
+                <span>SmartParking</span>
+            </a>
+            
+            <ul class="owner-menu">
+                <li class="owner-menu-item">
+                    <a href="/Owner/BaiXe" class="owner-menu-link @(currentController == "BaiXe" ? "active" : "")">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>Quản lý bãi xe</span>
+                    </a>
+                </li>
+                <li class="owner-menu-item">
+                    <a href="/Owner/SoDo" class="owner-menu-link @(currentController == "SoDo" ? "active" : "")">
+                        <i class="fa-solid fa-map-location-dot"></i>
+                        <span>Sơ đồ bãi đỗ</span>
+                    </a>
+                </li>
+                <li class="owner-menu-item">
+                    <a href="/Owner/Gia" class="owner-menu-link @(currentController == "Gia" ? "active" : "")">
+                        <i class="fa-solid fa-tags"></i>
+                        <span>Quản lý giá</span>
+                    </a>
+                </li>
+                <li class="owner-menu-item">
+                    <a href="/Owner/ThietBi" class="owner-menu-link @(currentController == "ThietBi" ? "active" : "")">
+                        <i class="fa-solid fa-microchip"></i>
+                        <span>Quản lý thiết bị</span>
+                    </a>
+                </li>
+                <li class="owner-menu-item">
+                    <a href="/Owner/ThongKe" class="owner-menu-link @(currentController == "ThongKe" ? "active" : "")">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <span>Thống kê doanh thu</span>
+                    </a>
+                </li>
+                <li class="owner-menu-item">
+                    <a href="/Owner/Chat" class="owner-menu-link @(currentController == "Chat" ? "active" : "")">
+                        <i class="fa-solid fa-comments"></i>
+                        <span>Chat hỗ trợ</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="owner-sidebar-footer">
+                <a href="/Account/Login" class="owner-menu-link text-danger">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Đăng xuất</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content Wrapper -->
+        <div class="owner-content">
+            <!-- Topbar Header -->
+            <header class="owner-topbar">
+                <div class="d-flex align-items-center gap-3">
+                    <button class="owner-sidebar-toggle" id="sidebarToggle">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="owner-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" class="owner-search-input" placeholder="Tìm kiếm giao dịch, mã số xe..." />
+                    </div>
+                </div>
+
+                <div class="owner-topbar-actions">
+                    <!-- Notification Bell -->
+                    <button class="owner-notification-btn">
+                        <i class="fa-regular fa-bell"></i>
+                        <span class="badge-dot"></span>
+                    </button>
+
+                    <!-- Profile Info -->
+                    <div class="owner-user-profile">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100" class="owner-avatar" alt="Avatar" />
+                        <div class="owner-user-info d-none d-md-flex">
+                            <span class="owner-user-name">Lê Văn Chủ</span>
+                            <span class="owner-user-role">Chủ Bãi Đối Tác</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Main Body -->
+            <main class="owner-main-body">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js for statistics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Sidebar Toggle JS -->
+    <script>
+        document.getElementById('sidebarToggle').addEventListener('click', function () {
+            document.getElementById('ownerSidebar').classList.toggle('show');
+        });
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

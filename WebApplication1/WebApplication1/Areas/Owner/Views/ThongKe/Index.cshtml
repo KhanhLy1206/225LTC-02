@@ -1,0 +1,565 @@
+@{
+    ViewData["Title"] = "Thống kê doanh thu";
+}
+
+<!-- Custom Styles for Statistics Dashboard -->
+<style>
+    .chart-card {
+        background-color: var(--owner-card-bg);
+        border: 1px solid var(--owner-border);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: var(--owner-shadow-sm);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chart-title-group {
+        margin-bottom: 20px;
+    }
+
+    .chart-title {
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: var(--owner-text-main);
+        margin: 0;
+    }
+
+    .chart-subtitle {
+        font-size: 0.85rem;
+        color: var(--owner-text-muted);
+        margin: 2px 0 0 0;
+    }
+
+    .chart-container {
+        position: relative;
+        flex-grow: 1;
+        min-height: 300px;
+        width: 100%;
+    }
+
+    /* Table styles */
+    .txn-table th {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 700;
+        background-color: #f8fafc !important;
+        border-bottom: 2px solid var(--owner-border) !important;
+    }
+
+    .txn-table td {
+        vertical-align: middle;
+        font-size: 0.875rem;
+    }
+
+    .txn-badge-success {
+        background-color: var(--owner-success-light);
+        color: var(--owner-success);
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+    }
+</style>
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <h1 class="owner-page-title">Thống kê doanh thu</h1>
+        <p class="owner-page-subtitle">Xem báo cáo chi tiết hiệu suất khai thác bãi đỗ, tổng quan doanh thu dịch vụ và tần suất xe đỗ.</p>
+    </div>
+</div>
+
+<!-- KPI Stats Summary Row -->
+<div class="row g-4 mb-4">
+    <!-- Revenue -->
+    <div class="col-xl-3 col-md-6">
+        <div class="owner-kpi-card py-3 px-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1 text-muted text-uppercase small font-weight-bold">Tổng doanh thu</h6>
+                    <div class="owner-kpi-value text-dark" id="kpi-revenue" style="font-size: 1.5rem;">43,700,000đ</div>
+                    <span class="small text-success fw-bold"><i class="fa-solid fa-arrow-trend-up"></i> +12.4%</span>
+                </div>
+                <div class="owner-kpi-icon-box success" style="width: 40px; height: 40px; font-size: 1.1rem;">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Total Parkings -->
+    <div class="col-xl-3 col-md-6">
+        <div class="owner-kpi-card py-3 px-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1 text-muted text-uppercase small font-weight-bold">Lượt đỗ xe</h6>
+                    <div class="owner-kpi-value text-dark" id="kpi-parkings" style="font-size: 1.5rem;">1,250 lượt</div>
+                    <span class="small text-success fw-bold"><i class="fa-solid fa-arrow-trend-up"></i> +8.3%</span>
+                </div>
+                <div class="owner-kpi-icon-box primary" style="width: 40px; height: 40px; font-size: 1.1rem;">
+                    <i class="fa-solid fa-car"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Occupancy Rate -->
+    <div class="col-xl-3 col-md-6">
+        <div class="owner-kpi-card py-3 px-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1 text-muted text-uppercase small font-weight-bold">Hiệu suất lấp đầy</h6>
+                    <div class="owner-kpi-value text-dark" id="kpi-occupancy" style="font-size: 1.5rem;">82%</div>
+                    <span class="small text-primary fw-bold"><i class="fa-solid fa-circle-check"></i> Ổn định</span>
+                </div>
+                <div class="owner-kpi-icon-box warning" style="width: 40px; height: 40px; font-size: 1.1rem; color: var(--owner-warning); background-color: var(--owner-warning-light);">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Average Ticket Value -->
+    <div class="col-xl-3 col-md-6">
+        <div class="owner-kpi-card py-3 px-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1 text-muted text-uppercase small font-weight-bold">Doanh thu bình quân</h6>
+                    <div class="owner-kpi-value text-dark" id="kpi-average" style="font-size: 1.5rem;">35,000đ</div>
+                    <span class="small text-muted">trên mỗi lượt xe đỗ</span>
+                </div>
+                <div class="owner-kpi-icon-box info" style="width: 40px; height: 40px; font-size: 1.1rem;">
+                    <i class="fa-solid fa-receipt"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toolbar: Filter Controls -->
+<div class="owner-table-card border-0 mb-4 p-3">
+    <div class="row g-3">
+        <!-- Lot Filter -->
+        <div class="col-md-6">
+            <label class="form-label small fw-semibold text-muted text-uppercase">Bãi đỗ xe</label>
+            <select class="form-select rounded-3 border-light shadow-sm py-2" id="lotSelect">
+                <option value="all" selected>Tất cả bãi đỗ xe</option>
+                <option value="1">SPMS Cống Quỳnh - Quận 1</option>
+                <option value="2">SPMS Sunrise City - Quận 7</option>
+            </select>
+        </div>
+        <!-- Time Filter -->
+        <div class="col-md-6">
+            <label class="form-label small fw-semibold text-muted text-uppercase">Khoảng thời gian</label>
+            <select class="form-select rounded-3 border-light shadow-sm py-2" id="timeSelect">
+                <option value="today">Hôm nay</option>
+                <option value="7days">7 ngày qua</option>
+                <option value="30days" selected>30 ngày qua (Tháng này)</option>
+                <option value="year">Năm nay (12 tháng)</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- Visual Charts Section (Chart.js Layout) -->
+<div class="row g-4 mb-4">
+    <!-- Bar Chart (Revenue Trend) -->
+    <div class="col-lg-8">
+        <div class="chart-card">
+            <div class="chart-title-group">
+                <h5 class="chart-title">Xu hướng doanh thu bãi đỗ</h5>
+                <p class="chart-subtitle">Biểu đồ biểu diễn doanh thu thu phí dịch vụ qua các mốc thời gian.</p>
+            </div>
+            <div class="chart-container">
+                <canvas id="revenueBarChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- Doughnut Chart (Vehicle Breakdown) -->
+    <div class="col-lg-4">
+        <div class="chart-card">
+            <div class="chart-title-group">
+                <h5 class="chart-title">Cơ cấu doanh thu theo loại xe</h5>
+                <p class="chart-subtitle">Tỷ lệ đóng góp doanh thu của các phương tiện lớn trong bãi xe.</p>
+            </div>
+            <div class="chart-container d-flex align-items-center justify-content-center">
+                <canvas id="vehicleDoughnutChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Revenue Log Table -->
+<div class="owner-table-card border-0 p-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+        <div>
+            <h5 class="fw-bold text-dark m-0"><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i> Lịch sử giao dịch dịch vụ</h5>
+            <p class="text-muted small m-0">Chi tiết các lượt thanh toán thành công phí đỗ xe của khách hàng.</p>
+        </div>
+        <!-- Search Input -->
+        <div class="owner-search m-0" style="max-width: 300px;">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" class="owner-search-input" id="txnSearchInput" placeholder="Tìm giao dịch, vị trí, loại xe..." />
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-responsive">
+        <table class="table table-hover align-middle txn-table text-nowrap">
+            <thead>
+                <tr>
+                    <th style="width: 120px;">Mã giao dịch</th>
+                    <th>Bãi đỗ xe</th>
+                    <th style="width: 120px;">Vị trí đỗ</th>
+                    <th style="width: 130px;">Loại xe</th>
+                    <th style="width: 150px;">Số tiền</th>
+                    <th style="width: 200px;">Thời gian</th>
+                    <th style="width: 150px;">Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody id="txnTableBody">
+                <!-- Dynamically generated -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+        <div class="text-muted small" id="paginationInfo">
+            Hiển thị 1-6 trong 9 dòng
+        </div>
+        <nav aria-label="Page navigation">
+            <ul class="pagination pagination-sm m-0" id="txnPagination">
+                <!-- Generated dynamically by JS -->
+            </ul>
+        </nav>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Vehicle config names
+        const vehicleTypeNames = {
+            'oto': 'Ô tô con',
+            'xebantai': 'Xe bán tải',
+            'xebuyt': 'Xe buýt',
+            'xetai': 'Xe tải',
+            'xemay': 'Xe máy',
+            'xedapdien': 'Xe đạp điện'
+        };
+
+        // Database mock representing Lot-specific metrics under different ranges
+        const lotStatsData = {
+            1: {
+                'today': { totalRevenue: '1,520,000đ', parkings: '45 lượt', occupancy: '88%', avgRevenue: '33,700đ', chartLabels: ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'], chartData: [150000, 280000, 320000, 210000, 180000, 250000, 130000], doughnutData: [60, 20, 10, 10] },
+                '7days': { totalRevenue: '12,450,000đ', parkings: '310 lượt', occupancy: '84%', avgRevenue: '40,160đ', chartLabels: ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'], chartData: [1500000, 1800000, 1650000, 1900000, 2200000, 2000000, 1400000], doughnutData: [55, 25, 10, 10] },
+                '30days': { totalRevenue: '43,700,000đ', parkings: '1,250 lượt', occupancy: '82%', avgRevenue: '34,960đ', chartLabels: ['Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4'], chartData: [9800000, 11200000, 12500000, 10200000], doughnutData: [50, 30, 12, 8] },
+                'year': { totalRevenue: '320,500,000đ', parkings: '9,800 lượt', occupancy: '79%', avgRevenue: '32,700đ', chartLabels: ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'], chartData: [22000000, 25000000, 28000000, 24000000, 27000000, 30000000, 26000000, 29000000, 28000000, 31000000, 25000000, 25500000], doughnutData: [48, 32, 12, 8] }
+            },
+            2: {
+                'today': { totalRevenue: '2,100,000đ', parkings: '55 lượt', occupancy: '92%', avgRevenue: '38,100đ', chartLabels: ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'], chartData: [220000, 350000, 420000, 310000, 250000, 380000, 170000], doughnutData: [50, 35, 10, 5] },
+                '7days': { totalRevenue: '16,800,000đ', parkings: '420 lượt', occupancy: '87%', avgRevenue: '40,000đ', chartLabels: ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'], chartData: [2100000, 2300000, 2250000, 2500000, 2800000, 2600000, 2250000], doughnutData: [48, 34, 12, 6] },
+                '30days': { totalRevenue: '65,200,000đ', parkings: '1,720 lượt', occupancy: '85%', avgRevenue: '37,900đ', chartLabels: ['Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4'], chartData: [15200000, 16800000, 17500000, 15700000], doughnutData: [45, 35, 12, 8] },
+                'year': { totalRevenue: '540,800,000đ', parkings: '14,300 lượt', occupancy: '81%', avgRevenue: '37,800đ', chartLabels: ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'], chartData: [41000000, 45000000, 48000000, 42000000, 46000000, 50000000, 43000000, 47000000, 45000000, 49000000, 42000000, 42800000], doughnutData: [42, 36, 14, 8] }
+            },
+            'all': {
+                'today': { totalRevenue: '3,620,000đ', parkings: '100 lượt', occupancy: '90%', avgRevenue: '36,200đ', chartLabels: ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'], chartData: [370000, 630000, 740000, 520000, 430000, 630000, 300000], doughnutData: [55, 27, 10, 8] },
+                '7days': { totalRevenue: '29,250,000đ', parkings: '730 lượt', occupancy: '85%', avgRevenue: '40,060đ', chartLabels: ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'], chartData: [3600000, 4100000, 3900000, 4400000, 5000000, 4600000, 3650000], doughnutData: [52, 29, 11, 8] },
+                '30days': { totalRevenue: '108,900,000đ', parkings: '2,970 lượt', occupancy: '83%', avgRevenue: '36,660đ', chartLabels: ['Tuần 1', 'Tuần 2', 'Tuần 3', 'Tuần 4'], chartData: [25000000, 28000000, 30000000, 25900000], doughnutData: [48, 32, 12, 8] },
+                'year': { totalRevenue: '861,300,000đ', parkings: '24,100 lượt', occupancy: '80%', avgRevenue: '35,700đ', chartLabels: ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'], chartData: [63000000, 70000000, 76000000, 66000000, 73000000, 80000000, 69000000, 76000000, 73000000, 80000000, 67000000, 68300000], doughnutData: [45, 34, 13, 8] }
+            }
+        };
+
+        // Transaction records
+        const transactionLogs = [
+            { id: 'TXN-1082', time: '2026-05-24 21:15:30', lotName: 'SPMS Cống Quỳnh', spotName: 'A-01', type: 'oto', amount: '35,000đ', status: 'Đã thanh toán' },
+            { id: 'TXN-1081', time: '2026-05-24 20:45:12', lotName: 'SPMS Sunrise City', spotName: 'B-01', type: 'xebantai', amount: '50,000đ', status: 'Đã thanh toán' },
+            { id: 'TXN-1080', time: '2026-05-24 19:30:45', lotName: 'SPMS Cống Quỳnh', spotName: 'A-04', type: 'oto', amount: '35,000đ', status: 'Đã thanh toán' },
+            { id: 'TXN-1079', time: '2026-05-24 18:20:00', lotName: 'SPMS Sunrise City', spotName: 'A-02', type: 'oto', amount: '30,000đ', status: 'Đã thanh toán' },
+            { id: 'TXN-1078', time: '2026-05-24 17:15:10', lotName: 'SPMS Cống Quỳnh', spotName: 'B-03', type: 'xebantai', amount: '45,000đ', status: 'Đã thanh toán' },
+            { id: 'TXN-1077', time: '2026-05-24 16:10:22', lotName: 'SPMS Cống Quỳnh', spotName: 'A-11', type: 'oto', amount: '35,000đ', status: 'Đã thanh toán' },
+            { id: 'TXN-1076', time: '2026-05-24 15:05:00', lotName: 'SPMS Sunrise City', spotName: 'A-01', type: 'oto', amount: '30,000đ', status: 'Đã thanh toán' },
+            { id: 'TXN-1075', time: '2026-05-24 14:00:15', lotName: 'SPMS Cống Quỳnh', spotName: 'A-08', type: 'oto', amount: '35,000đ', status: 'Đã thanh toán' },
+            { id: 'TXN-1074', time: '2026-05-24 12:45:30', lotName: 'SPMS Cống Quỳnh', spotName: 'B-02', type: 'oto', amount: '35,000đ', status: 'Đã thanh toán' }
+        ];
+
+        let selectedLot = 'all';
+        let selectedTime = '30days';
+
+        // Transactions table pagination & filtering
+        let txnSearchQuery = '';
+        let currentTxnPage = 1;
+        const txnPerPage = 6;
+
+        // Chart instances
+        let revenueChartInstance = null;
+        let vehicleDoughnutInstance = null;
+
+        $(document).ready(function() {
+            // Render default stats elements
+            updateKPIValues();
+            initRevenueChart();
+            initVehicleDoughnutChart();
+            refreshTxnTable();
+
+            // Listeners
+            $('#lotSelect').change(function() {
+                selectedLot = $(this).val();
+                updateKPIValues();
+                updateCharts();
+                currentTxnPage = 1;
+                refreshTxnTable();
+            });
+
+            $('#timeSelect').change(function() {
+                selectedTime = $(this).val();
+                updateKPIValues();
+                updateCharts();
+                currentTxnPage = 1;
+                refreshTxnTable();
+            });
+
+            $('#txnSearchInput').on('input', function() {
+                txnSearchQuery = $(this).val().toLowerCase().trim();
+                currentTxnPage = 1;
+                refreshTxnTable();
+            });
+        });
+
+        // Update top KPI cards
+        function updateKPIValues() {
+            const data = lotStatsData[selectedLot][selectedTime];
+            $('#kpi-revenue').text(data.totalRevenue);
+            $('#kpi-parkings').text(data.parkings);
+            $('#kpi-occupancy').text(data.occupancy);
+            $('#kpi-average').text(data.avgRevenue);
+        }
+
+        // Initialize Bar Chart for Revenue
+        function initRevenueChart() {
+            const ctx = document.getElementById('revenueBarChart').getContext('2d');
+            const data = lotStatsData[selectedLot][selectedTime];
+
+            revenueChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.chartLabels,
+                    datasets: [{
+                        label: 'Doanh thu (VNĐ)',
+                        data: data.chartData,
+                        backgroundColor: 'rgba(79, 70, 229, 0.85)',
+                        borderColor: '#4f46e5',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        barThickness: selectedTime === 'year' ? 15 : (selectedTime === '7days' ? 40 : 25)
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ' ' + context.parsed.y.toLocaleString('vi-VN') + ' đ';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    if (value >= 1000000) {
+                                        return (value / 1000000) + 'M';
+                                    }
+                                    return value.toLocaleString('vi-VN');
+                                }
+                            },
+                            grid: {
+                                color: '#f1f5f9'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize Doughnut Chart for Vehicle type percentage
+        function initVehicleDoughnutChart() {
+            const ctx = document.getElementById('vehicleDoughnutChart').getContext('2d');
+            const data = lotStatsData[selectedLot][selectedTime];
+
+            vehicleDoughnutInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ô tô con', 'Xe bán tải', 'Xe buýt', 'Xe tải'],
+                    datasets: [{
+                        data: data.doughnutData,
+                        backgroundColor: [
+                            '#4f46e5', // Primary indigo
+                            '#f59e0b', // Warning yellow
+                            '#10b981', // Success emerald
+                            '#ec4899'  // Danger pink
+                        ],
+                        borderWidth: 2,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                font: {
+                                    size: 11,
+                                    weight: 'bold'
+                                },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ' ' + context.label + ': ' + context.parsed + '%';
+                                }
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
+        // Update charts when filters change
+        function updateCharts() {
+            const data = lotStatsData[selectedLot][selectedTime];
+
+            // Update Bar Chart
+            revenueChartInstance.data.labels = data.chartLabels;
+            revenueChartInstance.data.datasets[0].data = data.chartData;
+            revenueChartInstance.data.datasets[0].barThickness = selectedTime === 'year' ? 15 : (selectedTime === '7days' ? 40 : 25);
+            revenueChartInstance.update();
+
+            // Update Doughnut Chart
+            vehicleDoughnutInstance.data.datasets[0].data = data.doughnutData;
+            vehicleDoughnutInstance.update();
+        }
+
+        // Populate and paginate Transaction log table
+        function refreshTxnTable() {
+            const tbody = $('#txnTableBody');
+            tbody.empty();
+
+            let txns = transactionLogs;
+
+            // Filter by Lot dropdown
+            if (selectedLot !== 'all') {
+                const searchLotName = selectedLot === '1' ? 'SPMS Cống Quỳnh' : 'SPMS Sunrise City';
+                txns = txns.filter(t => t.lotName === searchLotName);
+            }
+
+            // Filter by Search Query
+            if (txnSearchQuery !== '') {
+                txns = txns.filter(t => {
+                    return t.id.toLowerCase().includes(txnSearchQuery) ||
+                           t.lotName.toLowerCase().includes(txnSearchQuery) ||
+                           t.spotName.toLowerCase().includes(txnSearchQuery) ||
+                           vehicleTypeNames[t.type].toLowerCase().includes(txnSearchQuery);
+                });
+            }
+
+            const totalTxns = txns.length;
+
+            if (totalTxns === 0) {
+                tbody.html('<tr><td colspan="7" class="text-center p-4 text-muted">Không tìm thấy giao dịch tài chính phù hợp.</td></tr>');
+                $('#paginationInfo').text('Hiển thị 0 dòng');
+                $('#txnPagination').empty();
+                return;
+            }
+
+            // Calculate Pagination
+            const totalPages = Math.ceil(totalTxns / txnPerPage);
+            if (currentTxnPage > totalPages) {
+                currentTxnPage = totalPages;
+            }
+            if (currentTxnPage < 1) {
+                currentTxnPage = 1;
+            }
+
+            const startIndex = (currentTxnPage - 1) * txnPerPage;
+            const endIndex = Math.min(startIndex + txnPerPage, totalTxns);
+            const paginatedTxns = txns.slice(startIndex, endIndex);
+
+            // Append rows
+            paginatedTxns.forEach(txn => {
+                const vehicleName = vehicleTypeNames[txn.type] || 'Ô tô con';
+
+                const rowHtml = `
+                    <tr>
+                        <td class="font-monospace fw-bold text-dark">${txn.id}</td>
+                        <td><span class="fw-bold">${txn.lotName}</span></td>
+                        <td><span class="badge bg-light text-dark fw-bold border">${txn.spotName}</span></td>
+                        <td>${vehicleName}</td>
+                        <td class="fw-bold text-success font-monospace">+${txn.amount}</td>
+                        <td class="text-muted small">${txn.time}</td>
+                        <td><span class="txn-badge-success"><i class="fa-solid fa-circle-check"></i> ${txn.status}</span></td>
+                    </tr>
+                `;
+                tbody.append(rowHtml);
+            });
+
+            // Update Pagination Info
+            $('#paginationInfo').text(`Hiển thị ${startIndex + 1}-${endIndex} trong ${totalTxns} dòng`);
+
+            // Build Pagination buttons
+            buildPaginationButtons(totalPages);
+        }
+
+        function buildPaginationButtons(totalPages) {
+            const paginationEl = $('#txnPagination');
+            paginationEl.empty();
+
+            if (totalPages <= 1) return;
+
+            // Previous
+            paginationEl.append(`
+                <li class="page-item ${currentTxnPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="changeTxnPage(${currentTxnPage - 1}); return false;"><i class="fa-solid fa-angle-left"></i></a>
+                </li>
+            `);
+
+            // Numbers
+            for (let i = 1; i <= totalPages; i++) {
+                paginationEl.append(`
+                    <li class="page-item ${currentTxnPage === i ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="changeTxnPage(${i}); return false;">${i}</a>
+                    </li>
+                `);
+            }
+
+            // Next
+            paginationEl.append(`
+                <li class="page-item ${currentTxnPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="changeTxnPage(${currentTxnPage + 1}); return false;"><i class="fa-solid fa-angle-right"></i></a>
+                </li>
+            `);
+        }
+
+        function changeTxnPage(page) {
+            currentTxnPage = page;
+            refreshTxnTable();
+        }
+    </script>
+}

@@ -1,0 +1,867 @@
+@{
+    ViewData["Title"] = "Quản lý giá";
+}
+
+<!-- Custom Styles for Embedded Inline Card inputs -->
+<style>
+    .pricing-card {
+        background-color: var(--owner-card-bg);
+        border: 1px solid var(--owner-border);
+        border-radius: 20px;
+        padding: 24px;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--owner-shadow-sm);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .pricing-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 20px -8px rgba(79, 70, 229, 0.12);
+        border-color: rgba(79, 70, 229, 0.25);
+    }
+
+    /* Gradients for pricing header background decorations */
+    .pricing-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+    }
+
+    .pricing-card.rate-day::before {
+        background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+    }
+
+    .pricing-card.rate-night::before {
+        background: linear-gradient(90deg, #4f46e5 0%, #312e81 100%);
+    }
+
+    .pricing-card.rate-monthly::before {
+        background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+    }
+
+    .pricing-card.rate-booking::before {
+        background: linear-gradient(90deg, #06b6d4 0%, #0891b2 100%);
+    }
+
+    .pricing-icon-wrapper {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+        margin-bottom: 16px;
+        transition: transform 0.3s ease;
+    }
+
+    .pricing-card:hover .pricing-icon-wrapper {
+        transform: scale(1.1) rotate(5deg);
+    }
+
+    .rate-day .pricing-icon-wrapper {
+        background-color: var(--owner-warning-light);
+        color: var(--owner-warning);
+    }
+
+    .rate-night .pricing-icon-wrapper {
+        background-color: var(--owner-primary-light);
+        color: var(--owner-primary);
+    }
+
+    .rate-monthly .pricing-icon-wrapper {
+        background-color: var(--owner-success-light);
+        color: var(--owner-success);
+    }
+
+    .rate-booking .pricing-icon-wrapper {
+        background-color: var(--owner-info-light);
+        color: var(--owner-info);
+    }
+
+    .pricing-title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--owner-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 12px;
+    }
+
+    /* Embedded borderless inputs */
+    .card-input-wrapper {
+        background-color: #f1f5f9;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease;
+        margin-bottom: 12px;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        align-items: center;
+    }
+
+    .card-input-wrapper:focus-within {
+        background-color: #ffffff;
+        border-color: var(--owner-primary);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+    }
+
+    .card-input-field {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-weight: 800;
+        font-size: 1.6rem;
+        color: var(--owner-text-main);
+        outline: none;
+        border: none;
+        background: transparent;
+        box-shadow: none !important;
+        padding: 6px 4px 6px 16px;
+        flex: 1;
+        min-width: 0;
+        text-align: left;
+    }
+
+    .card-input-unit {
+        font-weight: 750;
+        font-size: 1.1rem;
+        color: var(--owner-text-muted);
+        background: transparent;
+        border: none;
+        padding-right: 16px;
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+
+    .pricing-desc {
+        font-size: 0.85rem;
+        color: var(--owner-text-muted);
+        line-height: 1.4;
+    }
+
+    .pricing-status {
+        font-size: 0.72rem;
+        font-weight: 750;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 8px;
+        border-radius: 20px;
+        margin-top: 12px;
+    }
+
+    .pricing-status.active {
+        background-color: var(--owner-success-light);
+        color: var(--owner-success);
+    }
+
+    .pricing-status.inactive {
+        background-color: var(--owner-danger-light);
+        color: var(--owner-danger);
+    }
+
+    /* Interactive area filter buttons */
+    .filter-btn {
+        border-radius: 30px;
+        padding: 6px 18px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        transition: var(--owner-transition);
+        border: 1px solid var(--owner-border);
+        background-color: #ffffff;
+        color: var(--owner-text-muted);
+    }
+
+    .filter-btn:hover {
+        background-color: #f1f5f9;
+        color: var(--owner-text-main);
+    }
+
+    .filter-btn.active {
+        background-color: var(--owner-primary);
+        border-color: var(--owner-primary);
+        color: #ffffff;
+        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
+    }
+
+    .history-badge {
+        font-family: 'Plus Jakarta Sans', monospace;
+        font-weight: 650;
+    }
+
+    /* Animation for pricing form appearance */
+    @@keyframes slideUpFade {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animated-fade-in {
+        animation: slideUpFade 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+</style>
+
+<div class="d-flex flex-column mb-4">
+    <h1 class="owner-page-title">Cấu hình bảng giá</h1>
+    <p class="owner-page-subtitle">Chọn bãi đỗ xe, khu vực và loại xe để bắt đầu điều chỉnh đơn giá.</p>
+</div>
+
+<!-- Prerequisite Selection Card -->
+<div class="card shadow-sm border-0 mb-4" style="border-radius: 16px; background-color: var(--owner-card-bg); border: 1px solid var(--owner-border);">
+    <div class="card-body p-4">
+        <div class="row align-items-center g-3">
+            <!-- Bãi xe selection -->
+            <div class="col-12 col-md-4">
+                <div class="d-flex flex-column gap-1">
+                    <label class="small fw-bold text-muted text-uppercase mb-1" for="lotSelect"><i class="fa-solid fa-warehouse text-primary me-1"></i> Bãi xe:</label>
+                    <select class="form-select rounded-3 border-light shadow-sm py-2.5" id="lotSelect" style="border: 1px solid #cbd5e1 !important;">
+                        <option value="" disabled selected>-- Chọn bãi xe --</option>
+                        <option value="1">SPMS Cống Quỳnh - Quận 1</option>
+                        <option value="2">SPMS Sunrise City - Quận 7</option>
+                        <option value="3">SPMS Landmark Plus - Bình Thạnh (Chờ duyệt)</option>
+                    </select>
+                </div>
+            </div>
+            <!-- Khu vực selection -->
+            <div class="col-12 col-md-4">
+                <div class="d-flex flex-column gap-1">
+                    <label class="small fw-bold text-muted text-uppercase mb-1" for="areaSelect"><i class="fa-solid fa-layer-group text-primary me-1"></i> Khu vực:</label>
+                    <select class="form-select rounded-3 border-light shadow-sm py-2.5" id="areaSelect" disabled style="border: 1px solid #cbd5e1 !important;">
+                        <option value="" disabled selected>-- Chọn bãi xe trước --</option>
+                    </select>
+                </div>
+            </div>
+            <!-- Loại xe selection -->
+            <div class="col-12 col-md-4">
+                <div class="d-flex flex-column gap-1">
+                    <label class="small fw-bold text-muted text-uppercase mb-1" for="vehicleTypeSelect"><i class="fa-solid fa-car text-primary me-1"></i> Loại xe:</label>
+                    <select class="form-select rounded-3 border-light shadow-sm py-2.5" id="vehicleTypeSelect" disabled style="border: 1px solid #cbd5e1 !important;">
+                        <option value="" disabled selected>-- Chọn khu vực trước --</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Select Prompt Card -->
+<div class="card text-center p-5 border-0 shadow-sm mb-4" id="selectPromptCard" style="border-radius: 20px; background-color: var(--owner-card-bg); border: 1px solid var(--owner-border) !important;">
+    <div class="card-body py-5">
+        <div class="bg-primary-light text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-4" style="width: 80px; height: 80px; font-size: 2.2rem; background-color: rgba(79, 70, 229, 0.08);">
+            <i class="fa-solid fa-square-parking"></i>
+        </div>
+        <h4 class="fw-bold text-dark mb-2">Yêu cầu chọn thông tin bãi đỗ</h4>
+        <p class="text-muted mx-auto mb-0" style="max-width: 480px; font-size: 0.95rem;">Bạn cần chọn bãi đỗ xe, khu vực và loại xe tương ứng trước khi có thể cập nhật hoặc xem giá tiền của các vị trí đỗ.</p>
+    </div>
+</div>
+
+<!-- Main One-Page Price Form -->
+<form id="inlinePricingForm">
+    
+    <!-- Pricing Cards Grid -->
+    <div class="row g-4 mb-4" id="pricingCardsContainer">
+        <!-- Card 1: GiaTheoGio -->
+        <div class="col-xl-3 col-md-6">
+            <div class="pricing-card rate-day">
+                <div>
+                    <div class="pricing-icon-wrapper">
+                        <i class="fa-solid fa-sun"></i>
+                    </div>
+                    <div class="pricing-title">Giá theo giờ (Ngày)</div>
+                    
+                    <!-- Embedded Input Group -->
+                    <div class="input-group card-input-wrapper">
+                        <input type="number" class="card-input-field" id="inputGiaTheoGio" min="0" step="1000" required>
+                        <span class="card-input-unit">đ</span>
+                    </div>
+
+                    <p class="pricing-desc mb-0">Áp dụng cho mỗi giờ đỗ xe ô tô vào ban ngày (từ 06:00 đến 22:00 hàng ngày).</p>
+                </div>
+                <div>
+                    <span class="pricing-status active" id="status-day">
+                        <i class="fa-solid fa-circle-check"></i> Đang áp dụng
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: GiaQuaDem -->
+        <div class="col-xl-3 col-md-6">
+            <div class="pricing-card rate-night">
+                <div>
+                    <div class="pricing-icon-wrapper">
+                        <i class="fa-solid fa-moon"></i>
+                    </div>
+                    <div class="pricing-title">Giá qua đêm (Đêm)</div>
+                    
+                    <!-- Embedded Input Group -->
+                    <div class="input-group card-input-wrapper">
+                        <input type="number" class="card-input-field" id="inputGiaQuaDem" min="0" step="1000" required>
+                        <span class="card-input-unit">đ</span>
+                    </div>
+
+                    <p class="pricing-desc mb-0">Áp dụng trọn gói cho lượt gửi xe qua đêm (từ 22:00 đến 06:00 sáng hôm sau).</p>
+                </div>
+                <div>
+                    <span class="pricing-status active" id="status-night">
+                        <i class="fa-solid fa-circle-check"></i> Đang áp dụng
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: GiaTheoThang -->
+        <div class="col-xl-3 col-md-6">
+            <div class="pricing-card rate-monthly">
+                <div>
+                    <div class="pricing-icon-wrapper">
+                        <i class="fa-solid fa-calendar-days"></i>
+                    </div>
+                    <div class="pricing-title">Giá vé theo tháng</div>
+                    
+                    <!-- Embedded Input Group -->
+                    <div class="input-group card-input-wrapper">
+                        <input type="number" class="card-input-field" id="inputGiaTheoThang" min="0" step="1000" required>
+                        <span class="card-input-unit">đ</span>
+                    </div>
+
+                    <p class="pricing-desc mb-0">Áp dụng cho khách hàng đăng ký thuê bao đỗ cố định dài hạn theo chu kỳ 30 ngày.</p>
+                </div>
+                <div>
+                    <span class="pricing-status active" id="status-monthly">
+                        <i class="fa-solid fa-circle-check"></i> Đang áp dụng
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 4: GiaDatCho -->
+        <div class="col-xl-3 col-md-6">
+            <div class="pricing-card rate-booking">
+                <div>
+                    <div class="pricing-icon-wrapper">
+                        <i class="fa-solid fa-percent"></i>
+                    </div>
+                    <div class="pricing-title">Phí cọc</div>
+                    
+                    <!-- Embedded Input Group -->
+                    <div class="input-group card-input-wrapper">
+                        <input type="number" class="card-input-field" id="inputGiaDatCho" min="5" max="100" step="5" required>
+                        <span class="card-input-unit">%</span>
+                    </div>
+
+                    <p class="pricing-desc mb-0">Tỷ lệ đặt cọc giữ chỗ trước trên ứng dụng (phần trăm trên tổng hóa đơn dự kiến).</p>
+                </div>
+                <div>
+                    <span class="pricing-status active" id="status-booking">
+                        <i class="fa-solid fa-circle-check"></i> Đang áp dụng
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Master Controls Row -->
+    <div class="owner-table-card border-0 mb-4 p-3 bg-white">
+        <button type="submit" class="btn btn-primary-custom px-5 py-2.5 rounded-3 d-flex align-items-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi bảng giá
+        </button>
+    </div>
+</form>
+
+<!-- History Log Section -->
+<div class="owner-table-card border-0">
+    <div class="owner-card-header bg-transparent border-0 px-4 pt-4">
+        <h5 class="owner-card-title fs-5"><i class="fa-solid fa-history text-primary me-2"></i> Nhật ký điều chỉnh bảng giá</h5>
+    </div>
+    <div class="table-responsive p-4 pt-2">
+        <table class="table owner-table border">
+            <thead>
+                <tr>
+                    <th>Bãi Đỗ Xe</th>
+                    <th>Loại Xe</th>
+                    <th>Thời Gian Áp Dụng</th>
+                    <th>Người Điều Chỉnh</th>
+                    <th>Giá Theo Giờ</th>
+                    <th>Giá Qua Đêm</th>
+                    <th>Giá Theo Tháng</th>
+                    <th>Tỷ Lệ Cọc</th>
+                    <th>Trạng Thái</th>
+                </tr>
+            </thead>
+            <tbody id="historyTableBody">
+                <!-- Javascript populated -->
+            </tbody>
+        </table>
+    </div>
+    <!-- Pagination Footer -->
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 px-4 pb-4">
+        <div class="text-muted small" id="paginationInfo">
+            Hiển thị 0 - 0 trong tổng số 0 nhật ký
+        </div>
+        <div id="paginationControls">
+            <!-- Dynamic pagination controls -->
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Mock Pricing Database by Lot ID and Vehicle Type / Area
+        const pricingData = {
+            1: {
+                oto: {
+                    lotName: 'SPMS Cống Quỳnh - Q1',
+                    typeName: '🚗 Ô tô con',
+                    giaTheoGio: 20000,
+                    giaQuaDem: 80000,
+                    giaTheoThang: 1200000,
+                    giaDatCho: 30,
+                    trangThai: true
+                },
+                xebantai: {
+                    lotName: 'SPMS Cống Quỳnh - Q1',
+                    typeName: '🛻 Xe bán tải',
+                    giaTheoGio: 30000,
+                    giaQuaDem: 120000,
+                    giaTheoThang: 1800000,
+                    giaDatCho: 30,
+                    trangThai: true
+                },
+                xebuyt: {
+                    lotName: 'SPMS Cống Quỳnh - Q1',
+                    typeName: '🚌 Xe buýt',
+                    giaTheoGio: 50000,
+                    giaQuaDem: 180000,
+                    giaTheoThang: 2500000,
+                    giaDatCho: 30,
+                    trangThai: true
+                },
+                xetai: {
+                    lotName: 'SPMS Cống Quỳnh - Q1',
+                    typeName: '🚛 Xe tải',
+                    giaTheoGio: 60000,
+                    giaQuaDem: 220000,
+                    giaTheoThang: 3000000,
+                    giaDatCho: 30,
+                    trangThai: true
+                }
+            },
+            2: {
+                oto: {
+                    lotName: 'SPMS Sunrise City - Q7',
+                    typeName: '🚗 Ô tô con',
+                    giaTheoGio: 15000,
+                    giaQuaDem: 60000,
+                    giaTheoThang: 900000,
+                    giaDatCho: 30,
+                    trangThai: true
+                },
+                xebantai: {
+                    lotName: 'SPMS Sunrise City - Q7',
+                    typeName: '🛻 Xe bán tải',
+                    giaTheoGio: 25000,
+                    giaQuaDem: 100000,
+                    giaTheoThang: 1400000,
+                    giaDatCho: 30,
+                    trangThai: true
+                },
+                xebuyt: {
+                    lotName: 'SPMS Sunrise City - Q7',
+                    typeName: '🚌 Xe buýt',
+                    giaTheoGio: 40000,
+                    giaQuaDem: 150000,
+                    giaTheoThang: 2200000,
+                    giaDatCho: 30,
+                    trangThai: true
+                },
+                xetai: {
+                    lotName: 'SPMS Sunrise City - Q7',
+                    typeName: '🚛 Xe tải',
+                    giaTheoGio: 50000,
+                    giaQuaDem: 180000,
+                    giaTheoThang: 2600000,
+                    giaDatCho: 30,
+                    trangThai: true
+                }
+            },
+            3: {
+                oto: {
+                    lotName: 'SPMS Landmark Plus - Bình Thạnh',
+                    typeName: '🚗 Ô tô con',
+                    giaTheoGio: 25000,
+                    giaQuaDem: 100000,
+                    giaTheoThang: 1500000,
+                    giaDatCho: 30,
+                    trangThai: false
+                },
+                xebantai: {
+                    lotName: 'SPMS Landmark Plus - Bình Thạnh',
+                    typeName: '🛻 Xe bán tải',
+                    giaTheoGio: 35000,
+                    giaQuaDem: 140000,
+                    giaTheoThang: 2000000,
+                    giaDatCho: 30,
+                    trangThai: false
+                },
+                xebuyt: {
+                    lotName: 'SPMS Landmark Plus - Bình Thạnh',
+                    typeName: '🚌 Xe buýt',
+                    giaTheoGio: 55000,
+                    giaQuaDem: 210000,
+                    giaTheoThang: 2800000,
+                    giaDatCho: 30,
+                    trangThai: false
+                },
+                xetai: {
+                    lotName: 'SPMS Landmark Plus - Bình Thạnh',
+                    typeName: '🚛 Xe tải',
+                    giaTheoGio: 65000,
+                    giaQuaDem: 240000,
+                    giaTheoThang: 3200000,
+                    giaDatCho: 30,
+                    trangThai: false
+                }
+            }
+        };
+
+        let currentActiveLot = null;
+        let currentActiveArea = null;
+        let currentActiveVehicleType = null;
+
+        const vehicleTypes = [
+            { value: 'oto', label: '🚗 Ô tô con' },
+            { value: 'xebantai', label: '🛻 Xe bán tải' },
+            { value: 'xebuyt', label: '🚌 Xe buýt' },
+            { value: 'xetai', label: '🚛 Xe tải' }
+        ];
+
+        const lotAreas = {
+            1: [
+                { value: 'A', label: 'Khu A', type: 'oto' },
+                { value: 'B', label: 'Khu B', type: 'xebantai' },
+                { value: 'C', label: 'Khu C', type: 'xebuyt' },
+                { value: 'D', label: 'Khu D', type: 'xetai' },
+                { value: 'E', label: 'Khu E', type: 'xemay' },
+                { value: 'F', label: 'Khu F', type: 'xedapdien' }
+            ],
+            2: [
+                { value: 'A', label: 'Khu A', type: 'oto' },
+                { value: 'B', label: 'Khu B', type: 'xebantai' },
+                { value: 'C', label: 'Khu C', type: 'xemay' }
+            ],
+            3: [
+                { value: 'A', label: 'Khu A (Chờ duyệt)', type: 'oto' },
+                { value: 'B', label: 'Khu B (Chờ duyệt)', type: 'xebantai' }
+            ]
+        };
+
+        // Audit Log History database array
+        const auditLogs = [
+            { lotName: 'SPMS Cống Quỳnh - Q1', areaLabel: 'Khu A', vehicleLabel: '🚗 Ô tô con', time: '15:30 - 24/05/2026', user: 'Lê Văn Chủ', giaTheoGio: 20000, giaQuaDem: 80000, giaTheoThang: 1200000, giaDatCho: 30, status: 'Đang áp dụng', statusClass: 'bg-success-light text-success' },
+            { lotName: 'SPMS Sunrise City - Q7', areaLabel: 'Khu A', vehicleLabel: '🚗 Ô tô con', time: '09:00 - 15/05/2026', user: 'Lê Văn Chủ', giaTheoGio: 15000, giaQuaDem: 60000, giaTheoThang: 900000, giaDatCho: 30, status: 'Hoạt động', statusClass: 'bg-light text-muted border' },
+            { lotName: 'SPMS Cống Quỳnh - Q1', areaLabel: 'Khu A', vehicleLabel: '🚗 Ô tô con', time: '08:00 - 01/05/2026', user: 'Lê Văn Chủ', giaTheoGio: 15000, giaQuaDem: 60000, giaTheoThang: 1000000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' },
+            { lotName: 'SPMS Cống Quỳnh - Q1', areaLabel: 'Khu B', vehicleLabel: '🛻 Xe bán tải', time: '10:15 - 28/04/2026', user: 'Lê Văn Chủ', giaTheoGio: 30000, giaQuaDem: 120000, giaTheoThang: 1800000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' },
+            { lotName: 'SPMS Sunrise City - Q7', areaLabel: 'Khu B', vehicleLabel: '🛻 Xe bán tải', time: '11:30 - 25/04/2026', user: 'Lê Văn Chủ', giaTheoGio: 25000, giaQuaDem: 100000, giaTheoThang: 1400000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' },
+            { lotName: 'SPMS Landmark Plus - Bình Thạnh', areaLabel: 'Khu A', vehicleLabel: '🚗 Ô tô con', time: '14:00 - 20/04/2026', user: 'Lê Văn Chủ', giaTheoGio: 25000, giaQuaDem: 100000, giaTheoThang: 1500000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' },
+            { lotName: 'SPMS Landmark Plus - Bình Thạnh', areaLabel: 'Khu B', vehicleLabel: '🛻 Xe bán tải', time: '16:30 - 18/04/2026', user: 'Lê Văn Chủ', giaTheoGio: 35000, giaQuaDem: 140000, giaTheoThang: 2000000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' },
+            { lotName: 'SPMS Cống Quỳnh - Q1', areaLabel: 'Khu A', vehicleLabel: '🚗 Ô tô con', time: '09:00 - 10/04/2026', user: 'Lê Văn Chủ', giaTheoGio: 12000, giaQuaDem: 50000, giaTheoThang: 800000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' },
+            { lotName: 'SPMS Sunrise City - Q7', areaLabel: 'Khu A', vehicleLabel: '🚗 Ô tô con', time: '08:30 - 05/04/2026', user: 'Lê Văn Chủ', giaTheoGio: 10000, giaQuaDem: 40000, giaTheoThang: 700000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' }
+        ];
+
+        const rowsPerPage = 6;
+        let currentPage = 1;
+
+        $(document).ready(function() {
+            // Render initial audit logs
+            renderAuditLogs();
+
+            // Hide pricing form initially, show prompt
+            $('#inlinePricingForm').hide();
+            $('#selectPromptCard').show();
+
+            // Handle Lot dropdown change
+            $('#lotSelect').change(function() {
+                const lotVal = $(this).val();
+                if (!lotVal) {
+                    resetSelection();
+                    return;
+                }
+                
+                currentActiveLot = parseInt(lotVal);
+                currentActiveArea = null;
+                currentActiveVehicleType = null;
+
+                // Populate Area dropdown
+                const areas = lotAreas[currentActiveLot] || [];
+                const areaSelect = $('#areaSelect');
+                areaSelect.empty().append('<option value="" disabled selected>-- Chọn khu vực --</option>');
+                
+                areas.forEach(area => {
+                    areaSelect.append(`<option value="${area.value}">${area.label}</option>`);
+                });
+
+                areaSelect.prop('disabled', false);
+
+                // Reset and disable Vehicle Type dropdown
+                $('#vehicleTypeSelect').empty().append('<option value="" disabled selected>-- Chọn khu vực trước --</option>').prop('disabled', true);
+
+                // Hide form, show prompt
+                $('#inlinePricingForm').hide();
+                $('#selectPromptCard').show();
+            });
+
+            // Handle Area dropdown change
+            $('#areaSelect').change(function() {
+                currentActiveArea = $(this).val();
+                
+                const areaConfig = lotAreas[currentActiveLot].find(a => a.value === currentActiveArea);
+                const typeSelect = $('#vehicleTypeSelect');
+                typeSelect.empty().append('<option value="" disabled>-- Chọn loại xe --</option>');
+
+                if (areaConfig) {
+                    // Populate all system vehicle types
+                    vehicleTypes.forEach(vt => {
+                        const selectedAttr = (vt.value === areaConfig.type) ? 'selected' : '';
+                        typeSelect.append(`<option value="${vt.value}" ${selectedAttr}>${vt.label}</option>`);
+                    });
+                    
+                    typeSelect.prop('disabled', false);
+                    currentActiveVehicleType = areaConfig.type;
+
+                    // Load pricing and reveal form
+                    loadPricing();
+                    $('#selectPromptCard').hide();
+                    $('#inlinePricingForm').show().addClass('animated-fade-in');
+                    setTimeout(() => {
+                        $('#inlinePricingForm').removeClass('animated-fade-in');
+                    }, 450);
+                } else {
+                    resetSelection();
+                }
+            });
+
+            // Handle Vehicle Type dropdown change manually
+            $('#vehicleTypeSelect').change(function() {
+                currentActiveVehicleType = $(this).val();
+                if (currentActiveLot && currentActiveVehicleType) {
+                    loadPricing();
+                }
+            });
+
+            // Handle Pricing Edit Form Submit
+            $('#inlinePricingForm').submit(function(e) {
+                e.preventDefault();
+
+                const data = pricingData[currentActiveLot][currentActiveVehicleType];
+                if (data) {
+                    // Update mock pricing database directly from card inputs
+                    data.giaTheoGio = parseInt($('#inputGiaTheoGio').val()) || 0;
+                    data.giaQuaDem = parseInt($('#inputGiaQuaDem').val()) || 0;
+                    data.giaTheoThang = parseInt($('#inputGiaTheoThang').val()) || 0;
+                    data.giaDatCho = parseInt($('#inputGiaDatCho').val()) || 0;
+                    data.trangThai = $('#switchStatus').is(':checked');
+
+                    // Prepend a log item into Audit Log table
+                    const now = new Date();
+                    const formattedTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} - ${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
+                    
+                    const areaConfig = lotAreas[currentActiveLot].find(a => a.value === currentActiveArea);
+                    const areaLabel = areaConfig ? areaConfig.label : '';
+
+                    const vehicleConfig = vehicleTypes.find(v => v.value === currentActiveVehicleType);
+                    const vehicleLabel = vehicleConfig ? vehicleConfig.label : '';
+
+                    // Push to prepended list
+                    auditLogs.unshift({
+                        lotName: data.lotName,
+                        areaLabel: areaLabel,
+                        vehicleLabel: vehicleLabel,
+                        time: formattedTime,
+                        user: 'Lê Văn Chủ',
+                        giaTheoGio: data.giaTheoGio,
+                        giaQuaDem: data.giaQuaDem,
+                        giaTheoThang: data.giaTheoThang,
+                        giaDatCho: data.giaDatCho,
+                        status: 'Vừa cập nhật',
+                        statusClass: 'bg-success-light text-success'
+                    });
+
+                    // Reset to first page
+                    currentPage = 1;
+                    renderAuditLogs();
+
+                    // Re-load UI cards to enforce clean visual state
+                    loadPricing();
+
+                    alert(`Đã áp dụng đơn giá mới thành công cho ${vehicleLabel} tại bãi ${data.lotName}!`);
+                }
+            });
+
+            // Dynamic change opacity visual indicator for switch status changes on the fly
+            $('#switchStatus').change(function() {
+                const isActive = $(this).is(':checked');
+                updateStatusBadge($('#status-day'), isActive);
+                updateStatusBadge($('#status-night'), isActive);
+                updateStatusBadge($('#status-monthly'), isActive);
+                updateStatusBadge($('#status-booking'), isActive);
+
+                if (!isActive) {
+                    $('#pricingCardsContainer').css('opacity', '0.7');
+                } else {
+                    $('#pricingCardsContainer').css('opacity', '1');
+                }
+            });
+        });
+
+        // Dynamic rendering of audit logs table with client-side pagination
+        function renderAuditLogs() {
+            const tbody = $('#historyTableBody');
+            tbody.empty();
+
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = startIndex + rowsPerPage;
+            const paginatedItems = auditLogs.slice(startIndex, endIndex);
+
+            if (paginatedItems.length === 0) {
+                tbody.html('<tr><td colspan="9" class="text-center text-muted py-4">Chưa có lịch sử điều chỉnh</td></tr>');
+                $('#paginationInfo').text('Hiển thị 0 - 0 trong tổng số 0 nhật ký');
+                $('#paginationControls').empty();
+                return;
+            }
+
+            paginatedItems.forEach(log => {
+                const row = `
+                    <tr style="animation: tableRowFadeIn 0.4s ease-out;">
+                        <td><strong>${log.lotName}</strong></td>
+                        <td><span class="badge bg-light text-primary border">${log.areaLabel} - ${log.vehicleLabel}</span></td>
+                        <td class="text-muted">${log.time}</td>
+                        <td>${log.user}</td>
+                        <td><span class="badge bg-light text-dark border history-badge">${log.giaTheoGio.toLocaleString()}đ</span></td>
+                        <td><span class="badge bg-light text-dark border history-badge">${log.giaQuaDem.toLocaleString()}đ</span></td>
+                        <td><span class="badge bg-light text-dark border history-badge">${log.giaTheoThang.toLocaleString()}đ</span></td>
+                        <td><span class="badge bg-light text-dark border history-badge">${log.giaDatCho}%</span></td>
+                        <td><span class="badge ${log.statusClass} px-2 py-1 rounded">${log.status}</span></td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+
+            // Update stats info text
+            const totalRecords = auditLogs.length;
+            const currentStart = startIndex + 1;
+            const currentEnd = Math.min(endIndex, totalRecords);
+            $('#paginationInfo').text(`Hiển thị ${currentStart} - ${currentEnd} trong tổng số ${totalRecords} nhật ký`);
+
+            renderPaginationControls();
+        }
+
+        // Generate paginator elements
+        function renderPaginationControls() {
+            const paginationContainer = $('#paginationControls');
+            paginationContainer.empty();
+
+            const totalPages = Math.ceil(auditLogs.length / rowsPerPage);
+            if (totalPages <= 1) return;
+
+            let html = `<nav aria-label="Page navigation"><ul class="pagination pagination-sm m-0 justify-content-end gap-1">`;
+            
+            // Previous button
+            html += `
+                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link rounded-3 border-light shadow-sm py-1.5 px-2.5" href="#" onclick="changePage(${currentPage - 1}); return false;" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            `;
+
+            for (let i = 1; i <= totalPages; i++) {
+                html += `
+                    <li class="page-item ${currentPage === i ? 'active' : ''}">
+                        <a class="page-link rounded-3 border-light shadow-sm fw-bold py-1.5 px-3" href="#" onclick="changePage(${i}); return false;">${i}</a>
+                    </li>
+                `;
+            }
+
+            // Next button
+            html += `
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link rounded-3 border-light shadow-sm py-1.5 px-2.5" href="#" onclick="changePage(${currentPage + 1}); return false;" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            `;
+
+            html += `</ul></nav>`;
+            paginationContainer.html(html);
+        }
+
+        // Navigate page helper
+        window.changePage = function(page) {
+            const totalPages = Math.ceil(auditLogs.length / rowsPerPage);
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderAuditLogs();
+        };
+
+        function resetSelection() {
+            currentActiveLot = null;
+            currentActiveArea = null;
+            currentActiveVehicleType = null;
+            $('#areaSelect').empty().append('<option value="" disabled selected>-- Chọn bãi xe trước --</option>').prop('disabled', true);
+            $('#vehicleTypeSelect').empty().append('<option value="" disabled selected>-- Chọn khu vực trước --</option>').prop('disabled', true);
+            $('#inlinePricingForm').hide();
+            $('#selectPromptCard').show();
+        }
+
+        // Load pricing database values directly into input fields
+        function loadPricing() {
+            const data = pricingData[currentActiveLot][currentActiveVehicleType];
+            if (!data) return;
+
+            // Load values to inputs embedded inside the cards
+            $('#inputGiaTheoGio').val(data.giaTheoGio);
+            $('#inputGiaQuaDem').val(data.giaQuaDem);
+            $('#inputGiaTheoThang').val(data.giaTheoThang);
+            $('#inputGiaDatCho').val(data.giaDatCho);
+            $('#switchStatus').prop('checked', data.trangThai);
+
+            // Set state badges
+            updateStatusBadge($('#status-day'), data.trangThai);
+            updateStatusBadge($('#status-night'), data.trangThai);
+            updateStatusBadge($('#status-monthly'), data.trangThai);
+            updateStatusBadge($('#status-booking'), data.trangThai);
+
+            // Handle inactive state appearance visually
+            if (!data.trangThai) {
+                $('#pricingCardsContainer').css('opacity', '0.7');
+            } else {
+                $('#pricingCardsContainer').css('opacity', '1');
+            }
+        }
+
+        // Toggle pricing active status indicators
+        function updateStatusBadge(element, isActive) {
+            element.removeClass('pricing-status active inactive bg-success-light text-success bg-danger-light text-danger');
+            if (isActive) {
+                element.addClass('pricing-status active').html('<i class="fa-solid fa-circle-check"></i> Đang áp dụng');
+            } else {
+                element.addClass('pricing-status inactive').html('<i class="fa-solid fa-circle-xmark"></i> Tạm ngưng');
+            }
+        }
+    </script>
+}
