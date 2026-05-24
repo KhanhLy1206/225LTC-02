@@ -1,114 +1,234 @@
 @model WebApplication1.Areas.Admin.Models.DashboardViewModel
 @{
     ViewData["Title"] = "Tổng Quan";
-    var phanTramDay = Model.TongChoDo > 0
-        ? (int)((double)Model.ChoDangDung / Model.TongChoDo * 100) : 0;
+    var dtJson    = "[" + string.Join(",", Model.DoanhThuNgay.Select(v => v.ToString(System.Globalization.CultureInfo.InvariantCulture))) + "]";
+    var luotJson  = "[" + string.Join(",", Model.LuotDoNgay) + "]";
+    var labelJson = "[" + string.Join(",", Model.NhanNgay.Select(n => $"'{n}'")) + "]";
 }
 
-<!-- STAT CARDS -->
+@section Styles {
+<style>
+/* ── Stat cards ── */
+.kpi-card {
+    border: none; border-radius: 16px;
+    padding: 20px 22px;
+    display: flex; align-items: center; gap: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    transition: transform .2s, box-shadow .2s;
+    background: #fff;
+}
+.kpi-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+.kpi-icon {
+    width: 52px; height: 52px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; flex-shrink: 0;
+}
+.kpi-val  { font-size: 1.7rem; font-weight: 800; line-height: 1; }
+.kpi-lbl  { font-size: .78rem; color: #6b7280; margin-top: 3px; }
+.kpi-sub  { font-size: .72rem; margin-top: 5px; }
+
+/* ── Section title ── */
+.sec-title { font-size: .8rem; font-weight: 700; text-transform: uppercase;
+             letter-spacing: .08em; color: #6b7280; margin-bottom: 12px; }
+
+/* ── Progress bar ── */
+.prog-bar { height: 6px; border-radius: 3px; background: #e5e7eb; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 3px; transition: width .6s; }
+
+/* ── Activity feed ── */
+.feed-icon {
+    width: 34px; height: 34px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .8rem; flex-shrink: 0;
+}
+
+/* ── Tình trạng bãi ── */
+.bai-row { padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+.bai-row:last-child { border-bottom: none; }
+
+/* ── Donut ── */
+.donut-wrap { position: relative; width: 120px; height: 120px; }
+.donut-label {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    text-align: center; line-height: 1.2;
+}
+</style>
+}
+
+<!-- ══════════════════════════════════════════════════════
+     ROW 1 — KPI CARDS
+══════════════════════════════════════════════════════ -->
 <div class="row g-3 mb-4">
-    <div class="col-xl-3 col-md-6">
-        <div class="stat-card bg-white">
-            <div class="stat-icon" style="background:#ede9fe;color:#7c3aed"><i class="fa-solid fa-users"></i></div>
+    <!-- Tài khoản -->
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:#ede9fe;color:#7c3aed">
+                <i class="fa-solid fa-users"></i>
+            </div>
             <div>
-                <div class="stat-value">@Model.TongKhachHang.ToString("N0")</div>
-                <div class="stat-label">Tổng Khách Hàng</div>
-                <div class="stat-change text-muted">+ @Model.TongChuBai chủ bãi xe</div>
+                <div class="kpi-val">@Model.TongTaiKhoan</div>
+                <div class="kpi-lbl">Tài Khoản</div>
+                <div class="kpi-sub text-muted">
+                    @Model.TongKhachHang KH · @Model.TongChuBai CB
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6">
-        <div class="stat-card bg-white">
-            <div class="stat-icon" style="background:#dbeafe;color:#2563eb"><i class="fa-solid fa-warehouse"></i></div>
+    <!-- Bãi hoạt động -->
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:#dbeafe;color:#2563eb">
+                <i class="fa-solid fa-warehouse"></i>
+            </div>
             <div>
-                <div class="stat-value">@Model.TongBaiHoatDong</div>
-                <div class="stat-label">Bãi Đỗ Xe Hoạt Động</div>
-                <div class="stat-change text-warning">@Model.DonChoduyet.Count đơn chờ duyệt</div>
+                <div class="kpi-val">@Model.TongBaiHoatDong</div>
+                <div class="kpi-lbl">Bãi Hoạt Động</div>
+                <div class="kpi-sub text-muted">
+                    @Model.TongBaiTamDong tạm đóng · @Model.TongBaiBaoTri bảo trì
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6">
-        <div class="stat-card bg-white">
-            <div class="stat-icon" style="background:#dcfce7;color:#16a34a"><i class="fa-solid fa-money-bill-wave"></i></div>
+    <!-- Lượt đỗ hôm nay -->
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:#dcfce7;color:#16a34a">
+                <i class="fa-solid fa-car"></i>
+            </div>
             <div>
-                <div class="stat-value">@((Model.DoanhThuThang / 1_000_000).ToString("F1"))M</div>
-                <div class="stat-label">Doanh Thu Tháng (VNĐ)</div>
-                <div class="stat-change text-success">Hoa hồng: @((Model.HoaHongThang / 1_000).ToString("N0"))K</div>
+                <div class="kpi-val">@Model.LuotDoHomNay</div>
+                <div class="kpi-lbl">Lượt Đỗ Hôm Nay</div>
+                <div class="kpi-sub text-success">@Model.DangDoHienTai đang đỗ</div>
             </div>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6">
-        <div class="stat-card bg-white">
-            <div class="stat-icon" style="background:#fee2e2;color:#dc2626"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    <!-- Doanh thu tháng -->
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:#fef9c3;color:#ca8a04">
+                <i class="fa-solid fa-sack-dollar"></i>
+            </div>
             <div>
-                <div class="stat-value">@Model.TongKhieuNaiCho</div>
-                <div class="stat-label">Khiếu Nại Chờ Xử Lý</div>
-                <div class="stat-change">
+                <div class="kpi-val">@((Model.DoanhThuThang/1_000_000).ToString("F1"))M</div>
+                <div class="kpi-lbl">Doanh Thu Tháng</div>
+                <div class="kpi-sub text-warning">HH: @((Model.HoaHongThang/1_000).ToString("N0"))K</div>
+            </div>
+        </div>
+    </div>
+    <!-- Giao dịch -->
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:#f0fdf4;color:#15803d">
+                <i class="fa-solid fa-receipt"></i>
+            </div>
+            <div>
+                <div class="kpi-val">@Model.TongGiaoDich</div>
+                <div class="kpi-lbl">Giao Dịch Tháng</div>
+                <div class="kpi-sub text-muted">@Model.HoanThanh hoàn thành hôm nay</div>
+            </div>
+        </div>
+    </div>
+    <!-- Khiếu nại -->
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:#fee2e2;color:#dc2626">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <div class="kpi-val @(Model.TongKhieuNaiCho > 0 ? "text-danger" : "")">
+                    @Model.TongKhieuNaiCho
+                </div>
+                <div class="kpi-lbl">Khiếu Nại Chờ</div>
+                <div class="kpi-sub">
                     @if (Model.TongKhieuNaiCho > 0)
-                    {
-                        <span class="text-danger"><i class="fa-solid fa-circle-exclamation"></i> Cần xử lý</span>
-                    }
+                    { <a href="/Admin/KhieuNai" class="text-danger">Xử lý ngay →</a> }
                     else
-                    {
-                        <span class="text-success"><i class="fa-solid fa-check"></i> Không có</span>
-                    }
+                    { <span class="text-success">Không có</span> }
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- ══════════════════════════════════════════════════════
+     ROW 2 — BIỂU ĐỒ + TỶ LỆ LẤP ĐẦY
+══════════════════════════════════════════════════════ -->
 <div class="row g-3 mb-4">
-    <!-- Đơn đăng ký chờ duyệt -->
+    <!-- Biểu đồ doanh thu 7 ngày -->
     <div class="col-xl-8">
-        <div class="card card-admin">
+        <div class="card card-admin h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="fa-solid fa-clock-rotate-left me-2 text-warning"></i>Đơn Đăng Ký Bãi Xe Chờ Duyệt</span>
-                <a href="/Admin/BaiDoXe" class="btn btn-sm btn-outline-primary">Xem tất cả</a>
+                <span><i class="fa-solid fa-chart-area me-2 text-primary"></i>Doanh Thu & Lượt Đỗ — 7 Ngày Gần Nhất</span>
+                <a href="/Admin/DoanhThu" class="btn btn-sm btn-outline-primary">Chi tiết</a>
             </div>
-            <div class="card-body p-0">
-                @if (!Model.DonChoduyet.Any())
-                {
-                    <div class="text-center py-4 text-muted">
-                        <i class="fa-solid fa-check-circle fa-2x mb-2 text-success opacity-50"></i>
-                        <p class="mb-0">Không có đơn nào chờ duyệt</p>
+            <div class="card-body">
+                <canvas id="chartMain" height="90"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tỷ lệ lấp đầy + trạng thái -->
+    <div class="col-xl-4">
+        <div class="card card-admin h-100">
+            <div class="card-header">
+                <i class="fa-solid fa-gauge me-2 text-success"></i>Tỷ Lệ Lấp Đầy Bãi
+            </div>
+            <div class="card-body d-flex flex-column align-items-center justify-content-center py-3">
+                <!-- Donut chart -->
+                <div class="donut-wrap mb-3">
+                    <canvas id="chartDonut" width="120" height="120"></canvas>
+                    <div class="donut-label">
+                        <div style="font-size:1.5rem;font-weight:800;color:#4f46e5">@Model.PhanTramDay%</div>
+                        <div style="font-size:.7rem;color:#6b7280">Lấp đầy</div>
                     </div>
-                }
-                else
-                {
-                    <table class="table admin-table mb-0">
-                        <thead>
-                            <tr>
-                                <th>Tên Chủ Bãi</th>
-                                <th>Tên Bãi</th>
-                                <th>Địa Chỉ</th>
-                                <th>Ngày Gửi</th>
-                                <th>Thao Tác</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var don in Model.DonChoduyet)
-                            {
-                                <tr>
-                                    <td>
-                                        <div class="fw-semibold">@don.TenChuBai</div>
-                                        <small class="text-muted">@don.Email</small>
-                                    </td>
-                                    <td>@don.TenBai</td>
-                                    <td><small>@don.DiaChiChiTiet, @don.XaPhuong?.TenXa</small></td>
-                                    <td>@don.NgayGui.ToString("dd/MM/yyyy")</td>
-                                    <td>
-                                        <form method="post" action="/Admin/BaiDoXe/DuyetDon" class="d-inline">
-                                            <input type="hidden" name="id" value="@don.ID" />
-                                            <button class="btn btn-sm btn-success me-1"><i class="fa-solid fa-check"></i> Duyệt</button>
-                                        </form>
-                                        <a href="/Admin/BaiDoXe" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-xmark"></i></a>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
+                </div>
+                <div class="w-100">
+                    <div class="d-flex justify-content-between mb-1" style="font-size:.8rem">
+                        <span class="text-muted">Đang sử dụng</span>
+                        <span class="fw-semibold">@Model.ChoDangDung / @Model.TongChoDo chỗ</span>
+                    </div>
+                    <div class="prog-bar mb-3">
+                        <div class="prog-fill" style="width:@Model.PhanTramDay%;background:#4f46e5"></div>
+                    </div>
+                    <div class="row g-2 text-center">
+                        <div class="col-4">
+                            <div class="p-2 rounded" style="background:#dcfce7">
+                                <div class="fw-bold text-success">@Model.TongBaiHoatDong</div>
+                                <small class="text-muted" style="font-size:.7rem">Hoạt động</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded" style="background:#fef9c3">
+                                <div class="fw-bold text-warning">@Model.TongBaiTamDong</div>
+                                <small class="text-muted" style="font-size:.7rem">Tạm đóng</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded" style="background:#f1f5f9">
+                                <div class="fw-bold text-secondary">@Model.TongBaiBaoTri</div>
+                                <small class="text-muted" style="font-size:.7rem">Bảo trì</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     ROW 3 — LƯỢT ĐỖ THEO NGÀY + HOẠT ĐỘNG GẦN ĐÂY
+══════════════════════════════════════════════════════ -->
+<div class="row g-3 mb-4">
+    <!-- Lượt đỗ theo ngày (bar) -->
+    <div class="col-xl-5">
+        <div class="card card-admin h-100">
+            <div class="card-header">
+                <i class="fa-solid fa-chart-bar me-2 text-indigo"></i>Lượt Đỗ Xe Theo Ngày
+            </div>
+            <div class="card-body">
+                <canvas id="chartLuot" height="130"></canvas>
             </div>
         </div>
     </div>
@@ -116,7 +236,9 @@
     <!-- Hoạt động gần đây -->
     <div class="col-xl-4">
         <div class="card card-admin h-100">
-            <div class="card-header"><i class="fa-solid fa-bolt me-2 text-warning"></i>Đặt Chỗ Gần Đây</div>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fa-solid fa-bolt me-2 text-warning"></i>Hoạt Động Gần Đây</span>
+            </div>
             <div class="card-body p-0">
                 @if (!Model.HoatDongGanDay.Any())
                 {
@@ -125,18 +247,59 @@
                 else
                 {
                     <ul class="list-group list-group-flush">
-                        @foreach (var dc in Model.HoatDongGanDay)
+                        @foreach (var hd in Model.HoatDongGanDay)
                         {
                             <li class="list-group-item px-4 py-3">
                                 <div class="d-flex gap-3 align-items-start">
-                                    <div class="stat-icon flex-shrink-0" style="width:36px;height:36px;background:#dbeafe;color:#2563eb;border-radius:8px;font-size:.85rem">
-                                        <i class="fa-solid fa-car"></i>
+                                    <div class="feed-icon" style="background:@hd.MauNen;color:@hd.MauChu">
+                                        <i class="fa-solid @hd.Icon"></i>
                                     </div>
-                                    <div>
-                                        <div class="fw-semibold" style="font-size:.85rem">@dc.KhachHang.HoTen</div>
-                                        <div class="text-muted" style="font-size:.78rem">@dc.BienSoXe — @dc.TrangThai</div>
-                                        <div class="text-muted" style="font-size:.75rem">@dc.NgayDat.ToString("dd/MM HH:mm")</div>
+                                    <div class="flex-fill">
+                                        <div class="fw-semibold" style="font-size:.84rem">@hd.TieuDe</div>
+                                        <div class="text-muted" style="font-size:.78rem">@hd.MoTa</div>
                                     </div>
+                                    <small class="text-muted" style="font-size:.72rem;white-space:nowrap">@hd.ThoiGian</small>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Đơn chờ duyệt -->
+    <div class="col-xl-3">
+        <div class="card card-admin h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fa-solid fa-clock me-2 text-warning"></i>Chờ Duyệt</span>
+                <a href="/Admin/BaiDoXe" class="btn btn-sm btn-outline-warning">Xem tất cả</a>
+            </div>
+            <div class="card-body p-0">
+                @if (!Model.DonChoduyet.Any())
+                {
+                    <div class="text-center py-4 text-muted">
+                        <i class="fa-solid fa-check-circle fa-2x mb-2 text-success opacity-50"></i>
+                        <p class="mb-0" style="font-size:.85rem">Không có đơn chờ</p>
+                    </div>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var don in Model.DonChoduyet)
+                        {
+                            <li class="list-group-item px-4 py-3">
+                                <div class="fw-semibold" style="font-size:.84rem">@don.TenBai</div>
+                                <div class="text-muted" style="font-size:.78rem">@don.TenChuBai</div>
+                                <div class="d-flex gap-1 mt-2">
+                                    <form method="post" action="/Admin/BaiDoXe/DuyetDon" class="d-inline">
+                                        <input type="hidden" name="id" value="@don.ID" />
+                                        <button class="btn btn-xs btn-success" style="font-size:.72rem;padding:2px 8px">
+                                            <i class="fa-solid fa-check"></i> Duyệt
+                                        </button>
+                                    </form>
+                                    <a href="/Admin/BaiDoXe" class="btn btn-xs btn-outline-secondary"
+                                       style="font-size:.72rem;padding:2px 8px">Chi tiết</a>
                                 </div>
                             </li>
                         }
@@ -147,49 +310,182 @@
     </div>
 </div>
 
-<!-- Thống kê nhanh -->
+<!-- ══════════════════════════════════════════════════════
+     ROW 4 — TOP 5 BÃI + TÌNH TRẠNG BÃI
+══════════════════════════════════════════════════════ -->
 <div class="row g-3">
-    <div class="col-md-4">
+    <!-- Top 5 bãi xe -->
+    <div class="col-xl-6">
         <div class="card card-admin">
-            <div class="card-header"><i class="fa-solid fa-car me-2 text-primary"></i>Lượt Đỗ Xe Hôm Nay</div>
-            <div class="card-body text-center py-4">
-                <div style="font-size:2.5rem;font-weight:700;color:#4f46e5">@Model.LuotDoHomNay</div>
-                <div class="text-muted">lượt đặt chỗ</div>
-                <div class="mt-3 d-flex justify-content-around text-center">
-                    <div><div class="fw-bold text-primary">@Model.DangDoHienTai</div><small class="text-muted">Đang đỗ</small></div>
-                    <div><div class="fw-bold text-warning">@Model.DaDatCho</div><small class="text-muted">Đã đặt</small></div>
-                </div>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fa-solid fa-trophy me-2 text-warning"></i>Top 5 Bãi Xe Doanh Thu Cao</span>
+                <span class="badge bg-light text-muted border">Tháng @DateTime.Now.Month/@DateTime.Now.Year</span>
+            </div>
+            <div class="card-body">
+                @if (!Model.TopBaiXe.Any())
+                {
+                    <div class="text-center py-3 text-muted">Chưa có dữ liệu doanh thu.</div>
+                }
+                else
+                {
+                    @for (int i = 0; i < Model.TopBaiXe.Count; i++)
+                    {
+                        var item = Model.TopBaiXe[i];
+                        var medals = new[] { "🥇", "🥈", "🥉", "4️⃣", "5️⃣" };
+                        var barColors = new[] { "#4f46e5", "#0891b2", "#16a34a", "#ca8a04", "#9ca3af" };
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <div style="font-size:1.2rem;width:28px;text-align:center">@medals[i]</div>
+                            <div class="flex-fill">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <div>
+                                        <span class="fw-semibold" style="font-size:.88rem">@item.TenBai</span>
+                                        <small class="text-muted ms-1">· @item.TenChuBai</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="fw-bold" style="font-size:.88rem;color:@barColors[i]">
+                                            @((item.DoanhThu/1_000).ToString("N0"))K
+                                        </span>
+                                        <small class="text-muted d-block" style="font-size:.72rem">@item.SoLuot lượt</small>
+                                    </div>
+                                </div>
+                                <div class="prog-bar">
+                                    <div class="prog-fill" style="width:@item.PhanTramDay%;background:@barColors[i]"></div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+
+    <!-- Tình trạng bãi đỗ xe -->
+    <div class="col-xl-6">
         <div class="card card-admin">
-            <div class="card-header"><i class="fa-solid fa-circle-check me-2 text-success"></i>Tỷ Lệ Lấp Đầy Bãi</div>
-            <div class="card-body text-center py-4">
-                <div style="font-size:2.5rem;font-weight:700;color:#16a34a">@phanTramDay%</div>
-                <div class="text-muted">trung bình toàn hệ thống</div>
-                <div class="progress mt-3" style="height:8px;border-radius:4px">
-                    <div class="progress-bar bg-success" style="width:@phanTramDay%"></div>
-                </div>
-                <small class="text-muted mt-2 d-block">@Model.ChoDangDung / @Model.TongChoDo chỗ đang sử dụng</small>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fa-solid fa-map-location-dot me-2 text-primary"></i>Tình Trạng Bãi Đỗ Xe</span>
+                <a href="/Admin/BaiDoXe" class="btn btn-sm btn-outline-primary">Quản lý</a>
             </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card card-admin">
-            <div class="card-header"><i class="fa-solid fa-percent me-2 text-warning"></i>Hoa Hồng Thu Được</div>
-            <div class="card-body text-center py-4">
-                <div style="font-size:2.5rem;font-weight:700;color:#d97706">@((Model.HoaHongThang / 1_000).ToString("N0"))K</div>
-                <div class="text-muted">VNĐ tháng @DateTime.Now.Month/@DateTime.Now.Year</div>
-                <div class="mt-3 d-flex justify-content-around text-center">
-                    <div><div class="fw-bold">@Model.TongBaiHoatDong bãi</div><small class="text-muted">Đang hoạt động</small></div>
-                    <div><div class="fw-bold text-success">@Model.TongGiaoDich</div><small class="text-muted">Giao dịch</small></div>
-                </div>
+            <div class="card-body p-0">
+                @if (!Model.DanhSachBai.Any())
+                {
+                    <div class="text-center py-4 text-muted">Chưa có bãi xe nào.</div>
+                }
+                else
+                {
+                    <div class="px-4">
+                        @foreach (var bai in Model.DanhSachBai)
+                        {
+                            var (barColor, badgeCss) = bai.TrangThai switch {
+                                "Hoạt động" => ("#16a34a", "bg-success"),
+                                "Tạm đóng"  => ("#ca8a04", "bg-warning text-dark"),
+                                _           => ("#9ca3af", "bg-secondary")
+                            };
+                            <div class="bai-row">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge @badgeCss" style="font-size:.65rem">@bai.TrangThai</span>
+                                        <span class="fw-semibold" style="font-size:.85rem">@bai.TenBai</span>
+                                    </div>
+                                    <div class="text-end">
+                                        <span style="font-size:.82rem;font-weight:600;color:@barColor">
+                                            @bai.DangDung/@bai.SucChua
+                                        </span>
+                                        <small class="text-muted ms-1" style="font-size:.72rem">(@bai.PhanTramDay%)</small>
+                                    </div>
+                                </div>
+                                <div class="prog-bar">
+                                    <div class="prog-fill" style="width:@bai.PhanTramDay%;background:@barColor"></div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
             </div>
         </div>
     </div>
 </div>
 
-@functions {
-    int TongGiaoDich => Model.HoatDongGanDay.Count;
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const labels  = @Html.Raw(labelJson);
+const dtData  = @Html.Raw(dtJson);
+const luotData= @Html.Raw(luotJson);
+
+// ── Biểu đồ chính: doanh thu + lượt đỗ ──
+new Chart(document.getElementById('chartMain'), {
+    data: {
+        labels,
+        datasets: [
+            {
+                type: 'bar',
+                label: 'Doanh thu (nghìn đ)',
+                data: dtData,
+                backgroundColor: 'rgba(79,70,229,0.75)',
+                borderRadius: 6,
+                yAxisID: 'y'
+            },
+            {
+                type: 'line',
+                label: 'Lượt đỗ',
+                data: luotData,
+                borderColor: '#16a34a',
+                backgroundColor: 'rgba(22,163,74,.1)',
+                tension: .4,
+                fill: true,
+                pointRadius: 4,
+                yAxisID: 'y1'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { position: 'top' } },
+        scales: {
+            y:  { beginAtZero: true, position: 'left',
+                  title: { display: true, text: 'Nghìn đồng' } },
+            y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false },
+                  title: { display: true, text: 'Lượt' } }
+        }
+    }
+});
+
+// ── Biểu đồ lượt đỗ theo ngày ──
+new Chart(document.getElementById('chartLuot'), {
+    type: 'bar',
+    data: {
+        labels,
+        datasets: [{
+            label: 'Lượt đỗ xe',
+            data: luotData,
+            backgroundColor: labels.map((_, i) =>
+                i === labels.length - 1 ? '#4f46e5' : 'rgba(79,70,229,0.4)'),
+            borderRadius: 6
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+    }
+});
+
+// ── Donut tỷ lệ lấp đầy ──
+new Chart(document.getElementById('chartDonut'), {
+    type: 'doughnut',
+    data: {
+        datasets: [{
+            data: [@Model.ChoDangDung, @(Model.TongChoDo - Model.ChoDangDung)],
+            backgroundColor: ['#4f46e5', '#e5e7eb'],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        cutout: '72%',
+        plugins: { legend: { display: false }, tooltip: { enabled: false } }
+    }
+});
+</script>
 }
