@@ -1,0 +1,371 @@
+@model WebApplication1.Areas.Admin.Models.ChiTietNguoiDungViewModel
+@{
+    ViewData["Title"] = "Chi Tiết Người Dùng";
+    var kh = Model.KhachHang;
+    var tk = kh.TaiKhoan;
+}
+
+<!-- BREADCRUMB -->
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/Admin/NguoiDung">Người Dùng</a></li>
+        <li class="breadcrumb-item active">@kh.HoTen</li>
+    </ol>
+</nav>
+
+<div class="row g-3">
+    <!-- CỘT TRÁI: Thông tin tài khoản -->
+    <div class="col-xl-4">
+
+        <!-- Profile Card -->
+        <div class="card card-admin mb-3">
+            <div class="card-body text-center py-4">
+                <div class="mx-auto mb-3 d-flex align-items-center justify-content-center"
+                     style="width:72px;height:72px;border-radius:50%;background:@(tk.TrangThai?"#4f46e5":"#9ca3af");color:#fff;font-size:1.8rem;font-weight:700">
+                    @kh.HoTen.Substring(0,1).ToUpper()
+                </div>
+                <h5 class="fw-bold mb-1">@kh.HoTen</h5>
+                <div class="text-muted mb-2" style="font-size:.85rem">@@kh.TaiKhoan.TenDangNhap</div>
+
+                @if (kh.LoaiKH == "VIP")
+                { <span class="badge mb-2" style="background:#fbbf24;color:#78350f;font-size:.8rem"><i class="fa-solid fa-star me-1"></i>VIP</span> }
+                else if (kh.LoaiKH == "Thường xuyên")
+                { <span class="badge bg-info text-dark mb-2">Thường xuyên</span> }
+                else
+                { <span class="badge bg-secondary mb-2">Vãng lai</span> }
+
+                <div class="mb-3">
+                    @if (tk.TrangThai)
+                    { <span class="badge bg-success px-3 py-2"><i class="fa-solid fa-circle me-1" style="font-size:.5rem"></i>Tài khoản hoạt động</span> }
+                    else
+                    { <span class="badge bg-danger px-3 py-2"><i class="fa-solid fa-lock me-1"></i>Tài khoản đã khóa</span> }
+                </div>
+
+                <div class="d-flex gap-2 justify-content-center">
+                    @if (tk.TrangThai)
+                    {
+                        <button class="btn btn-danger btn-sm px-3"
+                                onclick="moModalKhoa(@tk.ID, '@kh.HoTen')">
+                            <i class="fa-solid fa-lock me-1"></i>Khóa TK
+                        </button>
+                    }
+                    else
+                    {
+                        <form method="post" action="/Admin/NguoiDung/KhoaTaiKhoan">
+                            <input type="hidden" name="idTaiKhoan" value="@tk.ID" />
+                            <input type="hidden" name="returnUrl" value="/Admin/NguoiDung/ChiTiet/@kh.ID" />
+                            <button class="btn btn-success btn-sm px-3">
+                                <i class="fa-solid fa-lock-open me-1"></i>Mở Khóa
+                            </button>
+                        </form>
+                    }
+                    <a href="/Admin/NguoiDung" class="btn btn-outline-secondary btn-sm">
+                        <i class="fa-solid fa-arrow-left me-1"></i>Quay lại
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thông tin cá nhân -->
+        <div class="card card-admin mb-3">
+            <div class="card-header"><i class="fa-solid fa-id-card me-2 text-primary"></i>Thông Tin Cá Nhân</div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between px-4 py-2">
+                        <span class="text-muted" style="font-size:.85rem">SĐT</span>
+                        <span class="fw-semibold" style="font-size:.85rem">@(kh.SDT ?? "—")</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-4 py-2">
+                        <span class="text-muted" style="font-size:.85rem">Email</span>
+                        <span class="fw-semibold" style="font-size:.85rem">@(kh.Email ?? "—")</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-4 py-2">
+                        <span class="text-muted" style="font-size:.85rem">CCCD</span>
+                        <span class="fw-semibold" style="font-size:.85rem">@(kh.CCCD ?? "—")</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between px-4 py-2">
+                        <span class="text-muted" style="font-size:.85rem">Bằng lái xe</span>
+                        <span class="fw-semibold" style="font-size:.85rem">@(kh.BangLaiXe ?? "—")</span>
+                    </li>
+                    <li class="list-group-item px-4 py-2">
+                        <span class="text-muted d-block" style="font-size:.85rem">Địa chỉ</span>
+                        <span class="fw-semibold" style="font-size:.85rem">
+                            @(kh.DiaChiChiTiet != null ? kh.DiaChiChiTiet + ", " : "")
+                            @(kh.XaPhuong?.TenXa ?? "")
+                            @(kh.XaPhuong?.QuanHuyen?.TenHuyen != null ? ", " + kh.XaPhuong.QuanHuyen.TenHuyen : "")
+                            @(kh.XaPhuong?.QuanHuyen?.TinhThanh?.TenTinh != null ? ", " + kh.XaPhuong.QuanHuyen.TinhThanh.TenTinh : "")
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Thống kê nhanh -->
+        <div class="card card-admin">
+            <div class="card-header"><i class="fa-solid fa-chart-pie me-2 text-success"></i>Thống Kê</div>
+            <div class="card-body">
+                <div class="row g-2 text-center">
+                    <div class="col-6">
+                        <div class="p-3 rounded" style="background:#f0fdf4">
+                            <div class="fw-bold fs-4 text-success">@Model.TongDatCho</div>
+                            <small class="text-muted">Tổng đặt chỗ</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded" style="background:#eff6ff">
+                            <div class="fw-bold fs-4 text-primary">@Model.DatChoHoanThanh</div>
+                            <small class="text-muted">Hoàn thành</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded" style="background:#fef2f2">
+                            <div class="fw-bold fs-4 text-danger">@Model.DatChoHuy</div>
+                            <small class="text-muted">Đã hủy</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 rounded" style="background:#fefce8">
+                            <div class="fw-bold fs-4 text-warning">@((Model.TongChiTieu/1000).ToString("N0"))K</div>
+                            <small class="text-muted">Chi tiêu (VNĐ)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CỘT PHẢI -->
+    <div class="col-xl-8">
+
+        <!-- CẢNH BÁO HÀNH VI BẤT THƯỜNG -->
+        @if (Model.CanhBaoHanhVi.Any())
+        {
+            <div class="card card-admin mb-3" style="border-left:4px solid #dc2626">
+                <div class="card-header" style="background:#fef2f2">
+                    <i class="fa-solid fa-triangle-exclamation me-2 text-danger"></i>
+                    <span class="text-danger fw-semibold">Cảnh Báo Hành Vi Bất Thường</span>
+                </div>
+                <div class="card-body py-3">
+                    @foreach (var cb in Model.CanhBaoHanhVi)
+                    {
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fa-solid fa-circle-exclamation text-danger"></i>
+                            <span style="font-size:.88rem">@cb</span>
+                        </div>
+                    }
+                    <div class="mt-3">
+                        <button class="btn btn-danger btn-sm"
+                                onclick="moModalKhoa(@tk.ID, '@kh.HoTen')">
+                            <i class="fa-solid fa-lock me-1"></i>Khóa tài khoản spam
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card card-admin mb-3" style="border-left:4px solid #16a34a">
+                <div class="card-body py-3 d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-shield-check text-success fs-5"></i>
+                    <span class="text-success fw-semibold" style="font-size:.88rem">Không phát hiện hành vi bất thường</span>
+                </div>
+            </div>
+        }
+
+        <!-- LỊCH SỬ ĐẶT CHỖ -->
+        <div class="card card-admin mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i>Lịch Sử Đặt Chỗ</span>
+                <span class="badge bg-primary">@Model.TongDatCho lượt</span>
+            </div>
+            <div class="card-body p-0">
+                @if (!Model.LichSuDatCho.Any())
+                {
+                    <div class="text-center py-4 text-muted">Chưa có lịch sử đặt chỗ.</div>
+                }
+                else
+                {
+                    <table class="table admin-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Bãi Xe / Chỗ Đỗ</th>
+                                <th>Biển Số</th>
+                                <th>Thời Gian</th>
+                                <th>Trạng Thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var dc in Model.LichSuDatCho)
+                            {
+                                <tr>
+                                    <td class="text-muted">#@dc.ID</td>
+                                    <td>
+                                        <div class="fw-semibold" style="font-size:.85rem">
+                                            @(dc.ChoDauXe?.KhuVuc?.BaiXe?.TenBai ?? "—")
+                                        </div>
+                                        <small class="text-muted">Chỗ: @(dc.ChoDauXe?.TenChoDau ?? "—")</small>
+                                    </td>
+                                    <td><span class="badge bg-light text-dark border">@dc.BienSoXe</span></td>
+                                    <td>
+                                        <div style="font-size:.82rem">@dc.TgianBatDau.ToString("dd/MM HH:mm")</div>
+                                        <small class="text-muted">→ @dc.TgianKetThuc.ToString("dd/MM HH:mm")</small>
+                                    </td>
+                                    <td>
+                                        @switch (dc.TrangThai)
+                                        {
+                                            case "Hoàn thành":
+                                                <span class="badge bg-success">Hoàn thành</span>
+                                                break;
+                                            case "Đã hủy":
+                                                <span class="badge bg-danger">Đã hủy</span>
+                                                break;
+                                            case "Đang đỗ":
+                                                <span class="badge bg-primary">Đang đỗ</span>
+                                                break;
+                                            case "Quá hạn":
+                                                <span class="badge bg-warning text-dark">Quá hạn</span>
+                                                break;
+                                            default:
+                                                <span class="badge bg-secondary">@dc.TrangThai</span>
+                                                break;
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+
+        <!-- KHIẾU NẠI -->
+        <div class="card card-admin">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fa-solid fa-flag me-2 text-danger"></i>Khiếu Nại</span>
+                @if (Model.KhieuNais.Any())
+                { <span class="badge bg-danger">@Model.KhieuNais.Count</span> }
+            </div>
+            <div class="card-body p-0">
+                @if (!Model.KhieuNais.Any())
+                {
+                    <div class="text-center py-4 text-muted">Chưa có khiếu nại nào.</div>
+                }
+                else
+                {
+                    <table class="table admin-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Tiêu Đề</th>
+                                <th>Bãi Xe</th>
+                                <th>Ngày Gửi</th>
+                                <th>Trạng Thái</th>
+                                <th>Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var kn in Model.KhieuNais)
+                            {
+                                <tr>
+                                    <td style="font-size:.85rem">@kn.TieuDe</td>
+                                    <td><small>@kn.BaiXe?.TenBai</small></td>
+                                    <td><small>@kn.NgayGui.ToString("dd/MM/yyyy")</small></td>
+                                    <td>
+                                        @switch (kn.TrangThai)
+                                        {
+                                            case "Chờ xử lý":
+                                                <span class="badge bg-warning text-dark">Chờ xử lý</span>
+                                                break;
+                                            case "Đang xử lý":
+                                                <span class="badge bg-primary">Đang xử lý</span>
+                                                break;
+                                            case "Đã giải quyết":
+                                                <span class="badge bg-success">Đã giải quyết</span>
+                                                break;
+                                            default:
+                                                <span class="badge bg-secondary">@kn.TrangThai</span>
+                                                break;
+                                        }
+                                    </td>
+                                    <td>
+                                        <a href="/Admin/KhieuNai" class="btn btn-sm btn-outline-primary">
+                                            <i class="fa-solid fa-gavel"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL KHÓA -->
+<div class="modal fade" id="modalKhoa" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" action="/Admin/NguoiDung/KhoaTaiKhoan">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="stat-icon" style="width:40px;height:40px;background:#fee2e2;color:#dc2626;border-radius:10px">
+                            <i class="fa-solid fa-lock"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title mb-0">Khóa Tài Khoản</h5>
+                            <small class="text-muted" id="modalKhoaTen"></small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="idTaiKhoan" id="modalKhoaId" />
+                    <input type="hidden" name="returnUrl" value="/Admin/NguoiDung/ChiTiet/@kh.ID" />
+                    <label class="form-label fw-semibold">Lý do khóa <span class="text-danger">*</span></label>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <button type="button" class="btn btn-sm btn-outline-secondary lydo-btn"
+                                data-val="Vi phạm điều khoản sử dụng">Vi phạm điều khoản</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary lydo-btn"
+                                data-val="Spam đặt chỗ nhiều lần">Spam đặt chỗ</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary lydo-btn"
+                                data-val="Hành vi gian lận thanh toán">Gian lận thanh toán</button>
+                    </div>
+                    <textarea name="lyDo" id="lyDoInput" class="form-control" rows="3"
+                              placeholder="Nhập lý do khóa..." required></textarea>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-danger px-4">
+                        <i class="fa-solid fa-lock me-1"></i>Xác Nhận Khóa
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Styles {
+<style>
+    .lydo-btn.active { background:#4f46e5;color:#fff;border-color:#4f46e5; }
+</style>
+}
+
+@section Scripts {
+<script>
+    function moModalKhoa(id, ten) {
+        document.getElementById('modalKhoaId').value = id;
+        document.getElementById('modalKhoaTen').textContent = ten;
+        document.getElementById('lyDoInput').value = '';
+        document.querySelectorAll('.lydo-btn').forEach(b => b.classList.remove('active'));
+        new bootstrap.Modal(document.getElementById('modalKhoa')).show();
+    }
+    document.querySelectorAll('.lydo-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.lydo-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('lyDoInput').value = btn.dataset.val;
+        });
+    });
+</script>
+}
