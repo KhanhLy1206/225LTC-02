@@ -594,20 +594,6 @@
                             </div>
                         </div>
                         <div class="device-actions">
-                            <button class="btn btn-sm btn-outline-primary device-btn py-2" 
-                                    id="btn-toggle-${device.id}" 
-                                    onclick="triggerBarrierAction(${device.id})" 
-                                    ${isError ? 'disabled' : ''}>
-                                ${device.lockState === 'Mở' ? '<i class="fa-solid fa-lock"></i> Đóng khóa' : '<i class="fa-solid fa-lock-open"></i> Mở khóa'}
-                            </button>
-                            <button class="btn btn-sm btn-light device-btn text-dark border py-2" 
-                                    id="btn-reset-${device.id}" 
-                                    onclick="triggerBarrierReset(${device.id})">
-                                <i class="fa-solid fa-arrows-rotate"></i> Reset
-                            </button>
-                            <button class="btn btn-sm btn-light device-btn text-primary border py-2" 
-                                    onclick="filterLogsBySpot('${device.lockCode}', '${device.name}')" 
-                                    title="Xem lịch sử điều khiển">
                                 <i class="fa-solid fa-clock-rotate-left"></i> Log
                             </button>
                         </div>
