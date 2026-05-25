@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApplication1.Areas.Customer.Controllers
 {
     [Area("Customer")]
+    [Authorize(Roles = "Khách hàng")]
     public class HomeController : Controller
     {
         // GET: /Customer/Home/Index (hoặc /Customer)

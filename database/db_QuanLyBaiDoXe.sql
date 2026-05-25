@@ -98,7 +98,6 @@ CREATE TABLE KhachHang (
     BangLaiXe   VARCHAR(20)         NULL,
     MaXa        VARCHAR(20)         NULL,
     DiaChiChiTiet NVARCHAR(255)     NULL,
-    LoaiKH      NVARCHAR(50)        NOT NULL DEFAULT N'Vãng lai',
 
     CONSTRAINT PK_KhachHang             PRIMARY KEY (ID),
     CONSTRAINT FK_KhachHang_TaiKhoan    FOREIGN KEY (IDTaiKhoan) REFERENCES TaiKhoan(ID),
@@ -108,8 +107,7 @@ CREATE TABLE KhachHang (
     CONSTRAINT UQ_KhachHang_BLX         UNIQUE (BangLaiXe),
     CONSTRAINT UQ_KhachHang_Email       UNIQUE (Email),
     CONSTRAINT CK_KhachHang_SDT         CHECK (SDT LIKE '[0-9]%' AND LEN(SDT) BETWEEN 10 AND 11),
-    CONSTRAINT CK_KhachHang_Email       CHECK (Email LIKE '%@%.%'),
-    CONSTRAINT CK_KhachHang_LoaiKH      CHECK (LoaiKH IN (N'Vãng lai', N'Thường xuyên', N'VIP'))
+    CONSTRAINT CK_KhachHang_Email       CHECK (Email LIKE '%@%.%')
 );
 GO
 
@@ -520,7 +518,7 @@ INSERT INTO TaiKhoan (IDVaiTro, TenDangNhap, MatKhau, AnhDaiDien, TrangThai) VAL
 GO
 
 -- 7. Thêm Khách hàng
-INSERT INTO KhachHang (IDTaiKhoan, HoTen, SDT, Email, CCCD, BangLaiXe, MaXa, DiaChiChiTiet, LoaiKH) VALUES
+INSERT INTO KhachHang (IDTaiKhoan, HoTen, SDT, Email, CCCD, BangLaiXe, MaXa, DiaChiChiTiet) VALUES
 (
     (SELECT ID FROM TaiKhoan WHERE TenDangNhap = 'khachhang01'), 
     N'Nguyễn Văn A', 
@@ -529,8 +527,7 @@ INSERT INTO KhachHang (IDTaiKhoan, HoTen, SDT, Email, CCCD, BangLaiXe, MaXa, Dia
     '123456789001', 
     'BLX001', 
     '8121', 
-    N'Số 12 Nguyễn Huệ', 
-    N'VIP'
+    N'Số 12 Nguyễn Huệ'
 ),
 (
     (SELECT ID FROM TaiKhoan WHERE TenDangNhap = 'khachhang02'), 
@@ -540,8 +537,7 @@ INSERT INTO KhachHang (IDTaiKhoan, HoTen, SDT, Email, CCCD, BangLaiXe, MaXa, Dia
     '123456789002', 
     'BLX002', 
     '4311', 
-    N'120 Bạch Đằng', 
-    N'Thường xuyên'
+    N'120 Bạch Đằng'
 );
 GO
 
