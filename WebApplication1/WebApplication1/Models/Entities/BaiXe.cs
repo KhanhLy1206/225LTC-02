@@ -76,7 +76,15 @@ namespace WebApplication1.Models.Entities
         public string? GhiChu { get; set; }
 
         // Navigation properties
+        [ForeignKey("IDChuBai")]
+        public virtual ChuBaiXe? ChuBaiXe { get; set; }
+
         [ForeignKey("MaXa")]
         public virtual XaPhuong? XaPhuong { get; set; }
+
+        public virtual ICollection<KhuVuc> KhuVucs { get; set; } = new List<KhuVuc>();
+        public virtual ICollection<BangGia> BangGias { get; set; } = new List<BangGia>();
+        public virtual ICollection<KhieuNai> KhieuNais { get; set; } = new List<KhieuNai>();
+        public virtual ICollection<DanhGiaBinhLuan> DanhGiaBinhLuans { get; set; } = new List<DanhGiaBinhLuan>();
     }
 }

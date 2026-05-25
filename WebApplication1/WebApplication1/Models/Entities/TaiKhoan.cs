@@ -30,7 +30,10 @@ namespace WebApplication1.Models.Entities
         [ForeignKey("IDVaiTro")]
         public VaiTro VaiTro { get; set; } = null!;
 
-        // Navigation property
-        public ICollection<KhachHang> KhachHangs { get; set; } = new List<KhachHang>();
+        public virtual KhachHang? KhachHang { get; set; }
+        public virtual ChuBaiXe? ChuBaiXe { get; set; }
+        public virtual Admin? Admin { get; set; }
+        public virtual ICollection<TinNhan> TinNhans { get; set; } = new List<TinNhan>();
+        public virtual ICollection<LogDieuKhienBarrier> LogDieuKhienBarriers { get; set; } = new List<LogDieuKhienBarrier>();
     }
 }

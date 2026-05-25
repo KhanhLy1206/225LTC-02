@@ -37,5 +37,11 @@ namespace WebApplication1.Models.Entities
 
         [ForeignKey("IDTaiKhoan")]
         public TaiKhoan TaiKhoan { get; set; } = null!;
+
+        [ForeignKey("MaXa")]
+        public virtual XaPhuong? XaPhuong { get; set; }
+
+        public virtual ICollection<DatCho> DatChos { get; set; } = new List<DatCho>();
+        public virtual ICollection<KhieuNai> KhieuNais { get; set; } = new List<KhieuNai>();
     }
 }
