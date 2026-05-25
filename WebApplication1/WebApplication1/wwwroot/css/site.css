@@ -599,4 +599,23 @@ html, body {
   color: var(--secondary) !important;
 }
 
+.text-warning {
+  color: #b45309 !important; /* Premium dark amber/brown-yellow for high contrast on light backgrounds */
+}
+.bg-warning.bg-opacity-20 {
+  background-color: rgba(217, 119, 6, 0.15) !important; /* Soft amber background */
+}
+.text-success {
+  color: #15803d !important; /* Dark green for readability */
+}
+.bg-success.bg-opacity-20 {
+  background-color: rgba(21, 128, 61, 0.12) !important; /* Soft green background */
+}
+.text-danger {
+  color: #b91c1c !important; /* Dark red for readability */
+}
+.bg-danger.bg-opacity-20 {
+  background-color: rgba(185, 28, 28, 0.1) !important; /* Soft red background */
+}
+
 
