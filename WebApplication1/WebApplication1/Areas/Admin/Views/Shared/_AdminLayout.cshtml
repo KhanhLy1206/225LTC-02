@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Admin | SmartParking</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --sidebar-bg: #1a1f2e;
+            --sidebar-hover: #2d3548;
+            --sidebar-active: #4f46e5;
+            --topbar-height: 60px;
+            --accent: #4f46e5;
+        }
+
+        body { background: #f0f2f5; font-family: 'Segoe UI', sans-serif; }
+
+        /* ===== SIDEBAR ===== */
+        #sidebar {
+            width: var(--sidebar-width);
+            min-height: 100vh;
+            background: var(--sidebar-bg);
+            position: fixed;
+            top: 0; left: 0;
+            z-index: 1000;
+            transition: all .3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-brand {
+            height: var(--topbar-height);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            background: rgba(0,0,0,.2);
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-decoration: none;
+            gap: 10px;
+        }
+        .sidebar-brand i { color: #818cf8; font-size: 1.4rem; }
+
+        .sidebar-menu { padding: 16px 0; flex: 1; }
+
+        .menu-label {
+            font-size: .65rem;
+            font-weight: 700;
+            letter-spacing: .1em;
+            color: #6b7280;
+            padding: 12px 20px 4px;
+            text-transform: uppercase;
+        }
+
+        .nav-item-admin a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            color: #9ca3af;
+            text-decoration: none;
+            font-size: .9rem;
+            border-left: 3px solid transparent;
+            transition: all .2s;
+        }
+        .nav-item-admin a:hover {
+            background: var(--sidebar-hover);
+            color: #fff;
+            border-left-color: #818cf8;
+        }
+        .nav-item-admin a.active {
+            background: rgba(79,70,229,.15);
+            color: #818cf8;
+            border-left-color: var(--sidebar-active);
+            font-weight: 600;
+        }
+        .nav-item-admin a i { width: 18px; text-align: center; font-size: .95rem; }
+
+        .badge-menu {
+            margin-left: auto;
+            font-size: .7rem;
+            padding: 2px 7px;
+            border-radius: 10px;
+        }
+
+        /* ===== TOPBAR ===== */
+        #topbar {
+            height: var(--topbar-height);
+            background: #fff;
+            position: fixed;
+            top: 0;
+            left: var(--sidebar-width);
+            right: 0;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.08);
+            gap: 16px;
+        }
+
+        .topbar-title { font-weight: 600; font-size: 1rem; color: #374151; flex: 1; }
+
+        .topbar-avatar {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: .85rem;
+            cursor: pointer;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        #main-content {
+            margin-left: var(--sidebar-width);
+            padding-top: var(--topbar-height);
+            min-height: 100vh;
+        }
+
+        .content-area { padding: 28px 28px; }
+
+        /* ===== CARDS ===== */
+        .stat-card {
+            border: none;
+            border-radius: 14px;
+            padding: 22px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.06);
+            transition: transform .2s;
+        }
+        .stat-card:hover { transform: translateY(-3px); }
+
+        .stat-icon {
+            width: 54px; height: 54px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .stat-value { font-size: 1.6rem; font-weight: 700; line-height: 1; }
+        .stat-label { font-size: .8rem; color: #6b7280; margin-top: 4px; }
+        .stat-change { font-size: .75rem; margin-top: 6px; }
+
+        /* ===== TABLE ===== */
+        .admin-table { border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+        .admin-table thead th { background: #f8fafc; font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; border: none; padding: 14px 16px; }
+        .admin-table tbody td { padding: 13px 16px; vertical-align: middle; border-color: #f1f5f9; font-size: .88rem; }
+        .admin-table tbody tr:hover { background: #f8fafc; }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header { margin-bottom: 24px; }
+        .page-header h4 { font-weight: 700; color: #111827; margin: 0; }
+        .page-header p { color: #6b7280; font-size: .88rem; margin: 4px 0 0; }
+
+        /* ===== MISC ===== */
+        .card-admin { border: none; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+        .card-admin .card-header { background: #fff; border-bottom: 1px solid #f1f5f9; padding: 16px 20px; font-weight: 600; border-radius: 14px 14px 0 0 !important; }
+    </style>
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+    <a class="sidebar-brand" href="/Admin/Dashboard">
+        <i class="fa-solid fa-square-parking"></i>
+        <span>SmartParking</span>
+    </a>
+
+    <div class="sidebar-menu">
+        <div class="menu-label">Tổng Quan</div>
+        <div class="nav-item-admin">
+            <a href="/Admin/Dashboard" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")">
+                <i class="fa-solid fa-gauge-high"></i> Tổng Quan
+            </a>
+        </div>
+
+        <div class="menu-label">Quản Lý</div>
+        <div class="nav-item-admin">
+            <a href="/Admin/NguoiDung" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "NguoiDung" ? "active" : "")">
+                <i class="fa-solid fa-users"></i> Người Dùng
+            </a>
+        </div>
+        <div class="nav-item-admin">
+            <a href="/Admin/BaiDoXe" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "BaiDoXe" ? "active" : "")">
+                <i class="fa-solid fa-warehouse"></i> Bãi Đỗ Xe
+                <span class="badge-menu badge bg-warning text-dark">2</span>
+            </a>
+        </div>
+        <div class="nav-item-admin">
+            <a href="/Admin/KhieuNai" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "KhieuNai" ? "active" : "")">
+                <i class="fa-solid fa-triangle-exclamation"></i> Khiếu Nại
+                <span class="badge-menu badge bg-danger">3</span>
+            </a>
+        </div>
+        <div class="nav-item-admin">
+            <a href="/Admin/DoanhThu" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "DoanhThu" ? "active" : "")">
+                <i class="fa-solid fa-chart-line"></i> Doanh Thu
+            </a>
+        </div>
+
+        <div class="menu-label">Hệ Thống</div>
+        <div class="nav-item-admin">
+            <a href="/Account/Logout">
+                <i class="fa-solid fa-right-from-bracket"></i> Đăng Xuất
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- TOPBAR -->
+<div id="topbar">
+    <span class="topbar-title">@ViewData["Title"]</span>
+    <i class="fa-regular fa-bell text-secondary fs-5 me-2" style="cursor:pointer"></i>
+    <div class="topbar-avatar">A</div>
+</div>
+
+<!-- MAIN -->
+<div id="main-content">
+    <div class="content-area">
+        @RenderBody()
+    </div>
+</div>
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
