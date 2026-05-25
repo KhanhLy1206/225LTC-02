@@ -107,6 +107,10 @@
                                     <strong class="text-dark"><i class="fa-solid fa-square-parking me-1 text-primary"></i> @item.SucChua chỗ đỗ</strong>
                                 </div>
                                 <div class="col-6 mb-2">
+                                    <span class="d-block small text-muted">Diện tích</span>
+                                    <strong class="text-dark"><i class="fa-solid fa-ruler-combined me-1 text-primary"></i> @item.DienTich.ToString("N0") m²</strong>
+                                </div>
+                                <div class="col-6 mb-2">
                                     <span class="d-block small text-muted">Chiết khấu hệ thống</span>
                                     <strong class="text-dark"><i class="fa-solid fa-percent me-1 text-primary"></i> @item.PhanTramChietKhau%</strong>
                                 </div>
@@ -150,14 +154,14 @@
                             <input type="text" class="form-control rounded-3" id="TenBai" name="TenBai" placeholder="Ví dụ: Bãi đỗ xe thông minh SPMS - Cống Quỳnh" required>
                         </div>
                         
-                        <!-- Số điện thoại & Giờ hoạt động (Mock/Lưu trữ bổ sung nếu cần) -->
+                        <!-- Hotline & Giờ hoạt động -->
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold text-dark" for="SDT">Số điện thoại liên hệ <span class="text-danger">*</span></label>
-                            <input type="tel" class="form-control rounded-3" id="SDT" name="SDT" placeholder="Ví dụ: 0987654321" required>
+                            <label class="form-label small fw-bold text-dark" for="SoDienThoai">Hotline bãi xe</label>
+                            <input type="tel" class="form-control rounded-3" id="SoDienThoai" name="SoDienThoai" placeholder="Ví dụ: 0987654321" maxlength="15">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold text-dark" for="GioHoatDong">Giờ hoạt động <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control rounded-3" id="GioHoatDong" name="GioHoatDong" placeholder="Ví dụ: 24/7 hoặc 06:00 - 23:30" required>
+                            <label class="form-label small fw-bold text-dark" for="GioHoatDong">Giờ hoạt động</label>
+                            <input type="text" class="form-control rounded-3" id="GioHoatDong" name="GioHoatDong" placeholder="Ví dụ: 24/7 hoặc 06:00 - 23:30" maxlength="100">
                         </div>
                         
                         <!-- Địa chỉ hành chính -->
@@ -199,10 +203,10 @@
                             <input type="number" class="form-control rounded-3" id="SucChua" name="SucChua" min="10" placeholder="Ví dụ: 50" required>
                         </div>
 
-                        <!-- Diện tích (m2) (Mock/Không lưu DB) -->
+                        <!-- Diện tích (m2) -->
                         <div class="col-md-3">
                             <label class="form-label small fw-bold text-dark" for="DienTich">Diện tích (m²) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control rounded-3" id="DienTich" name="DienTich" min="50" placeholder="Ví dụ: 500" required>
+                            <input type="number" class="form-control rounded-3" id="DienTich" name="DienTich" min="10" placeholder="Ví dụ: 500" required>
                         </div>
 
                         <!-- File Uploads -->

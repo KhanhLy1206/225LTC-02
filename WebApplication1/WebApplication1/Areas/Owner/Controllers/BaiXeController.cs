@@ -86,7 +86,7 @@ namespace WebApplication1.Areas.Owner.Controllers
 
         [HttpPost("Create")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(BaiXe model, IFormFile? HinhAnhFile)
+        public async Task<IActionResult> Create(BaiXe model, IFormFile? HinhAnhFile, IFormFile? GiayPhepKinhDoanhFile)
         {
             int ownerId = GetCurrentOwnerId();
             if (ownerId == 0)
@@ -96,6 +96,7 @@ namespace WebApplication1.Areas.Owner.Controllers
 
             int chuBaiId = GetChuBaiId(ownerId);
             string? hinhAnhPath = null;
+            string? giayPhepPath = null;
 
             // Xử lý tệp hình ảnh tải lên
             if (HinhAnhFile != null && HinhAnhFile.Length > 0)
@@ -121,19 +122,61 @@ namespace WebApplication1.Areas.Owner.Controllers
                 }
             }
 
+            // Xử lý tệp giấy phép kinh doanh tải lên
+            if (GiayPhepKinhDoanhFile != null && GiayPhepKinhDoanhFile.Length > 0)
+            {
+                try
+                {
+                    var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads");
+                    if (!Directory.Exists(uploadsFolder))
+                    {
+                        Directory.CreateDirectory(uploadsFolder);
+                    }
+                    var uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(GiayPhepKinhDoanhFile.FileName);
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await GiayPhepKinhDoanhFile.CopyToAsync(fileStream);
+                    }
+                    giayPhepPath = "/uploads/" + uniqueFileName;
+                }
+                catch (Exception ex)
+                {
+                    ModelState.AddModelError("GiayPhepKinhDoanh", "Có lỗi xảy ra khi tải lên giấy phép kinh doanh: " + ex.Message);
+                }
+            }
+
+            // Kiểm tra tải tệp bắt buộc
+            if (HinhAnhFile == null || HinhAnhFile.Length == 0)
+            {
+                ModelState.AddModelError("HinhAnh", "Vui lòng tải lên hình ảnh bãi đỗ xe.");
+            }
+            if (GiayPhepKinhDoanhFile == null || GiayPhepKinhDoanhFile.Length == 0)
+            {
+                ModelState.AddModelError("GiayPhepKinhDoanh", "Vui lòng tải lên giấy phép kinh doanh.");
+            }
+
             // Gán các thuộc tính ngầm định trực tiếp vào Model bãi xe
             model.IDChuBai = chuBaiId;
             model.TrangThai = "Chờ duyệt";
             model.PhanTramChietKhau = 10.00m;
+            model.NgayGui = DateTime.Now;
             if (hinhAnhPath != null)
             {
                 model.HinhAnh = hinhAnhPath;
             }
+            if (giayPhepPath != null)
+            {
+                model.GiayPhepKinhDoanh = giayPhepPath;
+            }
 
-            // Loại bỏ các trường tự động tạo khỏi validation
+            // Loại bỏ các trường tự động tạo hoặc gán thủ công khỏi validation
             ModelState.Remove(nameof(model.IDChuBai));
             ModelState.Remove(nameof(model.TrangThai));
             ModelState.Remove(nameof(model.PhanTramChietKhau));
+            ModelState.Remove(nameof(model.NgayGui));
+            ModelState.Remove(nameof(model.HinhAnh));
+            ModelState.Remove(nameof(model.GiayPhepKinhDoanh));
 
             if (ModelState.IsValid)
             {

@@ -13,8 +13,6 @@ namespace WebApplication1.Models.Entities
         [Required(ErrorMessage = "Mã chủ bãi là bắt buộc.")]
         public int IDChuBai { get; set; }
 
-        public int? IDDangKy { get; set; }
-
         [Required(ErrorMessage = "Tên bãi xe không được để trống.")]
         [StringLength(100, ErrorMessage = "Tên bãi xe không được quá 100 ký tự.")]
         [Display(Name = "Tên bãi xe")]
@@ -35,6 +33,20 @@ namespace WebApplication1.Models.Entities
         [Display(Name = "Sức chứa")]
         public int SucChua { get; set; }
 
+        [Required(ErrorMessage = "Diện tích bãi xe không được để trống.")]
+        [Column(TypeName = "decimal(10,2)")]
+        [Range(10.00, 100000.00, ErrorMessage = "Diện tích phải từ 10 đến 100,000 m².")]
+        [Display(Name = "Diện tích (m²)")]
+        public decimal DienTich { get; set; }
+
+        [StringLength(15, ErrorMessage = "Số điện thoại không được quá 15 ký tự.")]
+        [Display(Name = "Hotline")]
+        public string? SoDienThoai { get; set; }
+
+        [StringLength(100, ErrorMessage = "Giờ hoạt động không được quá 100 ký tự.")]
+        [Display(Name = "Giờ hoạt động")]
+        public string? GioHoatDong { get; set; }
+
         [Required(ErrorMessage = "Phần trăm chiết khấu không được để trống.")]
         [Column(TypeName = "decimal(5,2)")]
         [Range(0.00, 100.00, ErrorMessage = "Phần trăm chiết khấu phải từ 0 đến 100.")]
@@ -46,9 +58,22 @@ namespace WebApplication1.Models.Entities
         [Display(Name = "Trạng thái")]
         public string TrangThai { get; set; } = "Hoạt động";
 
+        [Required(ErrorMessage = "Hình ảnh bãi đỗ xe không được để trống.")]
         [StringLength(255)]
         [Display(Name = "Hình ảnh")]
-        public string? HinhAnh { get; set; }
+        public string HinhAnh { get; set; } = null!;
+
+        [Required(ErrorMessage = "Giấy phép kinh doanh không được để trống.")]
+        [StringLength(255)]
+        [Display(Name = "Giấy phép kinh doanh")]
+        public string GiayPhepKinhDoanh { get; set; } = null!;
+
+        [Required(ErrorMessage = "Ngày gửi không được để trống.")]
+        [Display(Name = "Ngày gửi")]
+        public DateTime NgayGui { get; set; } = DateTime.Now;
+
+        [Display(Name = "Ghi chú")]
+        public string? GhiChu { get; set; }
 
         // Navigation properties
         [ForeignKey("MaXa")]
