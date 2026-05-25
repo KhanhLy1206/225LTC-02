@@ -1,3 +1,7 @@
+@{
+    var fullName = User.FindFirst("FullName")?.Value ?? User.Identity?.Name ?? "Khách Hàng";
+    var initials = !string.IsNullOrEmpty(fullName) ? (fullName.Length >= 2 ? fullName.Substring(0, 2).ToUpper() : fullName.ToUpper()) : "KH";
+}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -29,10 +33,10 @@
             <div class="sidebar-user">
                 <div class="d-flex align-items-center gap-3">
                     <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center font-bold" style="width: 45px; height: 45px; font-weight: 700; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%) !important;">
-                        KH
+                        @initials
                     </div>
                     <div>
-                        <span class="text-dark fw-semibold d-block">Nguyễn Văn A</span>
+                        <span class="text-dark fw-semibold d-block">@fullName</span>
                         <span class="badge bg-secondary-glow text-secondary small" style="font-size: 0.75rem; background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.25);">Khách Hàng</span>
                     </div>
                 </div>
@@ -100,7 +104,7 @@
                     <button class="btn btn-secondary-custom d-lg-none" id="toggleSidebarBtn">
                         <i class="fa-solid fa-bars"></i>
                     </button>
-                    <h5 class="mb-0 text-dark fw-bold d-none d-md-block">Xin chào quay trở lại, Nguyễn Văn A!</h5>
+                    <h5 class="mb-0 text-dark fw-bold d-none d-md-block">Xin chào quay trở lại, @(fullName)!</h5>
                 </div>
                 
                 <div class="d-flex align-items-center gap-3">

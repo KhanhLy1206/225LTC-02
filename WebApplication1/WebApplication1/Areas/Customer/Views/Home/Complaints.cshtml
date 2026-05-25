@@ -1,6 +1,9 @@
+@using WebApplication1.Models.Entities
 @{
     Layout = "~/Areas/Customer/Views/Shared/_CustomerLayout.cshtml";
     ViewData["Title"] = "Khiếu Nại & Hỗ Trợ";
+    var complaints = ViewBag.Complaints as List<KhieuNai> ?? new List<KhieuNai>();
+    var bookings = ViewBag.Bookings as List<DatCho> ?? new List<DatCho>();
 }
 
 <div class="row g-4">
@@ -10,22 +13,23 @@
             <h5 class="fw-bold mb-3 text-gradient"><i class="fa-solid fa-pen-to-square text-secondary me-2"></i>Gửi Khiếu Nại Mới</h5>
             <p class="text-muted small">Nếu bạn gặp sự cố kỹ thuật hoặc tranh chấp tài chính liên quan đến đơn đỗ xe, hãy gửi khiếu nại. Ban quản trị hệ thống sẽ xử lý và phản hồi trong 24 giờ.</p>
             
-            <form id="complaintForm" enctype="multipart/form-data">
+            <form id="complaintForm">
                 <!-- Select Booking -->
                 <div class="mb-3">
                     <label class="auth-label">Chọn Đơn Đỗ Xe Gặp Sự Cố</label>
-                    <select class="form-select bg-dark text-white border-secondary" id="complaintBookingId" required>
+                    <select class="form-select bg-dark text-white border-secondary" id="complaintBookingId" required style="border-radius:10px;">
                         <option value="" selected>-- Chọn đơn đặt chỗ --</option>
-                        <option value="#SP-4491">#SP-4491 - Bãi Xe Quận 1 (40,000đ)</option>
-                        <option value="#SP-4310">#SP-4310 - Bãi Xe Quang Trung (70,000đ)</option>
-                        <option value="#SP-4209">#SP-4209 - Landmark 81 (90,000đ)</option>
+                        @foreach (var b in bookings)
+                        {
+                            <option value="@b.ID">#SP-@b.ID - @(b.ChoDauXe?.KhuVuc?.BaiXe?.TenBai ?? "Bãi xe") (@b.TienCoc.ToString("N0")đ)</option>
+                        }
                     </select>
                 </div>
 
-                <!-- Category -->
+                <!-- Category (Title) -->
                 <div class="mb-3">
                     <label class="auth-label">Loại Sự Cố</label>
-                    <select class="form-select bg-dark text-white border-secondary" id="complaintCategory" required>
+                    <select class="form-select bg-dark text-white border-secondary" id="complaintCategory" required style="border-radius:10px;">
                         <option value="Lỗi thiết bị Barie">Lỗi không tự điều khiển mở/đóng được Barie</option>
                         <option value="Sai lệch chi phí">Sai lệch tiền tài khoản khấu trừ</option>
                         <option value="Thái độ chủ bãi">Tranh chấp / Thái độ với chủ bãi xe</option>
@@ -37,12 +41,6 @@
                 <div class="mb-3">
                     <label class="auth-label" for="complaintContent">Chi tiết sự cố</label>
                     <textarea class="form-control bg-dark border-secondary text-white" id="complaintContent" rows="4" placeholder="Mô tả cụ thể thời gian, vị trí chỗ đỗ và diễn biến sự cố để admin xử lý nhanh nhất..." required style="border-radius:10px;"></textarea>
-                </div>
-
-                <!-- File Attachment -->
-                <div class="mb-4">
-                    <label class="auth-label" for="proofFile">Hình ảnh/Tài liệu minh chứng (Nếu có)</label>
-                    <input type="file" class="form-control bg-dark text-white border-secondary" id="proofFile" accept="image/*" style="border-radius:10px;" />
                 </div>
 
                 <button type="submit" class="btn btn-primary-custom w-100 py-3">
@@ -70,28 +68,55 @@
                         </tr>
                     </thead>
                     <tbody id="complaintsTableBody">
-                        <tr class="border-bottom border-secondary border-opacity-5">
-                            <td class="font-monospace text-secondary py-3">#KN-1022</td>
-                            <td class="font-monospace">#SP-4209</td>
-                            <td class="small">Lỗi thiết bị Barie</td>
-                            <td class="small text-muted">15/05/2026</td>
-                            <td><span class="badge bg-success bg-opacity-20 text-success">Đã giải quyết</span></td>
-                        </tr>
-                        <!-- Details of resolved complaints -->
-                        <tr class="bg-dark bg-opacity-20">
-                            <td colspan="5" class="p-3 text-muted small" style="border-radius:8px;">
-                                <div class="mb-1"><strong>Nội dung:</strong> Tôi đến chỗ đỗ đúng giờ nhưng barie bị kẹt, chủ bãi xe đã mở tay. Đơn vẫn tính tiền bình thường nhưng tôi mất 15 phút chờ đợi.</div>
-                                <div><i class="fa-solid fa-reply text-secondary me-1"></i><strong>Admin phản hồi:</strong> Đã xác nhận sự cố kỹ thuật của bãi đỗ vào thời điểm đó. Hệ thống đã hoàn lại 50% tiền cọc (45,000đ) vào ví của bạn làm bồi thường.</div>
-                            </td>
-                        </tr>
-
-                        <tr class="border-bottom border-secondary border-opacity-5">
-                            <td class="font-monospace text-secondary py-3">#KN-1051</td>
-                            <td class="font-monospace">#SP-4491</td>
-                            <td class="small">Sai lệch chi phí</td>
-                            <td class="small text-muted">Hôm qua</td>
-                            <td><span class="badge bg-warning bg-opacity-20 text-warning">Chờ xử lý</span></td>
-                        </tr>
+                        @if (complaints.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">Bạn chưa gửi khiếu nại nào.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var c in complaints)
+                            {
+                                <tr class="border-bottom border-secondary border-opacity-5">
+                                    <td class="font-monospace text-secondary py-3">#KN-@c.ID</td>
+                                    <td class="font-monospace">#SP-@c.IDDatCho</td>
+                                    <td class="small">@c.TieuDe</td>
+                                    <td class="small text-muted">@c.NgayGui.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        @if (c.TrangThai == "Chờ xử lý")
+                                        {
+                                            <span class="badge bg-warning text-dark fw-bold px-2 py-1">Chờ xử lý</span>
+                                        }
+                                        else if (c.TrangThai == "Đang xử lý")
+                                        {
+                                            <span class="badge bg-info text-dark fw-bold px-2 py-1">Đang xử lý</span>
+                                        }
+                                        else if (c.TrangThai == "Đã giải quyết")
+                                        {
+                                            <span class="badge bg-success text-white fw-bold px-2 py-1">Đã giải quyết</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger text-white fw-bold px-2 py-1">Từ chối</span>
+                                        }
+                                    </td>
+                                </tr>
+                                <tr class="bg-dark bg-opacity-20">
+                                    <td colspan="5" class="p-3 text-muted small" style="border-radius:8px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                        <div class="mb-1"><strong>Nội dung:</strong> @c.NoiDung</div>
+                                        @if (!string.IsNullOrEmpty(c.GhiChuAdmin))
+                                        {
+                                            <div><i class="fa-solid fa-reply text-secondary me-1"></i><strong>Phản hồi:</strong> @c.GhiChuAdmin</div>
+                                        }
+                                        else
+                                        {
+                                            <div class="text-italic text-opacity-50"><i class="fa-solid fa-hourglass-half text-secondary me-1"></i>Đang chờ ban quản trị kiểm tra...</div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
                     </tbody>
                 </table>
             </div>
@@ -102,34 +127,34 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
-            // Xử lý gửi khiếu nại qua jquery
+            // Xử lý gửi khiếu nại qua AJAX
             $('#complaintForm').submit(function(e) {
                 e.preventDefault();
 
                 const bookingId = $('#complaintBookingId').val();
                 const category = $('#complaintCategory').val();
                 const content = $('#complaintContent').val();
-                
-                const complaintId = "#KN-" + Math.floor(1000 + Math.random() * 9000);
-                const today = new Date().toLocaleDateString('vi-VN');
 
-                const newRowHTML = `
-                    <tr class="border-bottom border-secondary border-opacity-5">
-                        <td class="font-monospace text-secondary py-3">${complaintId}</td>
-                        <td class="font-monospace">${bookingId}</td>
-                        <td class="small">${category}</td>
-                        <td class="small text-muted">${today}</td>
-                        <td><span class="badge bg-warning bg-opacity-20 text-warning">Chờ xử lý</span></td>
-                    </tr>
-                `;
-
-                // Thêm hàng mới vào đầu bảng
-                $('#complaintsTableBody').prepend(newRowHTML);
-
-                // Reset form
-                $('#complaintForm')[0].reset();
-
-                alert(`Gửi khiếu nại thành công!\nMã khiếu nại: ${complaintId}\nBan quản trị hệ thống đã tiếp nhận sự cố.`);
+                $.ajax({
+                    url: '/Customer/Home/SubmitComplaint',
+                    type: 'POST',
+                    data: {
+                        IDDatCho: bookingId,
+                        TieuDe: category,
+                        NoiDung: content
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            alert(`Gửi khiếu nại thành công!\nMã khiếu nại: ${response.complaintId}\nBan quản trị hệ thống đã tiếp nhận sự cố.`);
+                            window.location.reload();
+                        } else {
+                            alert(response.message || 'Lỗi khi gửi khiếu nại.');
+                        }
+                    },
+                    error: function() {
+                        alert('Đã xảy ra lỗi kết nối với máy chủ.');
+                    }
+                });
             });
         });
     </script>

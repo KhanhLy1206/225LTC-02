@@ -1,6 +1,10 @@
+@using WebApplication1.Models.Entities
 @{
     Layout = "~/Areas/Customer/Views/Shared/_CustomerLayout.cshtml";
     ViewData["Title"] = "Bảng Điều Khiển Khách Hàng";
+    var activeBookings = ViewBag.ActiveBookings as List<DatCho> ?? new List<DatCho>();
+    var activeVehicles = ViewBag.ActiveVehicles as List<Xe> ?? new List<Xe>();
+    var recentBookings = ViewBag.RecentBookings as List<DatCho> ?? new List<DatCho>();
 }
 
 <!-- Stat Cards -->
@@ -10,7 +14,7 @@
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase">Số Dư Ví</span>
-                    <h3 class="fw-bold mt-1 mb-0">150,000đ</h3>
+                    <h3 class="fw-bold mt-1 mb-0">@ViewBag.WalletBalance</h3>
                 </div>
                 <div class="fs-2 text-success"><i class="fa-solid fa-wallet"></i></div>
             </div>
@@ -22,11 +26,11 @@
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase">Lượt Đỗ Xe</span>
-                    <h3 class="fw-bold mt-1 mb-0">24</h3>
+                    <h3 class="fw-bold mt-1 mb-0">@ViewBag.TotalBookings</h3>
                 </div>
                 <div class="fs-2 text-primary"><i class="fa-solid fa-car-side"></i></div>
             </div>
-            <span class="small text-muted mt-2 d-block"><i class="fa-solid fa-arrow-trend-up text-success me-1"></i>+3 lượt trong tháng này</span>
+            <span class="small text-muted mt-2 d-block"><i class="fa-solid fa-arrow-trend-up text-success me-1"></i>Tổng số đơn đã đặt</span>
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
@@ -34,7 +38,7 @@
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase">Phương Tiện</span>
-                    <h3 class="fw-bold mt-1 mb-0">2 Xe</h3>
+                    <h3 class="fw-bold mt-1 mb-0">@ViewBag.TotalVehicles Xe</h3>
                 </div>
                 <div class="fs-2 text-warning"><i class="fa-solid fa-id-card-clip"></i></div>
             </div>
@@ -46,7 +50,7 @@
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small text-uppercase">Yêu Cầu Hỗ Trợ</span>
-                    <h3 class="fw-bold mt-1 mb-0">0</h3>
+                    <h3 class="fw-bold mt-1 mb-0">@ViewBag.TotalComplaints</h3>
                 </div>
                 <div class="fs-2 text-danger"><i class="fa-solid fa-circle-question"></i></div>
             </div>
@@ -61,38 +65,37 @@
     <div class="col-lg-7">
         <div class="glass-card h-100 border-primary">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-bold mb-0 text-gradient"><i class="fa-solid fa-key me-2 text-warning"></i>Đơn Đặt Chỗ Đang Hoạt Động (2)</h5>
+                <h5 class="fw-bold mb-0 text-gradient"><i class="fa-solid fa-key me-2 text-warning"></i>Đơn Đặt Chỗ Đang Hoạt Động (@activeBookings.Count)</h5>
                 <a href="/Customer/Home/Bookings" class="btn btn-outline-secondary btn-sm py-1 px-3" style="border-radius:8px;">
                     Xem Tất Cả <i class="fa-solid fa-arrow-right ms-1"></i>
                 </a>
             </div>
 
-            <p class="text-muted small">Bạn đang có nhiều đơn đỗ xe hoạt động cùng lúc. Nhấp vào nút điều khiển để hạ/dựng barie từ xa:</p>
+            <p class="text-muted small">Nhấp vào nút điều khiển để hạ/dựng barie từ xa trong thời gian đỗ:</p>
 
             <div class="d-flex flex-column gap-3">
-                <!-- Booking 1 -->
-                <div class="p-3 bg-dark bg-opacity-40 rounded border border-secondary border-opacity-10 d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <div>
-                        <strong class="d-block text-white">Bãi đỗ Xe Công Nghệ Quang Trung (Chỗ A-03)</strong>
-                        <span class="text-muted small"><i class="fa-solid fa-clock me-1"></i>Hôm nay, 19:00 - 23:00</span>
-                        <span class="badge bg-secondary-glow text-secondary font-monospace ms-2" style="font-size:0.75rem;">51F - 999.99</span>
+                @if (activeBookings.Count == 0)
+                {
+                    <div class="p-3 text-center text-muted small bg-dark bg-opacity-20 rounded border border-secondary border-opacity-10">
+                        <i class="fa-solid fa-info-circle me-1"></i> Không có đơn đặt chỗ nào đang hoạt động.
                     </div>
-                    <a href="/Customer/Home/Bookings" class="btn btn-primary btn-sm py-2 px-3" style="border-radius:8px; font-weight: 500;">
-                        <i class="fa-solid fa-unlock me-1"></i> Điều Khiển Barie
-                    </a>
-                </div>
-
-                <!-- Booking 2 -->
-                <div class="p-3 bg-dark bg-opacity-40 rounded border border-secondary border-opacity-10 d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <div>
-                        <strong class="d-block text-white">Bãi đỗ Xe Thông Minh Quận 1 (Chỗ B-12)</strong>
-                        <span class="text-muted small"><i class="fa-solid fa-clock me-1"></i>Hôm nay, 18:00 - 22:00</span>
-                        <span class="badge bg-secondary-glow text-secondary font-monospace ms-2" style="font-size:0.75rem;">29A - 123.45</span>
-                    </div>
-                    <a href="/Customer/Home/Bookings" class="btn btn-primary btn-sm py-2 px-3" style="border-radius:8px; font-weight: 500;">
-                        <i class="fa-solid fa-unlock me-1"></i> Điều Khiển Barie
-                    </a>
-                </div>
+                }
+                else
+                {
+                    @foreach (var b in activeBookings)
+                    {
+                        <div class="p-3 bg-dark bg-opacity-40 rounded border border-secondary border-opacity-10 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div>
+                                <strong class="d-block text-white">@(b.ChoDauXe?.KhuVuc?.BaiXe?.TenBai ?? "Bãi xe") (Chỗ @(b.ChoDauXe?.TenChoDau ?? "Chưa rõ"))</strong>
+                                <span class="text-muted small"><i class="fa-solid fa-clock me-1"></i>@b.TgianBatDau.ToString("dd/MM HH:mm") - @b.TgianKetThuc.ToString("HH:mm")</span>
+                                <span class="badge bg-secondary-glow text-secondary font-monospace ms-2" style="font-size:0.75rem;">@b.BienSoXe</span>
+                            </div>
+                            <a href="/Customer/Home/Bookings" class="btn btn-primary btn-sm py-2 px-3" style="border-radius:8px; font-weight: 500;">
+                                <i class="fa-solid fa-unlock me-1"></i> Điều Khiển Barie
+                            </a>
+                        </div>
+                    }
+                }
             </div>
         </div>
     </div>
@@ -100,29 +103,43 @@
     <!-- Quick Vehicle Card -->
     <div class="col-lg-5">
         <div class="glass-card h-100">
-            <h5 class="fw-bold mb-3"><i class="fa-solid fa-car me-2 text-secondary"></i>Phương Tiện Hoạt Động</h5>
-            <p class="text-muted small">Xe mặc định dùng để mở barie khi ra vào bãi đỗ:</p>
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-car me-2 text-secondary"></i>Phương Tiện Đăng Ký</h5>
+            <p class="text-muted small">Các phương tiện đã liên kết vào tài khoản:</p>
             
-            <div class="d-flex align-items-center justify-content-between bg-dark p-3 rounded mb-3 border border-secondary border-opacity-10">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="fs-2 text-secondary"><i class="fa-solid fa-car"></i></div>
-                    <div>
-                        <strong class="d-block text-white">Audi E-Tron GT</strong>
-                        <span class="text-muted small">Xe Ô tô con</span>
+            <div class="d-flex flex-column gap-3">
+                @if (activeVehicles.Count == 0)
+                {
+                    <div class="p-3 text-center text-muted small bg-dark bg-opacity-20 rounded border border-secondary border-opacity-10">
+                        <i class="fa-solid fa-info-circle me-1"></i> Chưa đăng ký phương tiện nào. <a href="/Customer/Home/Vehicles" class="text-secondary text-decoration-none fw-bold ms-1">Thêm ngay</a>
                     </div>
-                </div>
-                <span class="badge bg-primary font-monospace">51F - 999.99</span>
-            </div>
-
-            <div class="d-flex align-items-center justify-content-between bg-dark p-3 rounded border border-secondary border-opacity-10 opacity-75">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="fs-2 text-muted"><i class="fa-solid fa-motorcycle"></i></div>
-                    <div>
-                        <strong class="d-block text-muted">Honda SH 150i</strong>
-                        <span class="text-muted small">Xe Máy</span>
-                    </div>
-                </div>
-                <span class="badge bg-secondary font-monospace text-dark">29A - 123.45</span>
+                }
+                else
+                {
+                    @for (int i = 0; i < activeVehicles.Count; i++)
+                    {
+                        var vehicle = activeVehicles[i];
+                        bool isDefault = (i == 0); // Mock first one as default
+                        <div class="d-flex align-items-center justify-content-between bg-dark p-3 rounded border border-secondary border-opacity-10 @(isDefault ? "" : "opacity-75")">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="fs-2 text-secondary">
+                                    @if (vehicle.LoaiXe?.TenLoaiXe?.Contains("máy") == true)
+                                    {
+                                        <i class="fa-solid fa-motorcycle"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="fa-solid fa-car"></i>
+                                    }
+                                </div>
+                                <div>
+                                    <strong class="d-block text-white">@vehicle.TenXe</strong>
+                                    <span class="text-muted small">@vehicle.LoaiXe?.TenLoaiXe</span>
+                                </div>
+                            </div>
+                            <span class="badge @(isDefault ? "bg-primary" : "bg-secondary text-dark") font-monospace">@vehicle.BienSoXe</span>
+                        </div>
+                    }
+                }
             </div>
         </div>
     </div>
@@ -145,47 +162,48 @@
                 </tr>
             </thead>
             <tbody>
-                <tr class="border-bottom border-secondary border-opacity-5">
-                    <td class="font-monospace text-secondary py-3">#SP-4491</td>
-                    <td>Bãi Xe Thông Minh Quận 1</td>
-                    <td>Khu B - B-12</td>
-                    <td class="small text-muted">Hôm qua, 14:00 - 16:00</td>
-                    <td>40,000đ</td>
-                    <td>
-                        <span class="badge bg-success bg-opacity-20 text-success">Đã Hoàn Thành</span>
-                        <button class="btn btn-sm btn-outline-warning ms-2 btn-review-trigger" data-id="SP-4491" data-lot="Bãi Xe Thông Minh Quận 1" style="font-size:0.75rem; padding: 2px 6px;"><i class="fa-solid fa-star me-1"></i>Đánh giá</button>
-                    </td>
-                </tr>
-                <tr class="border-bottom border-secondary border-opacity-5">
-                    <td class="font-monospace text-secondary py-3">#SP-4310</td>
-                    <td>Bãi đỗ Xe Công Nghệ Quang Trung</td>
-                    <td>Khu A - A-03</td>
-                    <td class="small text-muted">20/05/2026, 08:00 - 11:30</td>
-                    <td>70,000đ</td>
-                    <td>
-                        <span class="badge bg-success bg-opacity-20 text-success">Đã Hoàn Thành</span>
-                        <button class="btn btn-sm btn-outline-warning ms-2 btn-review-trigger" data-id="SP-4310" data-lot="Bãi đỗ Xe Công Nghệ Quang Trung" style="font-size:0.75rem; padding: 2px 6px;"><i class="fa-solid fa-star me-1"></i>Đánh giá</button>
-                    </td>
-                </tr>
-                <tr class="border-bottom border-secondary border-opacity-5">
-                    <td class="font-monospace text-secondary py-3">#SP-4209</td>
-                    <td>Bãi Xe Tòa Nhà Landmark 81</td>
-                    <td>Tầng B2 - C-09</td>
-                    <td class="small text-muted">15/05/2026, 18:00 - 21:00</td>
-                    <td>90,000đ</td>
-                    <td>
-                        <span class="badge bg-success bg-opacity-20 text-success">Đã Hoàn Thành</span>
-                        <button class="btn btn-sm btn-outline-warning ms-2 btn-review-trigger" data-id="SP-4209" data-lot="Bãi Xe Tòa Nhà Landmark 81" style="font-size:0.75rem; padding: 2px 6px;"><i class="fa-solid fa-star me-1"></i>Đánh giá</button>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="font-monospace text-secondary py-3">#SP-4190</td>
-                    <td>Bãi Đỗ Xe Quận 10</td>
-                    <td>Khu C - C-02</td>
-                    <td class="small text-muted">12/05/2026, 10:00 - 12:00</td>
-                    <td>30,000đ</td>
-                    <td><span class="badge bg-danger bg-opacity-20 text-danger">Đã Hủy</span></td>
-                </tr>
+                @if (recentBookings.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">Bạn chưa thực hiện bất kỳ giao dịch đặt chỗ nào.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var b in recentBookings)
+                    {
+                        <tr class="border-bottom border-secondary border-opacity-5">
+                            <td class="font-monospace text-secondary py-3">#SP-@b.ID</td>
+                            <td>@(b.ChoDauXe?.KhuVuc?.BaiXe?.TenBai ?? "Bãi xe")</td>
+                            <td>@(b.ChoDauXe?.KhuVuc?.TenKhuVuc ?? "Khu") - @(b.ChoDauXe?.TenChoDau ?? "Chỗ")</td>
+                            <td class="small text-muted">@b.TgianBatDau.ToString("dd/MM/yyyy HH:mm") - @b.TgianKetThuc.ToString("HH:mm")</td>
+                            <td>@b.TienCoc.ToString("N0")đ</td>
+                            <td>
+                                @if (b.TrangThai == "Hoàn thành" || b.TrangThai == "Đã hoàn thành")
+                                {
+                                    <span class="badge bg-success bg-opacity-20 text-success">Đã Hoàn Thành</span>
+                                    <button class="btn btn-sm btn-outline-warning ms-2 btn-review-trigger" data-id="@b.ID" data-lot="@(b.ChoDauXe?.KhuVuc?.BaiXe?.TenBai ?? "Bãi xe")" style="font-size:0.75rem; padding: 2px 6px;"><i class="fa-solid fa-star me-1"></i>Đánh giá</button>
+                                }
+                                else if (b.TrangThai == "Đã đặt")
+                                {
+                                    <span class="badge bg-info bg-opacity-20 text-info">Sắp Diễn Ra</span>
+                                }
+                                else if (b.TrangThai == "Đang đỗ")
+                                {
+                                    <span class="badge bg-warning bg-opacity-20 text-warning">Đang Đỗ</span>
+                                }
+                                else if (b.TrangThai == "Đã hủy")
+                                {
+                                    <span class="badge bg-danger bg-opacity-20 text-danger">Đã Hủy</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary bg-opacity-20 text-white">@b.TrangThai</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
             </tbody>
         </table>
     </div>
@@ -226,12 +244,12 @@
 
                     <button type="submit" class="btn btn-primary-custom w-100 py-3">
                         GỬI ĐÁNH GIÁ <i class="fa-solid fa-paper-plane ms-1"></i>
-                      </button>
-                  </form>
-              </div>
-          </div>
-      </div>
-  </div>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
     <script>
@@ -280,13 +298,29 @@
                 const stars = $('#reviewRatingVal').val();
                 const comment = $('#reviewComment').val();
 
-                alert(`Gửi đánh giá thành công cho đơn hàng #${bookingId}!\n- Điểm số: ${stars} sao\n- Nội dung: ${comment}\n\nThông tin đã được đồng bộ với bảng DanhGiaBinhLuan.`);
-                
-                bootstrap.Modal.getInstance(document.getElementById('reviewModal')).hide();
-                
-                if (activeTriggerBtn) {
-                    activeTriggerBtn.remove();
-                }
+                $.ajax({
+                    url: '/Customer/Home/SubmitReview',
+                    type: 'POST',
+                    data: {
+                        bookingId: bookingId,
+                        rating: stars,
+                        comment: comment
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            alert(`Gửi đánh giá thành công cho đơn hàng #${bookingId}!`);
+                            bootstrap.Modal.getInstance(document.getElementById('reviewModal')).hide();
+                            if (activeTriggerBtn) {
+                                activeTriggerBtn.remove();
+                            }
+                        } else {
+                            alert(response.message || 'Lỗi khi gửi đánh giá.');
+                        }
+                    },
+                    error: function() {
+                        alert('Đã xảy ra lỗi khi gửi yêu cầu lên máy chủ.');
+                    }
+                });
             });
         });
     </script>
