@@ -155,55 +155,32 @@ CREATE TABLE Admin (
 GO
 
 -- ============================================================
--- 9. DangKyBaiXe (Parking Lot Registration Applications)
--- ============================================================
-CREATE TABLE DangKyBaiXe (
-    ID                  INT IDENTITY(1,1)   NOT NULL,
-    TenChuBai           NVARCHAR(100)       NOT NULL,
-    SDT                 VARCHAR(11)         NOT NULL,
-    Email               VARCHAR(100)        NOT NULL,
-    CCCD                VARCHAR(20)         NOT NULL,
-    TenBai              NVARCHAR(100)       NOT NULL,
-    MaXa                VARCHAR(20)         NOT NULL,
-    DiaChiChiTiet       NVARCHAR(255)       NOT NULL,
-    SucChua             INT                 NOT NULL,
-    HinhAnh             NVARCHAR(255)       NOT NULL, -- Bắt buộc đăng tải hình ảnh
-    GiayPhepKinhDoanh   NVARCHAR(255)       NULL,     -- Tài liệu chứng minh
-    NgayGui             DATETIME            NOT NULL DEFAULT GETDATE(),
-    TrangThai           NVARCHAR(50)        NOT NULL DEFAULT N'Chờ duyệt', -- N'Chờ duyệt', N'Đã duyệt', N'Từ chối'
-    GhiChu              NVARCHAR(MAX)       NULL,     -- Lý do từ chối nếu có
-
-    CONSTRAINT PK_DangKyBaiXe           PRIMARY KEY (ID),
-    CONSTRAINT FK_DangKyBaiXe_Xa        FOREIGN KEY (MaXa) REFERENCES XaPhuong(MaXa),
-    CONSTRAINT CK_DangKyBaiXe_SucChua   CHECK (SucChua > 0),
-    CONSTRAINT CK_DangKyBaiXe_TrangThai CHECK (TrangThai IN (N'Chờ duyệt', N'Đã duyệt', N'Từ chối')),
-    CONSTRAINT CK_DangKyBaiXe_SDT       CHECK (SDT LIKE '[0-9]%' AND LEN(SDT) BETWEEN 10 AND 11),
-    CONSTRAINT CK_DangKyBaiXe_Email     CHECK (Email LIKE '%@%.%')
-);
-GO
-
--- ============================================================
--- 10. BaiXe (Approved Parking Lots)
+-- 9. BaiXe (Parking Lots with Registration & Verification)
 -- ============================================================
 CREATE TABLE BaiXe (
     ID                  INT IDENTITY(1,1)   NOT NULL,
     IDChuBai            INT                 NOT NULL,
-    IDDangKy            INT                 NULL, -- Liên kết ngược tới đơn đăng ký đã duyệt
     TenBai              NVARCHAR(100)       NOT NULL,
     MaXa                VARCHAR(20)         NOT NULL,
     DiaChiChiTiet       NVARCHAR(255)       NOT NULL,
     SucChua             INT                 NOT NULL,
+    DienTich            DECIMAL(10,2)       NOT NULL, -- Diện tích bãi xe (m2)
+    SoDienThoai         VARCHAR(15)         NULL,     -- Hotline liên hệ bãi xe
+    GioHoatDong         NVARCHAR(100)       NULL,     -- Giờ hoạt động, VD: 24/7 hoặc 06:00 - 23:30
     PhanTramChietKhau   DECIMAL(5,2)        NOT NULL DEFAULT 10.00, -- Thu nhập admin nhận được (% trên hóa đơn)
-    TrangThai           NVARCHAR(50)        NOT NULL DEFAULT N'Hoạt động', -- N'Hoạt động', N'Tạm đóng', N'Bảo trì'
-    HinhAnh             NVARCHAR(255)       NULL,
+    TrangThai           NVARCHAR(50)        NOT NULL DEFAULT N'Chờ duyệt', -- N'Chờ duyệt', N'Hoạt động', N'Từ chối', N'Tạm đóng', N'Bảo trì'
+    HinhAnh             NVARCHAR(255)       NOT NULL,
+    GiayPhepKinhDoanh   NVARCHAR(255)       NOT NULL, -- Giấy phép đính kèm nếu đăng ký mới
+    NgayGui             DATETIME            NOT NULL DEFAULT GETDATE(), -- Ngày gửi đăng ký
+    GhiChu              NVARCHAR(MAX)       NULL, -- Ghi chú duyệt/lý do từ chối
 
     CONSTRAINT PK_BaiXe                 PRIMARY KEY (ID),
     CONSTRAINT FK_BaiXe_ChuBai          FOREIGN KEY (IDChuBai) REFERENCES ChuBaiXe(ID),
-    CONSTRAINT FK_BaiXe_DangKy          FOREIGN KEY (IDDangKy) REFERENCES DangKyBaiXe(ID),
     CONSTRAINT FK_BaiXe_Xa              FOREIGN KEY (MaXa) REFERENCES XaPhuong(MaXa),
     CONSTRAINT CK_BaiXe_SucChua         CHECK (SucChua > 0),
+    CONSTRAINT CK_BaiXe_DienTich        CHECK (DienTich > 0),
     CONSTRAINT CK_BaiXe_ChietKhau       CHECK (PhanTramChietKhau BETWEEN 0 AND 100),
-    CONSTRAINT CK_BaiXe_TrangThai       CHECK (TrangThai IN (N'Hoạt động', N'Tạm đóng', N'Bảo trì'))
+    CONSTRAINT CK_BaiXe_TrangThai       CHECK (TrangThai IN (N'Chờ duyệt', N'Hoạt động', N'Từ chối', N'Tạm đóng', N'Bảo trì'))
 );
 GO
 
@@ -503,10 +480,10 @@ GO
 
 -- 5. Thêm Loại Xe
 INSERT INTO LoaiXe (TenLoaiXe) VALUES 
-(N'Xe máy'),
 (N'Ô tô'),
 (N'Xe bán tải'),
-(N'Xe đạp điện');
+(N'Xe tải'),
+(N'Xe buýt');
 GO
 
 -- 6. Thêm Tài khoản
@@ -559,57 +536,143 @@ INSERT INTO Admin (IDTaiKhoan, HoTen, SDT, Email) VALUES
 ((SELECT ID FROM TaiKhoan WHERE TenDangNhap = 'admin01'), N'Trần Admin', '0905111222', 'admin@smartparking.com');
 GO
 
--- 10. Đơn Đăng ký bãi xe (Dành cho chức năng Đăng ký & Xét duyệt bãi xe)
-INSERT INTO DangKyBaiXe (TenChuBai, SDT, Email, CCCD, TenBai, MaXa, DiaChiChiTiet, SucChua, HinhAnh, GiayPhepKinhDoanh, NgayGui, TrangThai, GhiChu) VALUES
-(N'Lê Văn Chủ', '0909999999', 'owner01@gmail.com', '999999999999', N'Bãi Xe Thông Minh Quang Trung', '8121', N'45 Quang Trung, An Khê', 100, 'bairuixe_quangtrung.jpg', 'gpkd_quangtrung.pdf', '2026-05-20 08:00:00', N'Đã duyệt', N'Hồ sơ hợp lệ, đã tự động tạo tài khoản cho chủ bãi.'),
-(N'Nguyễn Văn Khách', '0935123456', 'owner02@gmail.com', '888888888888', N'Bãi Xe Đỗ Diên Hồng', '8111', N'78 Hùng Vương, Pleiku', 50, 'bairuixe_dienhong.jpg', 'gpkd_dienhong.pdf', '2026-05-21 12:00:00', N'Chờ duyệt', NULL);
-GO
-
--- 11. Bãi xe (Đã được duyệt)
-INSERT INTO BaiXe (IDChuBai, IDDangKy, TenBai, MaXa, DiaChiChiTiet, SucChua, PhanTramChietKhau, TrangThai, HinhAnh) VALUES
+-- 10. Bãi xe (Gồm cả bãi đã hoạt động và bãi đang chờ duyệt)
+INSERT INTO BaiXe (IDChuBai, TenBai, MaXa, DiaChiChiTiet, SucChua, DienTich, SoDienThoai, GioHoatDong, PhanTramChietKhau, TrangThai, HinhAnh, GiayPhepKinhDoanh, NgayGui, GhiChu) VALUES
 (
     (SELECT ID FROM ChuBaiXe WHERE Email = 'owner01@gmail.com'), 
-    (SELECT ID FROM DangKyBaiXe WHERE TenBai = N'Bãi Xe Thông Minh Quang Trung'),
     N'Bãi Xe Thông Minh Quang Trung', 
     '8121', 
     N'45 Quang Trung, Thị xã An Khê', 
     100, 
+    1500.00, -- Diện tích m2
+    '0905123456',
+    N'24/7',
     10.00, -- Admin hưởng 10% doanh thu mỗi lần khách thuê
     N'Hoạt động', 
-    'bairuixe_quangtrung.jpg'
+    N'/images/bairuixe_quangtrung.jpg',
+    N'gpkd_quangtrung.pdf',
+    '2026-05-20 08:00:00',
+    N'Hồ sơ hợp lệ, đã duyệt hoạt động.'
+),
+(
+    (SELECT ID FROM ChuBaiXe WHERE Email = 'owner01@gmail.com'), 
+    N'Bãi Xe Đỗ Diên Hồng', 
+    '8111', 
+    N'78 Hùng Vương, Pleiku', 
+    50, 
+    800.00, -- Diện tích m2
+    '0905789012',
+    N'06:00 - 22:00',
+    10.00,
+    N'Chờ duyệt', 
+    N'/images/baixe02.jpeg',
+    N'gpkd_dienhong.pdf',
+    '2026-05-21 12:00:00',
+    NULL
 );
 GO
 
 -- 12. Thêm Xe
 INSERT INTO Xe (BienSoXe, IDLoaiXe, TenXe, Hang, MauSac) VALUES
 ('81A-12345', (SELECT ID FROM LoaiXe WHERE TenLoaiXe = N'Ô tô'), N'Vios', N'Toyota', N'Trắng'),
-('81B1-67890', (SELECT ID FROM LoaiXe WHERE TenLoaiXe = N'Xe máy'), N'Vision', N'Honda', N'Đỏ');
+('81D-67890', (SELECT ID FROM LoaiXe WHERE TenLoaiXe = N'Xe bán tải'), N'Ranger', N'Ford', N'Đen');
 GO
 
 -- Liên kết Xe - Khách hàng
 INSERT INTO KhachHang_Xe (IDKhachHang, IDXe, LoaiSoHuu) VALUES
 ((SELECT ID FROM KhachHang WHERE CCCD = '123456789001'), '81A-12345', N'Cá nhân'),
-((SELECT ID FROM KhachHang WHERE CCCD = '123456789002'), '81B1-67890', N'Cá nhân');
+((SELECT ID FROM KhachHang WHERE CCCD = '123456789002'), '81D-67890', N'Cá nhân');
 GO
 
 -- 13. Khu vực của bãi đỗ
 INSERT INTO KhuVuc (IDBaiXe, IDLoaiXe, TenKhuVuc, SucChua) VALUES
-((SELECT ID FROM BaiXe WHERE TenBai = N'Bãi Xe Thông Minh Quang Trung'), (SELECT ID FROM LoaiXe WHERE TenLoaiXe = N'Ô tô'), N'Khu A - Ô tô', 50),
-((SELECT ID FROM BaiXe WHERE TenBai = N'Bãi Xe Thông Minh Quang Trung'), (SELECT ID FROM LoaiXe WHERE TenLoaiXe = N'Xe máy'), N'Khu B - Xe máy', 50);
+-- Bãi Xe Thông Minh Quang Trung (Tổng 100)
+((SELECT ID FROM BaiXe WHERE TenBai = N'Bãi Xe Thông Minh Quang Trung'), (SELECT ID FROM LoaiXe WHERE TenLoaiXe = N'Ô tô'), N'A', 50),
+((SELECT ID FROM BaiXe WHERE TenBai = N'Bãi Xe Thông Minh Quang Trung'), (SELECT ID FROM LoaiXe WHERE TenLoaiXe = N'Xe bán tải'), N'B', 30),
+((SELECT ID FROM BaiXe WHERE TenBai = N'Bãi Xe Thông Minh Quang Trung'), (SELECT ID FROM LoaiXe WHERE TenLoaiXe = N'Xe tải'), N'C', 10),
+((SELECT ID FROM BaiXe WHERE TenBai = N'Bãi Xe Thông Minh Quang Trung'), (SELECT ID FROM LoaiXe WHERE TenLoaiXe = N'Xe buýt'), N'D', 10),
+-- Bãi Xe Đỗ Diên Hồng (Tổng 50)
+((SELECT ID FROM BaiXe WHERE TenBai = N'Bãi Xe Đỗ Diên Hồng'), (SELECT ID FROM LoaiXe WHERE TenLoaiXe = N'Ô tô'), N'A', 30),
+((SELECT ID FROM BaiXe WHERE TenBai = N'Bãi Xe Đỗ Diên Hồng'), (SELECT ID FROM LoaiXe WHERE TenLoaiXe = N'Xe bán tải'), N'B', 20);
 GO
 
 -- 14. Chỗ đậu xe cụ thể (Mỗi chỗ đậu tương ứng với 1 Barrier/Lock thông minh)
+DECLARE @KhuA_QT INT = (SELECT ID FROM KhuVuc WHERE TenKhuVuc = N'A' AND IDBaiXe = (SELECT ID FROM BaiXe WHERE TenBai = N'Bãi Xe Thông Minh Quang Trung'));
+DECLARE @KhuB_QT INT = (SELECT ID FROM KhuVuc WHERE TenKhuVuc = N'B' AND IDBaiXe = (SELECT ID FROM BaiXe WHERE TenBai = N'Bãi Xe Thông Minh Quang Trung'));
+DECLARE @KhuC_QT INT = (SELECT ID FROM KhuVuc WHERE TenKhuVuc = N'C' AND IDBaiXe = (SELECT ID FROM BaiXe WHERE TenBai = N'Bãi Xe Thông Minh Quang Trung'));
+DECLARE @KhuD_QT INT = (SELECT ID FROM KhuVuc WHERE TenKhuVuc = N'D' AND IDBaiXe = (SELECT ID FROM BaiXe WHERE TenBai = N'Bãi Xe Thông Minh Quang Trung'));
+
+DECLARE @KhuA_DH INT = (SELECT ID FROM KhuVuc WHERE TenKhuVuc = N'A' AND IDBaiXe = (SELECT ID FROM BaiXe WHERE TenBai = N'Bãi Xe Đỗ Diên Hồng'));
+DECLARE @KhuB_DH INT = (SELECT ID FROM KhuVuc WHERE TenKhuVuc = N'B' AND IDBaiXe = (SELECT ID FROM BaiXe WHERE TenBai = N'Bãi Xe Đỗ Diên Hồng'));
+
 INSERT INTO ChoDauXe (IDKhuVuc, TenChoDau, KichThuoc, MaSoKhoa, TrangThaiKhoa, TrangThaiO) VALUES
-((SELECT ID FROM KhuVuc WHERE TenKhuVuc = N'Khu A - Ô tô'), 'A-01', '5x2.5m', 'LOCK-QT-A01', N'Đóng', N'Đang đỗ'),
-((SELECT ID FROM KhuVuc WHERE TenKhuVuc = N'Khu A - Ô tô'), 'A-02', '5x2.5m', 'LOCK-QT-A02', N'Đóng', N'Trống'),
-((SELECT ID FROM KhuVuc WHERE TenKhuVuc = N'Khu A - Ô tô'), 'A-03', '5x2.5m', 'LOCK-QT-A03', N'Mở', N'Đã đặt'),
-((SELECT ID FROM KhuVuc WHERE TenKhuVuc = N'Khu B - Xe máy'), 'B-01', '2x1m', 'LOCK-QT-B01', N'Đóng', N'Trống');
+-- Quang Trung - Khu A (Ô tô con)
+(@KhuA_QT, 'A-01', '5x2.5m', 'LOCK-QT-A01', N'Đóng', N'Đang đỗ'),
+(@KhuA_QT, 'A-02', '5x2.5m', 'LOCK-QT-A02', N'Đóng', N'Trống'),
+(@KhuA_QT, 'A-03', '5x2.5m', 'LOCK-QT-A03', N'Mở', N'Đã đặt'),
+(@KhuA_QT, 'A-04', '5x2.5m', 'LOCK-QT-A04', N'Đóng', N'Trống'),
+(@KhuA_QT, 'A-05', '5x2.5m', 'LOCK-QT-A05', N'Lỗi', N'Bảo trì'),
+(@KhuA_QT, 'A-06', '5x2.5m', 'LOCK-QT-A06', N'Đóng', N'Trống'),
+(@KhuA_QT, 'A-07', '5x2.5m', 'LOCK-QT-A07', N'Đóng', N'Trống'),
+(@KhuA_QT, 'A-08', '5x2.5m', 'LOCK-QT-A08', N'Đóng', N'Trống'),
+(@KhuA_QT, 'A-09', '5x2.5m', 'LOCK-QT-A09', N'Đóng', N'Trống'),
+(@KhuA_QT, 'A-10', '5x2.5m', 'LOCK-QT-A10', N'Đóng', N'Trống'),
+(@KhuA_QT, 'A-11', '5x2.5m', 'LOCK-QT-A11', N'Đóng', N'Trống'),
+(@KhuA_QT, 'A-12', '5x2.5m', 'LOCK-QT-A12', N'Đóng', N'Trống'),
+(@KhuA_QT, 'A-13', '5x2.5m', 'LOCK-QT-A13', N'Đóng', N'Trống'),
+(@KhuA_QT, 'A-14', '5x2.5m', 'LOCK-QT-A14', N'Đóng', N'Trống'),
+(@KhuA_QT, 'A-15', '5x2.5m', 'LOCK-QT-A15', N'Đóng', N'Trống'),
+
+-- Quang Trung - Khu B (Xe bán tải)
+(@KhuB_QT, 'B-01', '5.5x2.6m', 'LOCK-QT-B01', N'Đóng', N'Trống'),
+(@KhuB_QT, 'B-02', '5.5x2.6m', 'LOCK-QT-B02', N'Đóng', N'Đang đỗ'),
+(@KhuB_QT, 'B-03', '5.5x2.6m', 'LOCK-QT-B03', N'Đóng', N'Trống'),
+(@KhuB_QT, 'B-04', '5.5x2.6m', 'LOCK-QT-B04', N'Mở', N'Đã đặt'),
+(@KhuB_QT, 'B-05', '5.5x2.6m', 'LOCK-QT-B05', N'Đóng', N'Trống'),
+(@KhuB_QT, 'B-06', '5.5x2.6m', 'LOCK-QT-B06', N'Đóng', N'Trống'),
+(@KhuB_QT, 'B-07', '5.5x2.6m', 'LOCK-QT-B07', N'Đóng', N'Trống'),
+(@KhuB_QT, 'B-08', '5.5x2.6m', 'LOCK-QT-B08', N'Đóng', N'Trống'),
+(@KhuB_QT, 'B-09', '5.5x2.6m', 'LOCK-QT-B09', N'Đóng', N'Trống'),
+(@KhuB_QT, 'B-10', '5.5x2.6m', 'LOCK-QT-B10', N'Đóng', N'Trống'),
+(@KhuB_QT, 'B-11', '5.5x2.6m', 'LOCK-QT-B11', N'Đóng', N'Trống'),
+(@KhuB_QT, 'B-12', '5.5x2.6m', 'LOCK-QT-B12', N'Đóng', N'Trống'),
+(@KhuB_QT, 'B-13', '5.5x2.6m', 'LOCK-QT-B13', N'Đóng', N'Trống'),
+(@KhuB_QT, 'B-14', '5.5x2.6m', 'LOCK-QT-B14', N'Đóng', N'Trống'),
+(@KhuB_QT, 'B-15', '5.5x2.6m', 'LOCK-QT-B15', N'Đóng', N'Trống'),
+
+-- Quang Trung - Khu C (Xe tải)
+(@KhuC_QT, 'C-01', '8x2.8m', 'LOCK-QT-C01', N'Đóng', N'Trống'),
+(@KhuC_QT, 'C-02', '8x2.8m', 'LOCK-QT-C02', N'Đóng', N'Trống'),
+(@KhuC_QT, 'C-03', '8x2.8m', 'LOCK-QT-C03', N'Đóng', N'Trống'),
+(@KhuC_QT, 'C-04', '8x2.8m', 'LOCK-QT-C04', N'Đóng', N'Trống'),
+(@KhuC_QT, 'C-05', '8x2.8m', 'LOCK-QT-C05', N'Đóng', N'Trống'),
+
+-- Quang Trung - Khu D (Xe buýt)
+(@KhuD_QT, 'D-01', '12x3.0m', 'LOCK-QT-D01', N'Đóng', N'Trống'),
+(@KhuD_QT, 'D-02', '12x3.0m', 'LOCK-QT-D02', N'Đóng', N'Trống'),
+(@KhuD_QT, 'D-03', '12x3.0m', 'LOCK-QT-D03', N'Đóng', N'Trống'),
+(@KhuD_QT, 'D-04', '12x3.0m', 'LOCK-QT-D04', N'Đóng', N'Trống'),
+(@KhuD_QT, 'D-05', '12x3.0m', 'LOCK-QT-D05', N'Đóng', N'Trống'),
+
+-- Diên Hồng - Khu A (Ô tô con)
+(@KhuA_DH, 'A-01', '5x2.5m', 'LOCK-DH-A01', N'Đóng', N'Trống'),
+(@KhuA_DH, 'A-02', '5x2.5m', 'LOCK-DH-A02', N'Đóng', N'Trống'),
+(@KhuA_DH, 'A-03', '5x2.5m', 'LOCK-DH-A03', N'Đóng', N'Trống'),
+(@KhuA_DH, 'A-04', '5x2.5m', 'LOCK-DH-A04', N'Đóng', N'Trống'),
+(@KhuA_DH, 'A-05', '5x2.5m', 'LOCK-DH-A05', N'Đóng', N'Trống'),
+
+-- Diên Hồng - Khu B (Xe bán tải)
+(@KhuB_DH, 'B-01', '5.5x2.6m', 'LOCK-DH-B01', N'Đóng', N'Trống'),
+(@KhuB_DH, 'B-02', '5.5x2.6m', 'LOCK-DH-B02', N'Đóng', N'Trống'),
+(@KhuB_DH, 'B-03', '5.5x2.6m', 'LOCK-DH-B03', N'Đóng', N'Trống'),
+(@KhuB_DH, 'B-04', '5.5x2.6m', 'LOCK-DH-B04', N'Đóng', N'Trống'),
+(@KhuB_DH, 'B-05', '5.5x2.6m', 'LOCK-DH-B05', N'Đóng', N'Trống');
 GO
 
 -- 15. Bảng giá
 INSERT INTO BangGia (IDBaiXe, IDLoaiXe, TenBangGia, GiaTheoGio, GiaQuaDem, GiaTheoThang, GiaDatCho, TrangThai) VALUES
 ((SELECT ID FROM BaiXe WHERE TenBai = N'Bãi Xe Thông Minh Quang Trung'), (SELECT ID FROM LoaiXe WHERE TenLoaiXe = N'Ô tô'), N'Bảng Giá Ô Tô', 20000, 80000, 600000, 10000, 1),
-((SELECT ID FROM BaiXe WHERE TenBai = N'Bãi Xe Thông Minh Quang Trung'), (SELECT ID FROM LoaiXe WHERE TenLoaiXe = N'Xe máy'), N'Bảng Giá Xe Máy', 5000, 15000, 100000, 3000, 1);
+((SELECT ID FROM BaiXe WHERE TenBai = N'Bãi Xe Thông Minh Quang Trung'), (SELECT ID FROM LoaiXe WHERE TenLoaiXe = N'Xe bán tải'), N'Bảng Giá Xe Bán Tải', 30000, 100000, 800000, 15000, 1);
 GO
 
 -- 16. Đặt chỗ mẫu
@@ -618,7 +681,7 @@ GO
 INSERT INTO DatCho (IDKhachHang, IDChoDau, BienSoXe, NgayDat, TgianBatDau, TgianKetThuc, TienCoc, TrangThai) VALUES
 (
     (SELECT ID FROM KhachHang WHERE CCCD = '123456789001'),
-    (SELECT ID FROM ChoDauXe WHERE TenChoDau = 'A-03'),
+    (SELECT ID FROM ChoDauXe WHERE TenChoDau = 'A-03' AND IDKhuVuc = (SELECT ID FROM KhuVuc WHERE TenKhuVuc = N'A' AND IDBaiXe = (SELECT ID FROM BaiXe WHERE TenBai = N'Bãi Xe Thông Minh Quang Trung'))),
     '81A-12345',
     '2026-05-21 10:00:00',
     '2026-05-21 14:00:00',
@@ -632,7 +695,7 @@ GO
 INSERT INTO DatCho (IDKhachHang, IDChoDau, BienSoXe, NgayDat, TgianBatDau, TgianKetThuc, TienCoc, TrangThai) VALUES
 (
     (SELECT ID FROM KhachHang WHERE CCCD = '123456789001'),
-    (SELECT ID FROM ChoDauXe WHERE TenChoDau = 'A-01'),
+    (SELECT ID FROM ChoDauXe WHERE TenChoDau = 'A-01' AND IDKhuVuc = (SELECT ID FROM KhuVuc WHERE TenKhuVuc = N'A' AND IDBaiXe = (SELECT ID FROM BaiXe WHERE TenBai = N'Bãi Xe Thông Minh Quang Trung'))),
     '81A-12345',
     '2026-05-21 07:00:00',
     '2026-05-21 08:00:00',

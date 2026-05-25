@@ -12,6 +12,7 @@ namespace WebApplication1.Models.DataContext
         public DbSet<VaiTro> VaiTros { get; set; } = null!;
         public DbSet<TaiKhoan> TaiKhoans { get; set; } = null!;
         public DbSet<KhachHang> KhachHangs { get; set; } = null!;
+        public DbSet<ChuBaiXe> ChuBaiXes { get; set; } = null!;
         public DbSet<LoaiXe> LoaiXes { get; set; } = null!;
         public DbSet<Xe> Xes { get; set; } = null!;
         public DbSet<KhachHang_Xe> KhachHangXes { get; set; } = null!;
