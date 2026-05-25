@@ -578,6 +578,10 @@ INSERT INTO BaiXe (IDChuBai, IDDangKy, TenBai, MaXa, DiaChiChiTiet, SucChua, Pha
     N'Hoạt động', 
     'bairuixe_quangtrung.jpg'
 );
+UPDATE BaiXe 
+SET HinhAnh = N'/images/bairuixe_quangtrung.jpg' 
+WHERE TenBai = N'Bãi Xe Thông Minh Quang Trung';
+
 GO
 
 -- 12. Thêm Xe
