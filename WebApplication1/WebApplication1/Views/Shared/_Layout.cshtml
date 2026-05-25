@@ -11,7 +11,7 @@
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
+        <nav class="navbar navbar-expand-lg navbar-light navbar-custom">
             <div class="container">
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
                     <i class="fa-solid fa-square-parking"></i>
@@ -36,9 +36,31 @@
                             <a class="nav-link" href="#device-demo">Trải Nghiệm Khóa</a>
                         </li>
                     </ul>
-                    <div class="d-flex gap-2">
-                        <a href="/Account/Login" class="btn btn-secondary-custom px-4 py-2">Đăng Nhập</a>
-                        <a href="/Account/Register" class="btn btn-primary-custom px-4 py-2">Đăng Ký</a>
+                    <div class="d-flex align-items-center gap-2">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <span class="navbar-text me-2 text-dark fw-semibold" style="font-size: 0.9rem;">
+                                <i class="fa-regular fa-user me-1 text-secondary"></i> Xin chào, @(User.FindFirst("FullName")?.Value ?? User.Identity.Name)
+                            </span>
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <a href="/Admin" class="btn btn-secondary-custom px-3 py-2 btn-sm">Trang Quản Trị</a>
+                            }
+                            else if (User.IsInRole("Chủ bãi xe"))
+                            {
+                                <a href="/Owner" class="btn btn-secondary-custom px-3 py-2 btn-sm">Trang Chủ Bãi</a>
+                            }
+                            else
+                            {
+                                <a href="/Customer" class="btn btn-secondary-custom px-3 py-2 btn-sm">Trang Cá Nhân</a>
+                            }
+                            <a href="/Account/Logout" class="btn btn-outline-danger px-3 py-2 btn-sm">Đăng Xuất</a>
+                        }
+                        else
+                        {
+                            <a href="/Account/Login" class="btn btn-secondary-custom px-4 py-2">Đăng Nhập</a>
+                            <a href="/Account/Register" class="btn btn-primary-custom px-4 py-2">Đăng Ký</a>
+                        }
                     </div>
                 </div>
             </div>

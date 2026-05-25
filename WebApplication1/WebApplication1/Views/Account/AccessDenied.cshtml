@@ -1,0 +1,26 @@
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Từ Chối Truy Cập";
+}
+
+<div class="container py-5 text-center" style="margin-top: 100px;">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border border-danger shadow-lg p-5 rounded-3" style="background: #ffffff;">
+                <div class="text-danger mb-4">
+                    <i class="fa-solid fa-circle-exclamation fa-4x"></i>
+                </div>
+                <h2 class="text-dark fw-bold mb-3">Từ Chối Truy Cập</h2>
+                <p class="text-muted mb-4">Bạn không có quyền truy cập vào chức năng hoặc khu vực này của hệ thống.</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="/" class="btn btn-secondary-custom px-4">
+                        <i class="fa-solid fa-house me-2"></i>Trang Chủ
+                    </a>
+                    <a href="/Account/Login" class="btn btn-primary-custom px-4">
+                        <i class="fa-solid fa-right-to-bracket me-2"></i>Đăng Nhập
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
