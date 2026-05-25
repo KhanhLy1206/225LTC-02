@@ -1,6 +1,9 @@
+@using WebApplication1.Models.Entities
 @{
     Layout = "~/Areas/Customer/Views/Shared/_CustomerLayout.cshtml";
     ViewData["Title"] = "Quản Lý Phương Tiện";
+    var customerVehicles = ViewBag.CustomerVehicles as List<KhachHang_Xe> ?? new List<KhachHang_Xe>();
+    var vehicleTypes = ViewBag.VehicleTypes as List<LoaiXe> ?? new List<LoaiXe>();
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -12,55 +15,57 @@
 
 <!-- Vehicles List Grid -->
 <div class="row g-4" id="vehiclesGrid">
-    <!-- Vehicle 1 -->
-    <div class="col-md-6 vehicle-card-item">
-        <div class="glass-card border-primary position-relative">
-            <span class="badge bg-primary position-absolute top-0 end-0 m-3">MẶC ĐỊNH MỞ BARIE</span>
-            <div class="d-flex align-items-center gap-4">
-                <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center" style="width: 70px; height: 70px; font-size: 2.2rem; color: var(--primary);">
-                    <i class="fa-solid fa-car"></i>
-                </div>
-                <div>
-                    <h5 class="fw-bold text-white mb-1">Audi E-Tron GT</h5>
-                    <span class="text-muted small d-block mb-1">Loại xe: **Ô tô 4-7 chỗ**</span>
-                    <span class="text-muted small d-block mb-2">Sở hữu: **Cá nhân**</span>
-                    <div class="d-flex gap-2 align-items-center">
-                        <span class="badge bg-dark font-monospace text-secondary fs-6 py-1 px-3 border border-secondary border-opacity-25">51F - 999.99</span>
-                        <span class="text-muted small">Màu: Đen nhám</span>
-                    </div>
-                </div>
-            </div>
-            <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-secondary border-opacity-10">
-                <button class="btn btn-sm btn-outline-secondary py-1 px-3">Sửa</button>
-                <button class="btn btn-sm btn-outline-danger py-1 px-3 btn-delete-vehicle">Xóa</button>
-            </div>
+    @if (customerVehicles.Count == 0)
+    {
+        <div class="col-12 text-center text-muted py-5" id="noVehiclesAlert">
+            <i class="fa-solid fa-car fs-1 mb-3 text-secondary opacity-50"></i>
+            <p>Bạn chưa đăng ký bất kỳ phương tiện nào. Vui lòng nhấn nút "Thêm Xe Mới" ở trên để đăng ký.</p>
         </div>
-    </div>
+    }
+    else
+    {
+        @for (int i = 0; i < customerVehicles.Count; i++)
+        {
+            var relation = customerVehicles[i];
+            var vehicle = relation.Xe;
+            if (vehicle != null)
+            {
+                bool isDefault = (i == 0);
+                string iconClass = (vehicle.LoaiXe?.TenLoaiXe?.Contains("máy") == true) ? "fa-motorcycle" : "fa-car";
+                string colorTheme = (vehicle.LoaiXe?.TenLoaiXe?.Contains("máy") == true) ? "var(--secondary)" : "var(--primary)";
 
-    <!-- Vehicle 2 -->
-    <div class="col-md-6 vehicle-card-item">
-        <div class="glass-card position-relative">
-            <div class="d-flex align-items-center gap-4">
-                <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center" style="width: 70px; height: 70px; font-size: 2.2rem; color: var(--secondary);">
-                    <i class="fa-solid fa-motorcycle"></i>
-                </div>
-                <div>
-                    <h5 class="fw-bold text-white mb-1">Honda SH 150i</h5>
-                    <span class="text-muted small d-block mb-1">Loại xe: **Xe máy**</span>
-                    <span class="text-muted small d-block mb-2">Sở hữu: **Cá nhân**</span>
-                    <div class="d-flex gap-2 align-items-center">
-                        <span class="badge bg-dark font-monospace text-secondary fs-6 py-1 px-3 border border-secondary border-opacity-25">29A - 123.45</span>
-                        <span class="text-muted small">Màu: Trắng</span>
+                <div class="col-md-6 vehicle-card-item" id="vehicle-card-@vehicle.BienSoXe">
+                    <div class="glass-card position-relative @(isDefault ? "border-primary" : "")">
+                        @if (isDefault)
+                        {
+                            <span class="badge bg-primary position-absolute top-0 end-0 m-3 btn-default-badge">MẶC ĐỊNH MỞ BARIE</span>
+                        }
+                        <div class="d-flex align-items-center gap-4">
+                            <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center" style="width: 70px; height: 70px; font-size: 2.2rem; color: @colorTheme;">
+                                <i class="fa-solid @iconClass"></i>
+                            </div>
+                            <div>
+                                <h5 class="fw-bold text-white mb-1">@vehicle.TenXe</h5>
+                                <span class="text-muted small d-block mb-1">Loại xe: **@(vehicle.LoaiXe?.TenLoaiXe ?? "Phương tiện")**</span>
+                                <span class="text-muted small d-block mb-2">Sở hữu: **@relation.LoaiSoHuu**</span>
+                                <div class="d-flex gap-2 align-items-center">
+                                    <span class="badge bg-dark font-monospace text-secondary fs-6 py-1 px-3 border border-secondary border-opacity-25">@vehicle.BienSoXe</span>
+                                    <span class="text-muted small">Màu: @(vehicle.MauSac ?? "Chưa rõ")</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-secondary border-opacity-10">
+                            @if (!isDefault)
+                            {
+                                <button class="btn btn-sm btn-outline-primary py-1 px-3 btn-set-default" data-plate="@vehicle.BienSoXe">Đặt mặc định</button>
+                            }
+                            <button class="btn btn-sm btn-outline-danger py-1 px-3 btn-delete-vehicle" data-plate="@vehicle.BienSoXe">Xóa</button>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-secondary border-opacity-10">
-                <button class="btn btn-sm btn-outline-primary py-1 px-3 btn-set-default">Đặt mặc định</button>
-                <button class="btn btn-sm btn-outline-secondary py-1 px-3">Sửa</button>
-                <button class="btn btn-sm btn-outline-danger py-1 px-3 btn-delete-vehicle">Xóa</button>
-            </div>
-        </div>
-    </div>
+            }
+        }
+    }
 </div>
 
 <!-- Add Vehicle Modal -->
@@ -86,10 +91,11 @@
                     <div class="mb-3">
                         <label class="auth-label">Loại Phương Tiện</label>
                         <div class="auth-input-group">
-                            <select class="form-select" id="newTypeSelect" required>
-                                <option value="car" selected>Ô tô 4-7 chỗ</option>
-                                <option value="truck">Ô tô tải / Bán tải</option>
-                                <option value="moto">Xe máy / Mô tô</option>
+                            <select class="form-select" id="newTypeSelect" required style="border-radius:10px;">
+                                @foreach (var t in vehicleTypes)
+                                {
+                                    <option value="@t.ID">@t.TenLoaiXe</option>
+                                }
                             </select>
                             <i class="fa-solid fa-list input-icon"></i>
                         </div>
@@ -117,7 +123,7 @@
                     <div class="mb-3">
                         <label class="auth-label">Hình thức sở hữu</label>
                         <div class="auth-input-group">
-                            <select class="form-select" id="newOwnershipSelect" required>
+                            <select class="form-select" id="newOwnershipSelect" required style="border-radius:10px;">
                                 <option value="Cá nhân" selected>Cá nhân</option>
                                 <option value="Doanh nghiệp">Doanh nghiệp</option>
                             </select>
@@ -137,70 +143,85 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
-            // Đăng ký xe mới bằng jQuery
+            // Đăng ký xe mới qua AJAX
             $('#addVehicleForm').submit(function(e) {
                 e.preventDefault();
 
                 const plate = $('#newPlateInput').val().toUpperCase();
-                const type = $('#newTypeSelect').val();
-                const typeText = $('#newTypeSelect option:selected').text();
+                const typeId = $('#newTypeSelect').val();
                 const name = $('#newNameInput').val();
                 const color = $('#newColorInput').val();
                 const ownership = $('#newOwnershipSelect').val();
 
-                const icon = (type === 'moto') ? 'fa-motorcycle' : 'fa-car';
-                const colorTheme = (type === 'moto') ? 'var(--secondary)' : 'var(--primary)';
-
-                const cardHTML = `
-                    <div class="col-md-6 vehicle-card-item">
-                        <div class="glass-card position-relative">
-                            <div class="d-flex align-items-center gap-4">
-                                <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center" style="width: 70px; height: 70px; font-size: 2.2rem; color: ${colorTheme};">
-                                    <i class="fa-solid ${icon}"></i>
-                                </div>
-                                <div>
-                                    <h5 class="fw-bold text-white mb-1">${name}</h5>
-                                    <span class="text-muted small d-block mb-1">Loại xe: **${typeText}**</span>
-                                    <span class="text-muted small d-block mb-2">Sở hữu: **${ownership}**</span>
-                                    <div class="d-flex gap-2 align-items-center">
-                                        <span class="badge bg-dark font-monospace text-secondary fs-6 py-1 px-3 border border-secondary border-opacity-25">${plate}</span>
-                                        <span class="text-muted small">Màu: ${color}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top border-secondary border-opacity-10">
-                                <button class="btn btn-sm btn-outline-primary py-1 px-3 btn-set-default">Đặt mặc định</button>
-                                <button class="btn btn-sm btn-outline-secondary py-1 px-3">Sửa</button>
-                                <button class="btn btn-sm btn-outline-danger py-1 px-3 btn-delete-vehicle">Xóa</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                $('#vehiclesGrid').append(cardHTML);
-                bootstrap.Modal.getInstance(document.getElementById('addVehicleModal')).hide();
-                $('#addVehicleForm')[0].reset();
-                alert(`Đăng ký xe ${name} (${plate}) thành công!`);
+                $.ajax({
+                    url: '/Customer/Home/AddVehicle',
+                    type: 'POST',
+                    data: {
+                        BienSoXe: plate,
+                        IDLoaiXe: typeId,
+                        TenXe: name,
+                        Hang: name.split(' ')[0], // Auto-populate brand as first word
+                        MauSac: color,
+                        LoaiSoHuu: ownership
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            alert(`Đăng ký xe ${name} (${plate}) thành công!`);
+                            window.location.reload();
+                        } else {
+                            alert(response.message || 'Lỗi khi đăng ký xe.');
+                        }
+                    },
+                    error: function() {
+                        alert('Đã xảy ra lỗi kết nối với máy chủ.');
+                    }
+                });
             });
 
-            // Đặt xe làm mặc định mở barie
+            // Đặt xe làm mặc định mở barie (Client-side mock effect)
             $(document).on('click', '.btn-set-default', function() {
-                $('.vehicle-card-item .badge.bg-primary').remove();
+                $('.vehicle-card-item .btn-default-badge').remove();
                 $('.vehicle-card-item .glass-card').removeClass('border-primary');
                 
                 const $card = $(this).closest('.glass-card');
                 $card.addClass('border-primary');
-                $card.append('<span class="badge bg-primary position-absolute top-0 end-0 m-3">MẶC ĐỊNH MỞ BARIE</span>');
-                $(this).remove();
+                $card.append('<span class="badge bg-primary position-absolute top-0 end-0 m-3 btn-default-badge">MẶC ĐỊNH MỞ BARIE</span>');
                 
+                // Add button back to the old default
+                $('.vehicle-card-item').each(function() {
+                    const $item = $(this);
+                    if ($item.find('.btn-default-badge').length === 0) {
+                        const plateNum = $item.find('.btn-delete-vehicle').data('plate');
+                        if ($item.find('.btn-set-default').length === 0) {
+                            $item.find('.d-flex.justify-content-end').prepend(`<button class="btn btn-sm btn-outline-primary py-1 px-3 btn-set-default" data-plate="${plateNum}">Đặt mặc định</button>`);
+                        }
+                    }
+                });
+                
+                $(this).remove();
                 alert('Đã thiết lập xe này làm phương tiện mở khóa mặc định!');
             });
 
             // Xóa xe khỏi danh sách
             $(document).on('click', '.btn-delete-vehicle', function() {
-                if (confirm('Bạn có chắc chắn muốn xóa xe này khỏi tài khoản của mình không?')) {
-                    $(this).closest('.vehicle-card-item').remove();
-                    alert('Đã xóa phương tiện!');
+                const plate = $(this).data('plate');
+                if (confirm(`Bạn có chắc chắn muốn xóa xe ${plate} khỏi tài khoản của mình không?`)) {
+                    $.ajax({
+                        url: '/Customer/Home/DeleteVehicle',
+                        type: 'POST',
+                        data: { bienSoXe: plate },
+                        success: function(response) {
+                            if (response.success) {
+                                alert('Đã xóa phương tiện thành công!');
+                                window.location.reload();
+                            } else {
+                                alert(response.message || 'Không thể xóa phương tiện.');
+                            }
+                        },
+                        error: function() {
+                            alert('Lỗi kết nối máy chủ.');
+                        }
+                    });
                 }
             });
         });

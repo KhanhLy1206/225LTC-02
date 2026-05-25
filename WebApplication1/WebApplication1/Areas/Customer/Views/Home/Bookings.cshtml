@@ -1,6 +1,10 @@
+@using WebApplication1.Models.Entities
 @{
     Layout = "~/Areas/Customer/Views/Shared/_CustomerLayout.cshtml";
     ViewData["Title"] = "Quản Lý Đơn Đặt Chỗ";
+    var activeBookings = ViewBag.ActiveBookings as List<DatCho> ?? new List<DatCho>();
+    var upcomingBookings = ViewBag.UpcomingBookings as List<DatCho> ?? new List<DatCho>();
+    var historyBookings = ViewBag.HistoryBookings as List<DatCho> ?? new List<DatCho>();
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -14,12 +18,12 @@
 <ul class="nav nav-tabs border-secondary border-opacity-25 mb-4" id="bookingsTab" role="tablist">
     <li class="nav-item" role="presentation">
         <button class="nav-link active text-white fw-semibold position-relative" id="active-tab" data-bs-toggle="tab" data-bs-target="#active-pane" type="button" role="tab" aria-controls="active-pane" aria-selected="true" style="background:transparent; border:none; border-bottom: 2px solid transparent;">
-            Đang Hoạt Động <span class="badge bg-danger ms-1">2</span>
+            Đang Hoạt Động <span class="badge bg-danger ms-1">@activeBookings.Count</span>
         </button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link text-white fw-semibold opacity-75" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming-pane" type="button" role="tab" aria-controls="upcoming-pane" aria-selected="false" style="background:transparent; border:none; border-bottom: 2px solid transparent;">
-            Sắp Diễn Ra <span class="badge bg-secondary ms-1">1</span>
+            Sắp Diễn Ra <span class="badge bg-secondary ms-1">@upcomingBookings.Count</span>
         </button>
     </li>
     <li class="nav-item" role="presentation">
@@ -34,179 +38,138 @@
     <!-- Active Bookings Tab -->
     <div class="tab-pane fade show active" id="active-pane" role="tabpanel" aria-labelledby="active-tab">
         <div class="row g-4">
-            <!-- Active Booking 1 -->
-            <div class="col-xl-6 booking-active-item" id="booking-SP-4310">
-                <div class="glass-card border-primary h-100">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="font-monospace text-secondary fw-bold">Mã đơn: #SP-4310</span>
-                        <span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-25 px-2 py-1"><i class="fa-solid fa-circle-play me-1 small"></i>ĐANG HIỆU LỰC</span>
-                    </div>
-
-                    <div class="row g-3 align-items-center">
-                        <div class="col-md-6 border-end border-secondary border-opacity-10 pe-md-3">
-                            <h5 class="fw-bold text-white mb-1">Bãi Đỗ Xe Quang Trung</h5>
-                            <p class="text-muted small mb-3"><i class="fa-solid fa-location-dot me-1"></i>Q.12, TP. Hồ Chí Minh</p>
-
-                            <div class="row g-2 mb-2">
-                                <div class="col-6">
-                                    <span class="text-muted small d-block">Vị Trí Đỗ:</span>
-                                    <strong class="text-secondary">Khu A - A-03</strong>
-                                </div>
-                                <div class="col-6">
-                                    <span class="text-muted small d-block">Khung Giờ:</span>
-                                    <span class="small text-white fw-semibold">19:00 - 23:00</span>
-                                </div>
-                            </div>
-
-                            <div class="row g-2">
-                                <div class="col-6">
-                                    <span class="text-muted small d-block">Biển Số Xe:</span>
-                                    <span class="badge bg-dark border border-secondary text-white font-monospace">51F - 999.99</span>
-                                </div>
-                                <div class="col-6">
-                                    <span class="text-muted small d-block">Mã Khóa IoT:</span>
-                                    <strong class="font-monospace text-info">BAR-9923</strong>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Barrier Controller -->
-                        <div class="col-md-6 ps-md-3">
-                            <div class="spot-demo mb-3 py-2 px-3 bg-dark bg-opacity-40 rounded">
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-muted small">Trạng thái barie:</span>
-                                    <span class="badge bg-danger lock-badge" id="badge-SP-4310">KHÓA</span>
-                                </div>
-                                <div class="barrier-visual" id="visual-SP-4310"></div>
-                                <div class="text-muted small text-center mt-2" style="font-size: 0.75rem;">
-                                    <i class="fa-solid fa-wifi text-success me-1"></i> Thiết bị trực tuyến
-                                </div>
-                            </div>
-
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-success btn-sm w-50 py-2 btn-unlock-barrier" data-id="SP-4310" data-lock="BAR-9923" data-spot="A-03">
-                                    <i class="fa-solid fa-unlock me-1"></i>Mở khóa
-                                </button>
-                                <button class="btn btn-danger btn-sm w-50 py-2 btn-lock-barrier" data-id="SP-4310" data-lock="BAR-9923" data-spot="A-03" disabled>
-                                    <i class="fa-solid fa-lock me-1"></i>Đóng khóa
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Logs Console -->
-                    <div class="bg-dark rounded p-2 font-monospace text-success mt-3" style="font-size: 0.7rem; height: 80px; overflow-y: auto;" id="logs-SP-4310">
-                        <div class="text-muted">[Hệ thống] Đơn đặt chỗ đã bắt đầu lúc 19:00. Đã cấp quyền điều khiển Barie khóa BAR-9923 cho khách hàng.</div>
-                    </div>
+            @if (activeBookings.Count == 0)
+            {
+                <div class="col-12 text-center text-muted py-5">
+                    <i class="fa-solid fa-car-side fs-1 mb-3 text-secondary opacity-50"></i>
+                    <p>Hiện tại bạn không có đơn đỗ xe nào đang hoạt động tại bãi đỗ.</p>
                 </div>
-            </div>
+            }
+            else
+            {
+                @foreach (var b in activeBookings)
+                {
+                    <div class="col-xl-6 booking-active-item" id="booking-SP-@b.ID">
+                        <div class="glass-card border-primary h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="font-monospace text-secondary fw-bold">Mã đơn: #SP-@b.ID</span>
+                                <span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-25 px-2 py-1"><i class="fa-solid fa-circle-play me-1 small"></i>ĐANG ĐỖ</span>
+                            </div>
 
-            <!-- Active Booking 2 -->
-            <div class="col-xl-6 booking-active-item" id="booking-SP-4491">
-                <div class="glass-card border-primary h-100">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="font-monospace text-secondary fw-bold">Mã đơn: #SP-4491</span>
-                        <span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-25 px-2 py-1"><i class="fa-solid fa-circle-play me-1 small"></i>ĐANG HIỆU LỰC</span>
-                    </div>
+                            <div class="row g-3 align-items-center">
+                                <div class="col-md-6 border-end border-secondary border-opacity-10 pe-md-3">
+                                    <h5 class="fw-bold text-white mb-1">@(b.ChoDauXe?.KhuVuc?.BaiXe?.TenBai ?? "Bãi xe")</h5>
+                                    <p class="text-muted small mb-3"><i class="fa-solid fa-location-dot me-1"></i>@(b.ChoDauXe?.KhuVuc?.BaiXe?.DiaChiChiTiet ?? "Địa chỉ")</p>
 
-                    <div class="row g-3 align-items-center">
-                        <div class="col-md-6 border-end border-secondary border-opacity-10 pe-md-3">
-                            <h5 class="fw-bold text-white mb-1">Bãi Xe Thông Minh Q1</h5>
-                            <p class="text-muted small mb-3"><i class="fa-solid fa-location-dot me-1"></i>Hải Châu, TP. Đà Nẵng</p>
+                                    <div class="row g-2 mb-2">
+                                        <div class="col-6">
+                                            <span class="text-muted small d-block">Vị Trí Đỗ:</span>
+                                            <strong class="text-secondary">@(b.ChoDauXe?.KhuVuc?.TenKhuVuc ?? "Khu") - @(b.ChoDauXe?.TenChoDau ?? "Chỗ")</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            <span class="text-muted small d-block">Thời Gian Thuê:</span>
+                                            <span class="text-warning small d-block">Bắt đầu: @b.TgianBatDau.ToString("dd/MM/yyyy HH:mm")</span>
+                                            <span class="text-warning small d-block">Kết thúc: @b.TgianKetThuc.ToString("dd/MM/yyyy HH:mm")</span>
+                                        </div>
+                                    </div>
 
-                            <div class="row g-2 mb-2">
-                                <div class="col-6">
-                                    <span class="text-muted small d-block">Vị Trí Đỗ:</span>
-                                    <strong class="text-secondary">Khu B - B-12</strong>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <span class="text-muted small d-block">Biển Số Xe:</span>
+                                            <span class="badge bg-dark border border-secondary text-white font-monospace">@b.BienSoXe</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <span class="text-muted small d-block">Mã Khóa IoT:</span>
+                                            <strong class="font-monospace text-info">@(b.ChoDauXe?.MaSoKhoa ?? "BAR-0000")</strong>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-6">
-                                    <span class="text-muted small d-block">Khung Giờ:</span>
-                                    <span class="small text-white fw-semibold">18:00 - 22:00</span>
+
+                                <!-- Barrier Controller -->
+                                <div class="col-md-6 ps-md-3">
+                                    <div class="spot-demo mb-3 py-2 px-3 bg-dark bg-opacity-40 rounded">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span class="text-muted small">Trạng thái barie:</span>
+                                            <span class="badge @(b.ChoDauXe?.TrangThaiKhoa == "Mở" ? "bg-success" : "bg-danger") lock-badge" id="badge-SP-@b.ID">@(b.ChoDauXe?.TrangThaiKhoa == "Mở" ? "MỞ" : "KHÓA")</span>
+                                        </div>
+                                        <div class="barrier-visual @(b.ChoDauXe?.TrangThaiKhoa == "Mở" ? "opened" : "")" id="visual-SP-@b.ID"></div>
+                                        <div class="text-muted small text-center mt-2" style="font-size: 0.75rem;">
+                                            <i class="fa-solid fa-wifi text-success me-1"></i> Thiết bị trực tuyến
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-success btn-sm w-50 py-2 btn-unlock-barrier" data-id="@b.ID" data-lock="@(b.ChoDauXe?.MaSoKhoa ?? "BAR-0000")" data-spot="@(b.ChoDauXe?.TenChoDau ?? "Chỗ")" @(b.ChoDauXe?.TrangThaiKhoa == "Mở" ? "disabled" : "")>
+                                            <i class="fa-solid fa-unlock me-1"></i>Mở khóa
+                                        </button>
+                                        <button class="btn btn-danger btn-sm w-50 py-2 btn-lock-barrier" data-id="@b.ID" data-lock="@(b.ChoDauXe?.MaSoKhoa ?? "BAR-0000")" data-spot="@(b.ChoDauXe?.TenChoDau ?? "Chỗ")" @(b.ChoDauXe?.TrangThaiKhoa == "Mở" ? "" : "disabled")>
+                                            <i class="fa-solid fa-lock me-1"></i>Đóng khóa
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="row g-2">
-                                <div class="col-6">
-                                    <span class="text-muted small d-block">Biển Số Xe:</span>
-                                    <span class="badge bg-dark border border-secondary text-white font-monospace">29A - 123.45</span>
-                                </div>
-                                <div class="col-6">
-                                    <span class="text-muted small d-block">Mã Khóa IoT:</span>
-                                    <strong class="font-monospace text-info">BAR-4491</strong>
-                                </div>
+                            <!-- Logs Console -->
+                            <div class="bg-dark rounded p-2 font-monospace text-success mt-3" style="font-size: 0.7rem; height: 80px; overflow-y: auto;" id="logs-SP-@b.ID">
+                                <div class="text-muted">[Hệ thống] Đơn đặt chỗ đã bắt đầu lúc @b.TgianBatDau.ToString("HH:mm"). Đã cấp quyền điều khiển Barie khóa @(b.ChoDauXe?.MaSoKhoa ?? "BAR-0000") cho khách hàng. Trạng thái hiện tại: @(b.ChoDauXe?.TrangThaiKhoa == "Mở" ? "Mở khóa" : "Đã khóa").</div>
                             </div>
                         </div>
-
-                        <!-- Barrier Controller -->
-                        <div class="col-md-6 ps-md-3">
-                            <div class="spot-demo mb-3 py-2 px-3 bg-dark bg-opacity-40 rounded">
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-muted small">Trạng thái barie:</span>
-                                    <span class="badge bg-danger lock-badge" id="badge-SP-4491">KHÓA</span>
-                                </div>
-                                <div class="barrier-visual" id="visual-SP-4491"></div>
-                                <div class="text-muted small text-center mt-2" style="font-size: 0.75rem;">
-                                    <i class="fa-solid fa-wifi text-success me-1"></i> Thiết bị trực tuyến
-                                </div>
-                            </div>
-
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-success btn-sm w-50 py-2 btn-unlock-barrier" data-id="SP-4491" data-lock="BAR-4491" data-spot="B-12">
-                                    <i class="fa-solid fa-unlock me-1"></i>Mở khóa
-                                </button>
-                                <button class="btn btn-danger btn-sm w-50 py-2 btn-lock-barrier" data-id="SP-4491" data-lock="BAR-4491" data-spot="B-12" disabled>
-                                    <i class="fa-solid fa-lock me-1"></i>Đóng khóa
-                                </button>
-                            </div>
-                        </div>
                     </div>
-
-                    <!-- Logs Console -->
-                    <div class="bg-dark rounded p-2 font-monospace text-success mt-3" style="font-size: 0.7rem; height: 80px; overflow-y: auto;" id="logs-SP-4491">
-                        <div class="text-muted">[Hệ thống] Đơn đặt chỗ đã bắt đầu lúc 18:00. Đã cấp quyền điều khiển Barie khóa BAR-4491 cho khách hàng.</div>
-                    </div>
-                </div>
-            </div>
+                }
+            }
         </div>
     </div>
 
     <!-- Upcoming Bookings Tab -->
     <div class="tab-pane fade" id="upcoming-pane" role="tabpanel" aria-labelledby="upcoming-tab">
-        <!-- Upcoming Booking 1 -->
-        <div class="glass-card mb-3 border border-secondary border-opacity-10">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="font-monospace text-secondary fw-bold">Mã đơn: #SP-4588</span>
-                <span class="badge bg-info bg-opacity-20 text-info border border-info border-opacity-25 px-2 py-1">SẮP DIỄN RA</span>
+        @if (upcomingBookings.Count == 0)
+        {
+            <div class="text-center text-muted py-5">
+                <i class="fa-regular fa-clock fs-1 mb-3 text-secondary opacity-50"></i>
+                <p>Không có đơn đặt chỗ nào sắp diễn ra.</p>
             </div>
-            
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h5 class="fw-bold text-white mb-1">Bãi Xe Tòa Nhà Landmark 81</h5>
-                    <p class="text-muted small mb-3"><i class="fa-solid fa-location-dot me-1"></i>Bình Thạnh, TP. Hồ Chí Minh</p>
+        }
+        else
+        {
+            @foreach (var b in upcomingBookings)
+            {
+                <div class="glass-card mb-3 border border-secondary border-opacity-10">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="font-monospace text-secondary fw-bold">Mã đơn: #SP-@b.ID</span>
+                        <span class="badge bg-info bg-opacity-20 text-info border border-info border-opacity-25 px-2 py-1">SẮP DIỄN RA</span>
+                    </div>
                     
-                    <div class="row g-3">
-                        <div class="col-sm-4">
-                            <span class="text-muted small d-block">Vị Trí Đỗ Dự Kiến:</span>
-                            <strong class="text-white">Tầng B2 - C-09</strong>
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="fw-bold text-white mb-1">@(b.ChoDauXe?.KhuVuc?.BaiXe?.TenBai ?? "Bãi xe")</h5>
+                            <p class="text-muted small mb-3"><i class="fa-solid fa-location-dot me-1"></i>@(b.ChoDauXe?.KhuVuc?.BaiXe?.DiaChiChiTiet ?? "Địa chỉ")</p>
+                            
+                            <div class="row g-3">
+                                <div class="col-sm-4">
+                                    <span class="text-muted small d-block">Vị Trí Đỗ Dự Kiến:</span>
+                                    <strong class="text-white">@(b.ChoDauXe?.KhuVuc?.TenKhuVuc ?? "Khu") - @(b.ChoDauXe?.TenChoDau ?? "Chỗ")</strong>
+                                </div>
+                                <div class="col-sm-4">
+                                    <span class="text-muted small d-block">Thời Gian Thuê:</span>
+                                    <span class="text-warning small d-block">Bắt đầu: @b.TgianBatDau.ToString("dd/MM/yyyy HH:mm")</span>
+                                    <span class="text-warning small d-block">Kết thúc: @b.TgianKetThuc.ToString("dd/MM/yyyy HH:mm")</span>
+                                </div>
+                                <div class="col-sm-4">
+                                    <span class="text-muted small d-block">Xe Đăng Ký:</span>
+                                    <span class="badge bg-dark border border-secondary text-white font-monospace">@b.BienSoXe</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-sm-4">
-                            <span class="text-muted small d-block">Thời Gian Bắt Đầu:</span>
-                            <strong class="text-warning">Ngày mai, 09:00 - 13:00</strong>
-                        </div>
-                        <div class="col-sm-4">
-                            <span class="text-muted small d-block">Xe Đăng Ký:</span>
-                            <span class="badge bg-dark border border-secondary text-white font-monospace">51F - 999.99</span>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            <div class="p-3 bg-dark bg-opacity-30 rounded border border-secondary border-opacity-15 text-center">
+                                <div class="text-muted small mb-1"><i class="fa-solid fa-lock me-1"></i>Barie remote locked</div>
+                                <span class="text-secondary small font-italic" style="font-size: 0.75rem;">Tính năng điều khiển sẽ tự động kích hoạt trước giờ đặt chỗ 15 phút.</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                    <div class="p-3 bg-dark bg-opacity-30 rounded border border-secondary border-opacity-15 text-center">
-                        <div class="text-muted small mb-1"><i class="fa-solid fa-lock me-1"></i>Barie remote locked</div>
-                        <span class="text-secondary small font-italic">Tính năng điều khiển sẽ tự động kích hoạt trước giờ đặt chỗ 15 phút.</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+            }
+        }
     </div>
 
     <!-- Bookings History Tab -->
@@ -225,36 +188,40 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr class="border-bottom border-secondary border-opacity-5">
-                            <td class="font-monospace text-secondary py-3">#SP-4310</td>
-                            <td>Bãi đỗ Xe Công Nghệ Quang Trung</td>
-                            <td>Khu A - A-03</td>
-                            <td class="small text-muted">20/05/2026, 08:00 - 11:30</td>
-                            <td>70,000đ</td>
-                            <td>
-                                <span class="badge bg-success bg-opacity-20 text-success">Đã Hoàn Thành</span>
-                                <button class="btn btn-sm btn-outline-warning ms-2 btn-review-history-trigger" data-id="SP-4310" data-lot="Bãi đỗ Xe Công Nghệ Quang Trung" style="font-size:0.75rem; padding: 2px 6px;"><i class="fa-solid fa-star me-1"></i>Đánh giá</button>
-                            </td>
-                        </tr>
-                        <tr class="border-bottom border-secondary border-opacity-5">
-                            <td class="font-monospace text-secondary py-3">#SP-4209</td>
-                            <td>Bãi Xe Tòa Landmark 81</td>
-                            <td>Tầng B2 - C-09</td>
-                            <td class="small text-muted">15/05/2026, 18:00 - 21:00</td>
-                            <td>90,000đ</td>
-                            <td>
-                                <span class="badge bg-success bg-opacity-20 text-success">Đã Hoàn Thành</span>
-                                <button class="btn btn-sm btn-outline-warning ms-2 btn-review-history-trigger" data-id="SP-4209" data-lot="Bãi Xe Tòa Landmark 81" style="font-size:0.75rem; padding: 2px 6px;"><i class="fa-solid fa-star me-1"></i>Đánh giá</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="font-monospace text-secondary py-3">#SP-4190</td>
-                            <td>Bãi Đỗ Xe Quận 10</td>
-                            <td>Khu C - C-02</td>
-                            <td class="small text-muted">12/05/2026, 10:00 - 12:00</td>
-                            <td>30,000đ</td>
-                            <td><span class="badge bg-danger bg-opacity-20 text-danger">Đã Hủy</span></td>
-                        </tr>
+                        @if (historyBookings.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">Chưa có lịch sử giao dịch.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var b in historyBookings)
+                            {
+                                <tr class="border-bottom border-secondary border-opacity-5">
+                                    <td class="font-monospace text-secondary py-3">#SP-@b.ID</td>
+                                    <td>@(b.ChoDauXe?.KhuVuc?.BaiXe?.TenBai ?? "Bãi xe")</td>
+                                    <td>@(b.ChoDauXe?.KhuVuc?.TenKhuVuc ?? "Khu") - @(b.ChoDauXe?.TenChoDau ?? "Chỗ")</td>
+                                    <td class="small text-muted font-monospace">@b.TgianBatDau.ToString("dd/MM/yyyy HH:mm") - @b.TgianKetThuc.ToString("HH:mm")</td>
+                                    <td>@b.TienCoc.ToString("N0")đ</td>
+                                    <td>
+                                        @if (b.TrangThai == "Hoàn thành" || b.TrangThai == "Đã hoàn thành")
+                                        {
+                                            <span class="badge bg-success bg-opacity-20 text-success">Đã Hoàn Thành</span>
+                                            <button class="btn btn-sm btn-outline-warning ms-2 btn-review-history-trigger" data-id="@b.ID" data-lot="@(b.ChoDauXe?.KhuVuc?.BaiXe?.TenBai ?? "Bãi xe")" style="font-size:0.75rem; padding: 2px 6px;"><i class="fa-solid fa-star me-1"></i>Đánh giá</button>
+                                        }
+                                        else if (b.TrangThai == "Đã hủy")
+                                        {
+                                            <span class="badge bg-danger bg-opacity-20 text-danger">Đã Hủy</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary bg-opacity-20 text-white">@b.TrangThai</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
                     </tbody>
                 </table>
             </div>
@@ -316,7 +283,7 @@
             function addBarrierLog(bookingId, text, isAlert = false) {
                 const colorClass = isAlert ? 'text-warning' : 'text-success';
                 const logHTML = `<div>[${getFormattedTime()}] <span class="${colorClass}">${text}</span></div>`;
-                const $logs = $(`#logs-${bookingId}`);
+                const $logs = $(`#logs-SP-${bookingId}`);
                 $logs.append(logHTML);
                 $logs.scrollTop($logs[0].scrollHeight);
             }
@@ -329,26 +296,42 @@
                 
                 const $btnUnlock = $(this);
                 const $btnLock = $btnUnlock.siblings('.btn-lock-barrier');
-                const $visual = $(`#visual-${bookingId}`);
-                const $badge = $(`#badge-${bookingId}`);
+                const $visual = $(`#visual-SP-${bookingId}`);
+                const $badge = $(`#badge-SP-${bookingId}`);
 
                 $btnUnlock.attr('disabled', true);
                 addBarrierLog(bookingId, `Gửi yêu cầu mở khóa Barie ${lockCode} tại chỗ đỗ ${spotName}...`, true);
 
-                setTimeout(function() {
-                    addBarrierLog(bookingId, `Đang xác thực quyền của phương tiện tại chỗ đỗ ${spotName}...`);
-                }, 400);
+                $.ajax({
+                    url: '/Customer/Home/ControlBarrier',
+                    type: 'POST',
+                    data: { bookingId: bookingId, action: 'Open' },
+                    success: function(response) {
+                        if (response.success) {
+                            setTimeout(function() {
+                                addBarrierLog(bookingId, `Đang xác thực quyền của phương tiện tại chỗ đỗ ${spotName}...`);
+                            }, 300);
 
-                setTimeout(function() {
-                    addBarrierLog(bookingId, `Mã lệnh IoT khớp. Đang truyền tín hiệu mở barie...`);
-                    $visual.addClass('opened');
-                    $badge.text("MỞ").removeClass('bg-danger').addClass('bg-success');
-                }, 1000);
+                            setTimeout(function() {
+                                addBarrierLog(bookingId, `Mã lệnh IoT khớp. Đang truyền tín hiệu mở barie...`);
+                                $visual.addClass('opened');
+                                $badge.text("MỞ").removeClass('bg-danger').addClass('bg-success');
+                            }, 800);
 
-                setTimeout(function() {
-                    addBarrierLog(bookingId, `Thiết bị phản hồi: Barie ${lockCode} đã hạ xuống. Chào mừng bạn vào chỗ đỗ!`);
-                    $btnLock.removeAttr('disabled');
-                }, 1800);
+                            setTimeout(function() {
+                                addBarrierLog(bookingId, `Thiết bị phản hồi: Barie ${lockCode} đã hạ xuống. Chào mừng bạn vào chỗ đỗ!`);
+                                $btnLock.removeAttr('disabled');
+                            }, 1500);
+                        } else {
+                            addBarrierLog(bookingId, `Lỗi điều khiển: ${response.message}`, true);
+                            $btnUnlock.removeAttr('disabled');
+                        }
+                    },
+                    error: function() {
+                        addBarrierLog(bookingId, `Lỗi kết nối máy chủ. Vui lòng thử lại.`, true);
+                        $btnUnlock.removeAttr('disabled');
+                    }
+                });
             });
 
             // Remote barrier close (Lock)
@@ -359,18 +342,34 @@
                 
                 const $btnLock = $(this);
                 const $btnUnlock = $btnLock.siblings('.btn-unlock-barrier');
-                const $visual = $(`#visual-${bookingId}`);
-                const $badge = $(`#badge-${bookingId}`);
+                const $visual = $(`#visual-SP-${bookingId}`);
+                const $badge = $(`#badge-SP-${bookingId}`);
 
                 $btnLock.attr('disabled', true);
                 addBarrierLog(bookingId, `Gửi lệnh dựng barie khóa ${lockCode} an toàn...`, true);
 
-                setTimeout(function() {
-                    $visual.removeClass('opened');
-                    $badge.text("KHÓA").removeClass('bg-success').addClass('bg-danger');
-                    addBarrierLog(bookingId, `Thiết bị phản hồi: Barie ${lockCode} đã được dựng đứng. Trạng thái đỗ xe: An toàn.`);
-                    $btnUnlock.removeAttr('disabled');
-                }, 1000);
+                $.ajax({
+                    url: '/Customer/Home/ControlBarrier',
+                    type: 'POST',
+                    data: { bookingId: bookingId, action: 'Close' },
+                    success: function(response) {
+                        if (response.success) {
+                            setTimeout(function() {
+                                $visual.removeClass('opened');
+                                $badge.text("KHÓA").removeClass('bg-success').addClass('bg-danger');
+                                addBarrierLog(bookingId, `Thiết bị phản hồi: Barie ${lockCode} đã được dựng đứng. Trạng thái đỗ xe: An toàn.`);
+                                $btnUnlock.removeAttr('disabled');
+                            }, 800);
+                        } else {
+                            addBarrierLog(bookingId, `Lỗi điều khiển: ${response.message}`, true);
+                            $btnLock.removeAttr('disabled');
+                        }
+                    },
+                    error: function() {
+                        addBarrierLog(bookingId, `Lỗi kết nối máy chủ.`, true);
+                        $btnLock.removeAttr('disabled');
+                    }
+                });
             });
 
             // --- Star rating handler for completed bookings ---
@@ -412,13 +411,29 @@
                 const stars = $('#historyReviewRatingVal').val();
                 const comment = $('#historyReviewComment').val();
 
-                alert(`Đã lưu phản hồi cho đơn hàng #${bookingId}!\n- Đánh giá: ${stars} sao\n- Nội dung: ${comment}\n\nThông tin đã được đồng bộ vào bảng DanhGiaBinhLuan.`);
-                
-                bootstrap.Modal.getInstance(document.getElementById('historyReviewModal')).hide();
-                
-                if (activeHistoryTriggerBtn) {
-                    activeHistoryTriggerBtn.remove();
-                }
+                $.ajax({
+                    url: '/Customer/Home/SubmitReview',
+                    type: 'POST',
+                    data: {
+                        bookingId: bookingId,
+                        rating: stars,
+                        comment: comment
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            alert(`Đã lưu phản hồi cho đơn hàng #${bookingId}!`);
+                            bootstrap.Modal.getInstance(document.getElementById('historyReviewModal')).hide();
+                            if (activeHistoryTriggerBtn) {
+                                activeHistoryTriggerBtn.remove();
+                            }
+                        } else {
+                            alert(response.message || 'Lỗi khi gửi đánh giá.');
+                        }
+                    },
+                    error: function() {
+                        alert('Đã xảy ra lỗi khi kết nối máy chủ.');
+                    }
+                });
             });
         });
     </script>

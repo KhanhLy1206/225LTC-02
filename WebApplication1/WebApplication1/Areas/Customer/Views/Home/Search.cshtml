@@ -1,37 +1,105 @@
+@using WebApplication1.Models.Entities
 @{
     Layout = "~/Areas/Customer/Views/Shared/_CustomerLayout.cshtml";
     ViewData["Title"] = "Tìm Kiếm & Đặt Chỗ Đỗ Xe";
+    var parkingLots = ViewBag.ParkingLots; // dynamic or cast
+    var vehicles = ViewBag.Vehicles as List<Xe> ?? new List<Xe>();
 }
+<style>
+/* Style for Visual Spot Grid */
+.spot-grid-visual {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+    max-height: 250px;
+    overflow-y: auto;
+    padding: 5px;
+}
+
+.spot-card-visual {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.spot-card-visual:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.spot-card-visual.selected {
+    border-color: #06b6d4 !important;
+    background: rgba(6, 182, 212, 0.2) !important;
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
+}
+
+/* Spot states */
+.spot-card-visual.state-trong {
+    border-left: 4px solid #10b981; /* Green */
+}
+.spot-card-visual.state-trong .status-dot {
+    background: #10b981;
+}
+
+.spot-card-visual.state-dangdo {
+    border-left: 4px solid #f59e0b; /* Orange */
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+.spot-card-visual.state-dangdo .status-dot {
+    background: #f59e0b;
+}
+
+.spot-card-visual.state-dadat {
+    border-left: 4px solid #3b82f6; /* Blue */
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+.spot-card-visual.state-dadat .status-dot {
+    background: #3b82f6;
+}
+
+.spot-card-visual.state-baotri {
+    border-left: 4px solid #ef4444; /* Red */
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+.spot-card-visual.state-baotri .status-dot {
+    background: #ef4444;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+}
+</style>
 
 <!-- Search Filter Box -->
 <div class="glass-card mb-4">
     <h5 class="fw-bold mb-3"><i class="fa-solid fa-magnifying-glass text-secondary me-2"></i>Bộ Lọc Tìm Kiếm Bãi Xe</h5>
     <form id="searchForm">
         <div class="row g-3">
-            <div class="col-md-3">
-                <label class="auth-label">Tỉnh / Thành phố</label>
-                <select class="form-select bg-dark text-white border-secondary" id="searchProvince">
-                    <option value="" selected>Tất cả</option>
-                    <option value="HCM">TP. Hồ Chí Minh</option>
-                    <option value="HN">TP. Hà Nội</option>
-                    <option value="DN">TP. Đà Nẵng</option>
-                </select>
+            <div class="col-md-4">
+                <label class="auth-label">Từ khóa tìm kiếm (Tên bãi, địa chỉ...)</label>
+                <input type="text" class="form-control bg-dark text-white border-secondary" id="searchKeyword" placeholder="Nhập tên bãi hoặc địa chỉ cần tìm..." style="border-radius:10px;" />
             </div>
-            <div class="col-md-3">
-                <label class="auth-label">Quận / Huyện</label>
-                <select class="form-select bg-dark text-white border-secondary" id="searchDistrict" disabled>
-                    <option value="" selected>Tất cả</option>
-                </select>
-            </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <label class="auth-label">Loại Xe Hỗ Trợ</label>
-                <select class="form-select bg-dark text-white border-secondary" id="searchVehicleType">
+                <select class="form-select bg-dark text-white border-secondary" id="searchVehicleType" style="border-radius:10px;">
                     <option value="all" selected>Tất cả phương tiện</option>
-                    <option value="oto">Ô tô (Con/Bán tải)</option>
-                    <option value="xemay">Xe máy / Mô tô</option>
+                    <option value="oto">Có hỗ trợ Ô tô</option>
+                    <option value="xemay">Có hỗ trợ Xe máy</option>
                 </select>
             </div>
-            <div class="col-md-3 d-flex align-items-end">
+            <div class="col-md-4 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary-custom w-100 py-2">
                     Lọc Kết Quả <i class="fa-solid fa-filter ms-1"></i>
                 </button>
@@ -42,158 +110,189 @@
 
 <!-- Parking Lot Lists -->
 <div class="row g-4" id="parkingLotContainer">
-    <!-- Lot 1 -->
-    <div class="col-md-6 col-xxl-4 parking-card-item" data-province="HCM" data-type="both">
-        <div class="glass-card h-100 d-flex flex-column">
-            <div class="position-relative mb-3">
-                <span class="badge bg-success position-absolute top-0 start-0 m-2">Còn: 12 chỗ trống</span>
-                <img src="https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?auto=format&fit=crop&w=500&q=80" alt="Bãi xe Quang Trung" class="img-fluid rounded w-100" style="height: 180px; object-fit: cover; border: 1px solid var(--border-color);" />
-            </div>
+    @if (parkingLots == null)
+    {
+        <div class="col-12 text-center text-muted py-5">Đang tải danh sách bãi đỗ xe...</div>
+    }
+    else
+    {
+        foreach (var item in parkingLots)
+        {
+            var lot = (BaiXe)item.GetType().GetProperty("Lot").GetValue(item, null);
+            var carPrice = (decimal)item.GetType().GetProperty("CarPrice").GetValue(item, null);
+            var motoPrice = (decimal)item.GetType().GetProperty("MotoPrice").GetValue(item, null);
+            var spotsLeft = (int)item.GetType().GetProperty("SpotsLeft").GetValue(item, null);
 
-            <h5 class="fw-bold mb-1">Bãi đỗ Xe Công Nghệ Quang Trung</h5>
-            <p class="text-muted small mb-2"><i class="fa-solid fa-location-dot me-1"></i>Tô Ký, P. Đông Hưng Thuận, Q.12, TP.HCM</p>
-            
-            <div class="d-flex gap-2 mb-3">
-                <span class="badge bg-dark border border-secondary text-muted"><i class="fa-solid fa-car text-primary me-1"></i>35Kđ/h</span>
-                <span class="badge bg-dark border border-secondary text-muted"><i class="fa-solid fa-motorcycle text-warning me-1"></i>15Kđ/h</span>
-                <span class="ms-auto text-warning small"><i class="fa-solid fa-star me-1"></i>4.8 (120 đánh giá)</span>
-            </div>
+            string lotType = "both";
+            if (carPrice > 0 && motoPrice == 0) lotType = "oto";
+            else if (carPrice == 0 && motoPrice > 0) lotType = "xemay";
 
-            <div class="mt-auto">
-                <button class="btn btn-secondary-custom w-100 btn-book-trigger" 
-                        data-id="1"
-                        data-name="Bãi đỗ Xe Công Nghệ Quang Trung"
-                        data-address="Tô Ký, Q.12, TP.HCM"
-                        data-car-price="35000"
-                        data-moto-price="15000">
-                    Chi Tiết & Đặt Chỗ <i class="fa-solid fa-arrow-right ms-1"></i>
-                </button>
-            </div>
-        </div>
-    </div>
+            string imgUrl = !string.IsNullOrEmpty(lot.HinhAnh) ? lot.HinhAnh : "https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?auto=format&fit=crop&w=500&q=80";
 
-    <!-- Lot 2 -->
-    <div class="col-md-6 col-xxl-4 parking-card-item" data-province="HCM" data-type="both">
-        <div class="glass-card h-100 d-flex flex-column">
-            <div class="position-relative mb-3">
-                <span class="badge bg-danger position-absolute top-0 start-0 m-2">Còn: 2 chỗ trống</span>
-                <img src="https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=500&q=80" alt="Bãi xe Q1" class="img-fluid rounded w-100" style="height: 180px; object-fit: cover; border: 1px solid var(--border-color);" />
-            </div>
+            <div class="col-md-6 col-xxl-4 parking-card-item" data-name="@lot.TenBai.ToLower()" data-address="@lot.DiaChiChiTiet.ToLower()" data-type="@lotType">
+                <div class="glass-card h-100 d-flex flex-column">
+                    <div class="position-relative mb-3">
+                        @if (spotsLeft > 0)
+                        {
+                            <span class="badge bg-success position-absolute top-0 start-0 m-2">Còn: @spotsLeft chỗ trống</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger position-absolute top-0 start-0 m-2">Hết chỗ</span>
+                        }
+                        <img src="@imgUrl" alt="@lot.TenBai" class="img-fluid rounded w-100" style="height: 180px; object-fit: cover; border: 1px solid var(--border-color);" />
+                    </div>
 
-            <h5 class="fw-bold mb-1">Bãi đỗ Xe Thông Minh Quận 1</h5>
-            <p class="text-muted small mb-2"><i class="fa-solid fa-location-dot me-1"></i>Lê Lợi, P. Bến Thành, Quận 1, TP.HCM</p>
-            
-            <div class="d-flex gap-2 mb-3">
-                <span class="badge bg-dark border border-secondary text-muted"><i class="fa-solid fa-car text-primary me-1"></i>50Kđ/h</span>
-                <span class="badge bg-dark border border-secondary text-muted"><i class="fa-solid fa-motorcycle text-warning me-1"></i>20Kđ/h</span>
-                <span class="ms-auto text-warning small"><i class="fa-solid fa-star me-1"></i>4.9 (340 đánh giá)</span>
-            </div>
+                    <h5 class="fw-bold mb-1">@lot.TenBai</h5>
+                    <p class="text-muted small mb-2"><i class="fa-solid fa-location-dot me-1"></i>@lot.DiaChiChiTiet</p>
+                    
+                    <div class="d-flex gap-2 mb-3 flex-wrap">
+                        @if (carPrice > 0)
+                        {
+                            <span class="badge bg-dark border border-secondary text-muted"><i class="fa-solid fa-car text-primary me-1"></i>@carPrice.ToString("N0")đ/h</span>
+                        }
+                        @if (motoPrice > 0)
+                        {
+                            <span class="badge bg-dark border border-secondary text-muted"><i class="fa-solid fa-motorcycle text-warning me-1"></i>@motoPrice.ToString("N0")đ/h</span>
+                        }
+                        <span class="ms-auto text-warning small"><i class="fa-solid fa-star me-1"></i>4.8 (Thỏa thuận)</span>
+                    </div>
 
-            <div class="mt-auto">
-                <button class="btn btn-secondary-custom w-100 btn-book-trigger" 
-                        data-id="2"
-                        data-name="Bãi đỗ Xe Thông Minh Quận 1"
-                        data-address="Lê Lợi, Quận 1, TP.HCM"
-                        data-car-price="50000"
-                        data-moto-price="20000">
-                    Chi Tiết & Đặt Chỗ <i class="fa-solid fa-arrow-right ms-1"></i>
-                </button>
+                    <div class="mt-auto">
+                        @if (spotsLeft > 0)
+                        {
+                            <button class="btn btn-secondary-custom w-100 btn-book-trigger" 
+                                    data-id="@lot.ID"
+                                    data-name="@lot.TenBai"
+                                    data-address="@lot.DiaChiChiTiet"
+                                    data-car-price="@((int)carPrice)"
+                                    data-moto-price="@((int)motoPrice)">
+                                Chi Tiết & Đặt Chỗ <i class="fa-solid fa-arrow-right ms-1"></i>
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-secondary w-100" disabled>
+                                Bãi Xe Đầy Chỗ <i class="fa-solid fa-ban ms-1"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Lot 3 -->
-    <div class="col-md-6 col-xxl-4 parking-card-item" data-province="HN" data-type="oto">
-        <div class="glass-card h-100 d-flex flex-column">
-            <div class="position-relative mb-3">
-                <span class="badge bg-success position-absolute top-0 start-0 m-2">Còn: 45 chỗ trống</span>
-                <img src="https://images.unsplash.com/photo-1506521788723-8681c63d278b?auto=format&fit=crop&w=500&q=80" alt="Bãi xe Cầu Giấy" class="img-fluid rounded w-100" style="height: 180px; object-fit: cover; border: 1px solid var(--border-color);" />
-            </div>
-
-            <h5 class="fw-bold mb-1">Bãi đỗ Ô Tô Cầu Giấy</h5>
-            <p class="text-muted small mb-2"><i class="fa-solid fa-location-dot me-1"></i>Dịch Vọng Hậu, Cầu Giấy, Hà Nội</p>
-            
-            <div class="d-flex gap-2 mb-3">
-                <span class="badge bg-dark border border-secondary text-muted"><i class="fa-solid fa-car text-primary me-1"></i>40Kđ/h</span>
-                <span class="ms-auto text-warning small"><i class="fa-solid fa-star me-1"></i>4.7 (95 đánh giá)</span>
-            </div>
-
-            <div class="mt-auto">
-                <button class="btn btn-secondary-custom w-100 btn-book-trigger" 
-                        data-id="3"
-                        data-name="Bãi đỗ Ô Tô Cầu Giấy"
-                        data-address="Cầu Giấy, Hà Nội"
-                        data-car-price="40000"
-                        data-moto-price="0">
-                    Chi Tiết & Đặt Chỗ <i class="fa-solid fa-arrow-right ms-1"></i>
-                </button>
-            </div>
-        </div>
-    </div>
+        }
+    }
 </div>
 
-<!-- Booking Modal (Màn hình cấu hình và Đặt chỗ) -->
+<!-- Booking Modal -->
 <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true" style="backdrop-filter: blur(5px);">
-    <div class="modal-dialog modal-dialog-centered text-white">
+    <div class="modal-dialog modal-dialog-centered modal-lg text-white">
         <div class="modal-content bg-dark border-secondary p-3 shadow-2xl" style="border-radius:16px;">
             <div class="modal-header border-secondary border-opacity-10">
-                <h5 class="modal-title fw-bold text-gradient" id="bookingModalLabel">Đặt Chỗ Đỗ Xe</h5>
+                <h5 class="modal-title fw-bold text-gradient" id="bookingModalLabel">Đặt Chỗ Đỗ Xe Trực Quan</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <h6 class="fw-bold mb-1" id="modalLotName">Tên bãi đỗ</h6>
-                <p class="text-muted small mb-3" id="modalLotAddress"><i class="fa-solid fa-location-dot me-1"></i>Địa chỉ bãi</p>
+                <div class="row">
+                    <!-- Left Column: Visual Map -->
+                    <div class="col-md-7 border-end border-secondary border-opacity-15 pe-md-4">
+                        <h6 class="fw-bold mb-1" id="modalLotName">Tên bãi đỗ</h6>
+                        <p class="text-muted small mb-3" id="modalLotAddress"><i class="fa-solid fa-location-dot me-1"></i>Địa chỉ bãi</p>
 
-                <form id="modalBookingForm">
-                    <!-- Select Vehicle -->
-                    <div class="mb-3">
-                        <label class="auth-label">Phương Tiện Đăng Ký</label>
-                        <select class="form-select bg-dark text-white border-secondary" id="modalSelectVehicle" required>
-                            <option value="51F-999.99" data-type="car">Audi E-Tron GT (51F - 999.99)</option>
-                            <option value="29A-123.45" data-type="moto">Honda SH 150i (29A - 123.45)</option>
-                        </select>
-                    </div>
-
-                    <div class="row g-2 mb-3">
-                        <!-- Start hour -->
-                        <div class="col-6">
-                            <label class="auth-label">Giờ Vào Dự Kiến</label>
-                            <input type="time" class="form-control bg-dark text-white border-secondary" id="modalStartTime" required value="19:00" />
+                        <!-- Area selection tabs -->
+                        <div class="mb-3">
+                            <label class="auth-label mb-2">Khu Vực Bãi Xe (Lọc theo xe)</label>
+                            <div class="d-flex flex-wrap gap-2" id="modalAreaContainer">
+                                <!-- Area buttons will be loaded here -->
+                            </div>
                         </div>
-                        <!-- Duration selection -->
-                        <div class="col-6">
-                            <label class="auth-label">Thời Gian Đỗ (Giờ)</label>
-                            <select class="form-select bg-dark text-white border-secondary" id="modalDuration" required>
-                                <option value="1">1 giờ</option>
-                                <option value="2">2 giờ</option>
-                                <option value="3" selected>3 giờ</option>
-                                <option value="4">4 giờ</option>
-                                <option value="8">8 giờ</option>
-                            </select>
+
+                        <!-- Grid map -->
+                        <div class="mb-3">
+                            <label class="auth-label mb-2">Sơ đồ vị trí đỗ (Chọn ô màu xanh lá)</label>
+                            <div class="spot-grid-visual" id="modalSpotGrid">
+                                <!-- Spots will load here -->
+                            </div>
+                            <div class="d-flex justify-content-center gap-3 mt-2 small text-muted">
+                                <span><span class="status-dot" style="background: #10b981;"></span>Trống</span>
+                                <span><span class="status-dot" style="background: #f59e0b;"></span>Đang đỗ</span>
+                                <span><span class="status-dot" style="background: #3b82f6;"></span>Đã đặt</span>
+                                <span><span class="status-dot" style="background: #ef4444;"></span>Bảo trì</span>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Payment Pricing calculation display -->
-                    <div class="bg-dark rounded p-3 mb-4 border border-secondary border-opacity-10">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="text-muted small">Đơn giá chỗ đỗ:</span>
-                            <span class="fw-semibold text-white small" id="calcPricePerHour">35,000đ/giờ</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="text-muted small">Thời lượng thuê:</span>
-                            <span class="fw-semibold text-white small" id="calcDuration">3 giờ</span>
-                        </div>
-                        <hr class="border-secondary opacity-25 my-2" />
-                        <div class="d-flex justify-content-between">
-                            <strong class="text-white">Tổng cộng cần trả:</strong>
-                            <strong class="text-secondary fs-5" id="calcTotalPayment">105,000đ</strong>
-                        </div>
-                    </div>
+                    <!-- Right Column: Booking Form -->
+                    <div class="col-md-5 ps-md-4 mt-4 mt-md-0">
+                        <form id="modalBookingForm">
+                            <input type="hidden" id="modalLotId" />
+                            <input type="hidden" id="modalSelectSpot" /> <!-- Selected spot ID -->
 
-                    <button type="submit" class="btn btn-primary-custom w-100 py-3">
-                        XÁC NHẬN THANH TOÁN (VÍ CỦA BẠN) <i class="fa-solid fa-credit-card ms-1"></i>
-                    </button>
-                </form>
+                            <!-- Select Vehicle -->
+                            <div class="mb-3">
+                                <label class="auth-label">Phương Tiện Đăng Ký</label>
+                                <select class="form-select bg-dark text-white border-secondary" id="modalSelectVehicle" required style="border-radius:10px;">
+                                    @if (vehicles.Count == 0)
+                                    {
+                                        <option value="">-- Bạn chưa đăng ký xe nào --</option>
+                                    }
+                                    else
+                                    {
+                                        foreach (var v in vehicles)
+                                        {
+                                            string typeStr = v.LoaiXe?.TenLoaiXe?.Contains("máy") == true ? "moto" : "car";
+                                            <option value="@v.BienSoXe" data-type="@typeStr">@v.TenXe (@v.BienSoXe)</option>
+                                        }
+                                    }
+                                </select>
+                                @if (vehicles.Count == 0)
+                                {
+                                    <span class="small text-danger mt-1 d-block">Vui lòng <a href="/Customer/Home/Vehicles" class="text-warning text-decoration-none fw-bold">thêm xe</a> trước khi đặt.</span>
+                                }
+                            </div>
+
+                            <!-- Selected Spot Info -->
+                            <div class="mb-3">
+                                <label class="auth-label">Vị Trí Đã Chọn</label>
+                                <div class="p-2 bg-dark rounded border border-info text-info text-center fw-bold font-monospace" id="selectedSpotDisplay" style="font-size: 1.1rem;">
+                                    -- Chưa Chọn Vị Trí --
+                                </div>
+                            </div>
+
+                            <!-- Date time selection -->
+                            <div class="mb-3">
+                                <label class="auth-label">Thời Gian Bắt Đầu</label>
+                                <input type="datetime-local" class="form-control bg-dark text-white border-secondary" id="modalStartTime" required style="border-radius:10px;" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="auth-label">Thời Gian Kết Thúc</label>
+                                <input type="datetime-local" class="form-control bg-dark text-white border-secondary" id="modalEndTime" required style="border-radius:10px;" />
+                            </div>
+
+                            <!-- Payment Pricing calculation display -->
+                            <div class="bg-dark rounded p-3 mb-4 border border-secondary border-opacity-10">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted small">Đơn giá:</span>
+                                    <span class="fw-semibold text-white small" id="calcPricePerHour">0đ/giờ</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted small">Thời lượng thuê:</span>
+                                    <span class="fw-semibold text-white small" id="calcDuration">0 giờ</span>
+                                </div>
+                                <hr class="border-secondary opacity-25 my-2" />
+                                <div class="d-flex justify-content-between">
+                                    <strong class="text-white">Tổng cộng:</strong>
+                                    <strong class="text-secondary fs-5" id="calcTotalPayment">0đ</strong>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary-custom w-100 py-3" id="btnConfirmBooking" disabled>
+                                XÁC NHẬN THANH TOÁN (VÍ) <i class="fa-solid fa-credit-card ms-1"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
             </div>
         </div>
     </div>
@@ -202,53 +301,25 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
-            // --- 1. Lọc địa giới quận huyện mô phỏng ---
-            const districts = {
-                "HCM": [
-                    { id: "Q1", name: "Quận 1" },
-                    { id: "Q12", name: "Quận 12" },
-                    { id: "BT", name: "Bình Thạnh" }
-                ],
-                "HN": [
-                    { id: "CG", name: "Cầu Giấy" },
-                    { id: "HK", name: "Hoàn Kiếm" }
-                ],
-                "DN": [
-                    { id: "HC", name: "Hải Châu" }
-                ]
-            };
-
-            $('#searchProvince').change(function() {
-                const val = $(this).val();
-                const $dist = $('#searchDistrict');
-                $dist.empty().append('<option value="">Tất cả</option>');
-
-                if (val && districts[val]) {
-                    districts[val].forEach(function(item) {
-                        $dist.append(`<option value="${item.id}">${item.name}</option>`);
-                    });
-                    $dist.removeAttr('disabled');
-                } else {
-                    $dist.attr('disabled', true);
-                }
-            });
-
-            // Chặn submit search demo để lọc tại trang
+            // Lọc tại trang theo keyword & loại xe
             $('#searchForm').submit(function(e) {
                 e.preventDefault();
-                const prov = $('#searchProvince').val();
+                const keyword = $('#searchKeyword').val().trim().toLowerCase();
                 const vtype = $('#searchVehicleType').val();
 
                 $('.parking-card-item').each(function() {
                     const $card = $(this);
-                    const cardProv = $card.data('province');
-                    const cardType = $card.data('type');
+                    const name = $card.data('name') || '';
+                    const address = $card.data('address') || '';
+                    const cardType = $card.data('type') || '';
 
                     let show = true;
-                    if (prov && cardProv !== prov) show = false;
-                    
+                    if (keyword && !name.includes(keyword) && !address.includes(keyword)) {
+                        show = false;
+                    }
                     if (vtype !== 'all') {
-                        if (cardType !== 'both' && cardType !== vtype) show = false;
+                        if (vtype === 'oto' && cardType === 'xemay') show = false;
+                        if (vtype === 'xemay' && cardType === 'oto') show = false;
                     }
 
                     if (show) $card.removeClass('d-none');
@@ -256,60 +327,277 @@
                 });
             });
 
-
-            // --- 2. Quản lý Modal đặt chỗ & Tính toán tiền ---
+            // --- Quản lý Modal đặt chỗ & Tính toán tiền ---
             let activeLotCarPrice = 0;
             let activeLotMotoPrice = 0;
+            let currentAreasData = [];
+            let selectedAreaId = null;
+
+            // Set default date times helper
+            function setDefaultDateTimes() {
+                let offset = (new Date()).getTimezoneOffset() * 60000;
+                let nowLocal = new Date(Date.now() - offset);
+                let nowStr = nowLocal.toISOString().slice(0, 16);
+
+                let endLocal = new Date(Date.now() - offset + (3 * 60 * 60 * 1000));
+                let endStr = endLocal.toISOString().slice(0, 16);
+
+                $('#modalStartTime').val(nowStr);
+                $('#modalEndTime').val(endStr);
+            }
 
             $('.btn-book-trigger').click(function() {
                 const $btn = $(this);
+                const lotId = $btn.data('id');
                 const lotName = $btn.data('name');
                 const lotAddress = $btn.data('address');
-                activeLotCarPrice = parseInt($btn.data('car-price'));
-                activeLotMotoPrice = parseInt($btn.data('moto-price'));
+                activeLotCarPrice = parseInt($btn.data('car-price')) || 0;
+                activeLotMotoPrice = parseInt($btn.data('moto-price')) || 0;
 
+                $('#modalLotId').val(lotId);
                 $('#modalLotName').text(lotName);
                 $('#modalLotAddress').html(`<i class="fa-solid fa-location-dot me-1"></i>${lotAddress}`);
                 
-                recalculatePrice();
+                // Reset spot selection
+                $('#modalSelectSpot').val('');
+                $('#selectedSpotDisplay').text('-- Chưa Chọn Vị Trí --').removeClass('text-success border-success').addClass('text-info border-info');
+                $('#btnConfirmBooking').attr('disabled', true);
+
+                setDefaultDateTimes();
+                loadVisualLotDetails();
 
                 const myModal = new bootstrap.Modal(document.getElementById('bookingModal'));
                 myModal.show();
             });
 
-            $('#modalSelectVehicle, #modalDuration').change(function() {
+            $('#modalSelectVehicle').change(function() {
+                loadVisualLotDetails();
+            });
+
+            $('#modalStartTime, #modalEndTime').on('input change', function() {
+                recalculatePrice();
+            });
+
+            function loadVisualLotDetails() {
+                const lotId = $('#modalLotId').val();
+                const bienSoXe = $('#modalSelectVehicle').val();
+                const $areaContainer = $('#modalAreaContainer');
+                const $spotGrid = $('#modalSpotGrid');
+
+                $areaContainer.html('<span class="small text-muted">Đang tải khu vực...</span>');
+                $spotGrid.html('<div class="text-center w-100 py-3 text-muted">Đang tải sơ đồ...</div>');
+
+                if (lotId && bienSoXe) {
+                    $.getJSON('/Customer/Home/GetLotDetails', { lotId: lotId, bienSoXe: bienSoXe }, function(response) {
+                        if (response.success && response.areas.length > 0) {
+                            currentAreasData = response.areas;
+                            $areaContainer.empty();
+                            
+                            response.areas.forEach(function(area, idx) {
+                                let activeClass = idx === 0 ? 'btn-info' : 'btn-outline-secondary';
+                                if (idx === 0) selectedAreaId = area.id;
+                                
+                                $areaContainer.append(`
+                                    <button type="button" class="btn btn-sm ${activeClass} area-tab-btn" data-area-id="${area.id}">
+                                        Khu ${area.name}
+                                    </button>
+                                `);
+                            });
+
+                            // Render spots for selected Area
+                            renderVisualSpots();
+                            recalculatePrice();
+                        } else {
+                            $areaContainer.html('<span class="small text-danger">Bãi xe không hỗ trợ loại phương tiện này!</span>');
+                            $spotGrid.html('<div class="text-center w-100 py-3 text-danger">Không tìm thấy vị trí phù hợp.</div>');
+                            currentAreasData = [];
+                            recalculatePrice();
+                        }
+                    });
+                }
+            }
+
+            // Click area tab btn
+            $(document).on('click', '.area-tab-btn', function() {
+                $('.area-tab-btn').removeClass('btn-info').addClass('btn-outline-secondary');
+                $(this).removeClass('btn-outline-secondary').addClass('btn-info');
+                selectedAreaId = $(this).data('area-id');
+                renderVisualSpots();
+            });
+
+            function renderVisualSpots() {
+                const $spotGrid = $('#modalSpotGrid');
+                $spotGrid.empty();
+
+                if (!selectedAreaId) return;
+
+                const area = currentAreasData.find(a => a.id == selectedAreaId);
+                if (!area || !area.spots || area.spots.length === 0) {
+                    $spotGrid.html('<div class="text-center w-100 py-3 text-muted">Khu vực này hiện tại chưa có chỗ đỗ.</div>');
+                    return;
+                }
+
+                const currentSelectedSpotId = $('#modalSelectSpot').val();
+
+                area.spots.forEach(function(spot) {
+                    let stateClass = '';
+                    let stateText = '';
+                    let isClickable = false;
+
+                    if (spot.status === 'Trống') {
+                        stateClass = 'state-trong';
+                        stateText = 'Trống';
+                        isClickable = true;
+                    } else if (spot.status === 'Đang đỗ') {
+                        stateClass = 'state-dangdo';
+                        stateText = 'Đang đỗ';
+                    } else if (spot.status === 'Đã đặt') {
+                        stateClass = 'state-dadat';
+                        stateText = 'Đã đặt';
+                    } else {
+                        stateClass = 'state-baotri';
+                        stateText = 'Bảo trì';
+                    }
+
+                    let selectedClass = (currentSelectedSpotId == spot.id) ? 'selected' : '';
+
+                    let $card = $(`
+                        <div class="spot-card-visual ${stateClass} ${selectedClass}" data-spot-id="${spot.id}" data-spot-name="${spot.name}" data-clickable="${isClickable}">
+                            <i class="fa-solid fa-square-parking mb-1" style="font-size: 1.4rem;"></i>
+                            <div class="small fw-bold font-monospace">${spot.name}</div>
+                            <div style="font-size: 0.65rem;" class="opacity-75">${stateText}</div>
+                        </div>
+                    `);
+
+                    $spotGrid.append($card);
+                });
+            }
+
+            // Click spot card helper
+            $(document).on('click', '.spot-card-visual', function() {
+                const isClickable = $(this).data('clickable');
+                if (!isClickable) return; // ignore occupied, booked or maintenance spots
+
+                const spotId = $(this).data('spot-id');
+                const spotName = $(this).data('spot-name');
+
+                $('#modalSelectSpot').val(spotId);
+                $('#selectedSpotDisplay').text(`Vị Trí: ${spotName}`).removeClass('text-info border-info').addClass('text-success border-success');
+
+                // Re-render visual spots to apply selected border highlight
+                renderVisualSpots();
                 recalculatePrice();
             });
 
             function recalculatePrice() {
-                const selectedVehicleType = $('#modalSelectVehicle option:selected').data('type');
-                const duration = parseInt($('#modalDuration').val());
+                const $selectedOpt = $('#modalSelectVehicle option:selected');
+                const spotId = $('#modalSelectSpot').val();
                 
-                let rate = (selectedVehicleType === 'car') ? activeLotCarPrice : activeLotMotoPrice;
-                
-                if (rate === 0) {
-                    $('#calcPricePerHour').text("Không hỗ trợ xe này");
+                if (!$selectedOpt.length || !$selectedOpt.val()) {
+                    $('#calcPricePerHour').text("Chưa chọn xe");
                     $('#calcTotalPayment').text("0đ");
+                    $('#btnConfirmBooking').attr('disabled', true);
                     return;
                 }
 
-                const total = rate * duration;
+                const selectedVehicleType = $selectedOpt.data('type');
+                const startTimeVal = $('#modalStartTime').val();
+                const endTimeVal = $('#modalEndTime').val();
+
+                if (!startTimeVal || !endTimeVal) {
+                    $('#calcDuration').text("0 giờ");
+                    $('#calcTotalPayment').text("0đ");
+                    $('#btnConfirmBooking').attr('disabled', true);
+                    return;
+                }
+
+                const startDt = new Date(startTimeVal);
+                const endDt = new Date(endTimeVal);
+                
+                const diffMs = endDt - startDt;
+                const duration = diffMs / (1000 * 60 * 60); // duration in hours
+
+                let rate = (selectedVehicleType === 'car') ? activeLotCarPrice : activeLotMotoPrice;
+
+                if (rate === 0) {
+                    $('#calcPricePerHour').text("Không hỗ trợ");
+                    $('#calcTotalPayment').text("0đ");
+                    $('#btnConfirmBooking').attr('disabled', true);
+                    return;
+                }
 
                 $('#calcPricePerHour').text(rate.toLocaleString('vi-VN') + "đ/giờ");
-                $('#calcDuration').text(duration + " giờ");
+
+                if (duration <= 0) {
+                    $('#calcDuration').text("Thời gian không hợp lệ");
+                    $('#calcTotalPayment').text("0đ");
+                    $('#btnConfirmBooking').attr('disabled', true);
+                    return;
+                }
+
+                const total = Math.ceil(rate * duration);
+
+                // Format duration nicely (e.g. 2 ngày 5 giờ or 3.5 giờ)
+                let durationText = "";
+                if (duration >= 24) {
+                    let days = Math.floor(duration / 24);
+                    let hours = Math.round(duration % 24);
+                    durationText = `${days} ngày ${hours} giờ`;
+                } else {
+                    durationText = `${duration.toFixed(1)} giờ`;
+                }
+
+                $('#calcDuration').text(durationText);
                 $('#calcTotalPayment').text(total.toLocaleString('vi-VN') + "đ");
+
+                // Enable confirm button only if spot selected and dates are valid
+                if (spotId && duration > 0) {
+                    $('#btnConfirmBooking').removeAttr('disabled');
+                } else {
+                    $('#btnConfirmBooking').attr('disabled', true);
+                }
             }
 
             $('#modalBookingForm').submit(function(e) {
                 e.preventDefault();
+                const spotId = $('#modalSelectSpot').val();
+                const bienSoXe = $('#modalSelectVehicle').val();
+                const startTime = $('#modalStartTime').val();
+                const endTime = $('#modalEndTime').val();
                 const totalText = $('#calcTotalPayment').text();
-                if (totalText === "0đ") {
-                    alert('Bãi xe này không hỗ trợ loại phương tiện được chọn!');
+
+                if (!spotId) {
+                    alert('Vui lòng click chọn 1 chỗ đỗ trống (màu xanh lá) trên sơ đồ!');
                     return;
                 }
 
-                alert(`Thanh toán thành công ${totalText} từ số dư tài khoản của bạn!\n\nĐã khởi tạo đặt chỗ đỗ xe. Vị trí và mã mở barie đã được tạo trong đơn đỗ xe của bạn.`);
-                bootstrap.Modal.getInstance(document.getElementById('bookingModal')).hide();
+                if (totalText === "0đ") {
+                    alert('Lỗi tính toán tổng chi phí thuê.');
+                    return;
+                }
+
+                $.ajax({
+                    url: '/Customer/Home/BookSpot',
+                    type: 'POST',
+                    data: {
+                        spotId: spotId,
+                        bienSoXe: bienSoXe,
+                        startTime: startTime,
+                        endTime: endTime
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            alert(`Thanh toán thành công ${response.cost} từ số dư tài khoản của bạn!\n\nĐã khởi tạo đặt chỗ đỗ xe mã đơn #SP-${response.bookingId}. Vui lòng kiểm tra mục Đơn Đặt Chỗ để điều khiển barie.`);
+                            bootstrap.Modal.getInstance(document.getElementById('bookingModal')).hide();
+                            window.location.href = '/Customer/Home/Bookings';
+                        } else {
+                            alert(response.message || 'Lỗi khi đặt chỗ.');
+                        }
+                    },
+                    error: function() {
+                        alert('Không thể kết nối đến máy chủ.');
+                    }
+                });
             });
         });
     </script>
