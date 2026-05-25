@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using WebApplication1.Data;
+using WebApplication1.Models.DataContext;
 using WebApplication1.Areas.Admin.Models;
 using WebApplication1.Models.Entities;
 

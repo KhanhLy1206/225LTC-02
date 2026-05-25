@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using WebApplication1.Data;
+using WebApplication1.Models.DataContext;
 
 namespace WebApplication1.Areas.Admin.Controllers
 {
