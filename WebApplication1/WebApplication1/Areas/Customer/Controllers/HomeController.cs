@@ -16,10 +16,12 @@ namespace WebApplication1.Areas.Customer.Controllers
     public class HomeController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public HomeController(AppDbContext context)
+        public HomeController(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         private int GetCurrentAccountId()
@@ -260,7 +262,7 @@ namespace WebApplication1.Areas.Customer.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetLotDetails(int lotId, string bienSoXe)
+        public async Task<IActionResult> GetLotDetails(int lotId, string bienSoXe, DateTime? startTime, DateTime? endTime)
         {
             var vehicle = await _context.Xes.Include(x => x.LoaiXe).FirstOrDefaultAsync(x => x.BienSoXe == bienSoXe);
             if (vehicle == null) return Json(new { success = false, message = "Không tìm thấy phương tiện." });
@@ -274,6 +276,18 @@ namespace WebApplication1.Areas.Customer.Controllers
                 .Where(s => areaIds.Contains(s.IDKhuVuc))
                 .ToListAsync();
 
+            // Calculate active window (default to current time if not provided)
+            var start = startTime ?? DateTime.Now;
+            var end = endTime ?? DateTime.Now.AddHours(3);
+
+            // Determine overlapping bookings for these spots during the selected window
+            var overlappingBookings = await _context.DatChos
+                .Where(dc => areaIds.Contains(dc.ChoDauXe!.IDKhuVuc) 
+                    && (dc.TrangThai == "Đang đỗ" || dc.TrangThai == "Đã đặt" || dc.TrangThai == "Chờ thanh toán")
+                    && dc.TgianBatDau < end 
+                    && dc.TgianKetThuc > start)
+                .ToListAsync();
+
             var result = areas.Select(kv => new
             {
                 id = kv.ID,
@@ -282,7 +296,9 @@ namespace WebApplication1.Areas.Customer.Controllers
                 {
                     id = s.ID,
                     name = s.TenChoDau,
-                    status = s.TrangThaiO // "Trống", "Đang đỗ", "Đã đặt", "Bảo trì"
+                    status = s.TrangThaiO == "Bảo trì" ? "Bảo trì" :
+                             (overlappingBookings.Any(ab => ab.IDChoDau == s.ID && ab.TrangThai == "Đang đỗ") ? "Đang đỗ" :
+                              (overlappingBookings.Any(ab => ab.IDChoDau == s.ID && (ab.TrangThai == "Đã đặt" || ab.TrangThai == "Chờ thanh toán")) ? "Đã đặt" : "Trống"))
                 }).ToList()
             }).ToList();
 
@@ -307,14 +323,27 @@ namespace WebApplication1.Areas.Customer.Controllers
             // Find specific selected spot
             var spot = await _context.ChoDauXes
                 .Include(c => c.KhuVuc)
-                .FirstOrDefaultAsync(c => c.ID == spotId && c.TrangThaiO == "Trống");
+                .ThenInclude(kv => kv.BaiXe)
+                .FirstOrDefaultAsync(c => c.ID == spotId && c.TrangThaiO != "Bảo trì");
 
             if (spot == null)
             {
-                return Json(new { success = false, message = "Chỗ đỗ bạn chọn không khả dụng hoặc đã bị người khác đặt." });
+                return Json(new { success = false, message = "Chỗ đỗ bạn chọn không tồn tại hoặc đang bảo trì." });
             }
 
-            int lotId = spot.KhuVuc!.IDBaiXe;
+            // Check if there are any overlapping bookings for this spot during the selected range
+            var hasOverlap = await _context.DatChos
+                .AnyAsync(dc => dc.IDChoDau == spotId 
+                    && (dc.TrangThai == "Đang đỗ" || dc.TrangThai == "Đã đặt" || dc.TrangThai == "Chờ thanh toán")
+                    && dc.TgianBatDau < endTime 
+                    && dc.TgianKetThuc > startTime);
+
+            if (hasOverlap)
+            {
+                return Json(new { success = false, message = "Chỗ đỗ bạn chọn đã có người đặt trong khoảng thời gian này." });
+            }
+
+            var lot = spot.KhuVuc!.BaiXe!;
             double durationHours = (endTime - startTime).TotalHours;
             if (durationHours <= 0)
             {
@@ -323,12 +352,12 @@ namespace WebApplication1.Areas.Customer.Controllers
 
             // Fetch price
             var price = await _context.BangGias
-                .Where(bg => bg.IDBaiXe == lotId && bg.IDLoaiXe == vehicle.IDLoaiXe)
+                .Where(bg => bg.IDBaiXe == lot.ID && bg.IDLoaiXe == vehicle.IDLoaiXe)
                 .Select(bg => bg.GiaTheoGio)
                 .FirstOrDefaultAsync();
-            decimal cost = price * (decimal)durationHours;
+            decimal cost = Math.Round(price * (decimal)durationHours, 2);
 
-            // Create booking
+            // Create booking in pending status ("Đã đặt" fits SQL constraints, payment is tracked via HoaDon/ThanhToan)
             var booking = new DatCho
             {
                 IDKhachHang = customer.ID,
@@ -341,13 +370,171 @@ namespace WebApplication1.Areas.Customer.Controllers
                 TrangThai = "Đã đặt"
             };
 
-            // Update spot to booked
+            // Update spot to booked (locks the spot during transaction)
             spot.TrangThaiO = "Đã đặt";
 
             _context.Add(booking);
             await _context.SaveChangesAsync();
 
-            return Json(new { success = true, bookingId = booking.ID, cost = cost.ToString("N0") + "đ" });
+            // Create Invoice in pending status ("Chưa thanh toán")
+            decimal chietKhauAdmin = Math.Round(cost * (lot.PhanTramChietKhau / 100), 2);
+            decimal tienChuBai = cost - chietKhauAdmin;
+
+            var invoice = new HoaDon
+            {
+                IDDatCho = booking.ID,
+                TongTien = cost,
+                TienChietKhauAdmin = chietKhauAdmin,
+                TienChuBaiNhan = tienChuBai,
+                NgayTao = DateTime.Now,
+                TrangThai = "Chưa thanh toán"
+            };
+            _context.Add(invoice);
+            await _context.SaveChangesAsync();
+
+            // Create Payment in pending status
+            var payment = new ThanhToan
+            {
+                IDHoaDon = invoice.ID,
+                PhuongThuc = "VNPAY",
+                SoTien = cost,
+                TrangThai = false, // Unpaid
+                NgayThanhToan = DateTime.Now
+            };
+            _context.Add(payment);
+            await _context.SaveChangesAsync();
+
+            // Build VNPAY Payment Link
+            var vnpay = new Services.VnPayLibrary();
+            var tmnCode = _configuration["Vnpay:TmnCode"]?.Trim();
+            var hashSecret = _configuration["Vnpay:HashSecret"]?.Trim();
+            var baseUrl = _configuration["Vnpay:BaseUrl"]?.Trim();
+            var returnUrl = _configuration["Vnpay:ReturnUrl"]?.Trim();
+
+            if (string.IsNullOrEmpty(tmnCode) || string.IsNullOrEmpty(hashSecret) || string.IsNullOrEmpty(baseUrl))
+            {
+                return Json(new { success = false, message = "Lỗi cấu hình cổng thanh toán VNPAY." });
+            }
+
+            vnpay.AddRequestData("vnp_Version", "2.1.0");
+            vnpay.AddRequestData("vnp_Command", "pay");
+            vnpay.AddRequestData("vnp_TmnCode", tmnCode);
+            vnpay.AddRequestData("vnp_Amount", ((long)(cost * 100)).ToString()); // Amount multiplied by 100
+            vnpay.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
+            vnpay.AddRequestData("vnp_CurrCode", "VND");
+            
+            // Get client IP address securely and ensure IPv4 format
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+            if (ipAddress == "::1" || string.IsNullOrEmpty(ipAddress) || ipAddress.Contains(":"))
+            {
+                ipAddress = "127.0.0.1";
+            }
+            vnpay.AddRequestData("vnp_IpAddr", ipAddress);
+            vnpay.AddRequestData("vnp_Locale", "vn");
+            
+            // Normalize OrderInfo to safe plain English characters to avoid signature mismatch
+            string orderInfo = $"Thanh toan dat cho do xe {spot.TenChoDau} tai bai {lot.ID}";
+            vnpay.AddRequestData("vnp_OrderInfo", orderInfo);
+            vnpay.AddRequestData("vnp_OrderType", "other");
+            vnpay.AddRequestData("vnp_ReturnUrl", returnUrl);
+            vnpay.AddRequestData("vnp_TxnRef", payment.ID.ToString()); // Use Payment ID as VNPAY reference
+
+            string paymentUrl = vnpay.CreateRequestUrl(baseUrl, hashSecret);
+
+            System.Console.WriteLine("======================== DEBUG VNPAY REQUEST ========================");
+            System.Console.WriteLine("Base URL: " + baseUrl);
+            System.Console.WriteLine("TmnCode: " + tmnCode);
+            System.Console.WriteLine("HashSecret: " + hashSecret);
+            System.Console.WriteLine("Parameters to sign: " + string.Join("&", vnpay.GetRequestData().Select(kv => $"{kv.Key}={kv.Value}")));
+            System.Console.WriteLine("Generated Redirect URL: " + paymentUrl);
+            System.Console.WriteLine("=====================================================================");
+
+            return Json(new { success = true, paymentUrl = paymentUrl });
+        }
+
+        // GET: /Customer/Home/VnpayReturn
+        [HttpGet]
+        public async Task<IActionResult> VnpayReturn()
+        {
+            var hashSecret = _configuration["Vnpay:HashSecret"];
+            if (string.IsNullOrEmpty(hashSecret))
+            {
+                TempData["ErrorMessage"] = "Lỗi cấu hình khóa bí mật VNPAY.";
+                return RedirectToAction("Bookings");
+            }
+
+            var vnpay = new Services.VnPayLibrary();
+            foreach (var key in Request.Query.Keys)
+            {
+                var value = Request.Query[key].ToString();
+                if (!string.IsNullOrEmpty(key) && key.StartsWith("vnp_"))
+                {
+                    if (key != "vnp_SecureHash" && key != "vnp_SecureHashType")
+                    {
+                        vnpay.AddResponseData(key, value);
+                    }
+                }
+            }
+
+            // Extract essential parameters
+            string txnRefVal = vnpay.GetResponseData("vnp_TxnRef");
+            if (string.IsNullOrEmpty(txnRefVal) || !int.TryParse(txnRefVal, out int paymentId))
+            {
+                TempData["ErrorMessage"] = "Mã tham chiếu thanh toán không hợp lệ.";
+                return RedirectToAction("Bookings");
+            }
+
+            string vnp_ResponseCode = vnpay.GetResponseData("vnp_ResponseCode");
+            string vnp_TransactionNo = vnpay.GetResponseData("vnp_TransactionNo");
+            string vnp_SecureHash = Request.Query["vnp_SecureHash"].ToString();
+
+            bool isValidSignature = vnpay.ValidateSignature(vnp_SecureHash, hashSecret);
+
+            if (isValidSignature)
+            {
+                var payment = await _context.ThanhToans
+                    .Include(t => t.HoaDon)
+                    .ThenInclude(h => h.DatCho)
+                    .ThenInclude(d => d.ChoDauXe)
+                    .FirstOrDefaultAsync(t => t.ID == paymentId);
+
+                if (payment != null)
+                {
+                    if (vnp_ResponseCode == "00")
+                    {
+                        // Success!
+                        payment.TrangThai = true;
+                        payment.MaGiaoDich = vnp_TransactionNo;
+                        payment.NgayThanhToan = DateTime.Now;
+
+                        payment.HoaDon.TrangThai = "Đã thanh toán";
+                        payment.HoaDon.DatCho.TrangThai = "Đã đặt";
+                        payment.HoaDon.DatCho.ChoDauXe.TrangThaiO = "Đã đặt";
+
+                        await _context.SaveChangesAsync();
+
+                        TempData["SuccessMessage"] = $"Thanh toán thành công hóa đơn #{payment.HoaDon.ID} qua VNPAY!";
+                    }
+                    else
+                    {
+                        // Failed or Cancelled - Release spot!
+                        payment.TrangThai = false;
+                        payment.HoaDon.TrangThai = "Chưa thanh toán";
+                        payment.HoaDon.DatCho.TrangThai = "Đã hủy";
+                        payment.HoaDon.DatCho.ChoDauXe.TrangThaiO = "Trống"; // Set spot back to vacant!
+
+                        await _context.SaveChangesAsync();
+
+                        TempData["ErrorMessage"] = $"Giao dịch VNPAY thất bại (Mã lỗi: {vnp_ResponseCode}). Chỗ đỗ đã được giải phóng.";
+                    }
+                }
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "Chữ ký bảo mật VNPAY không hợp lệ.";
+            }
+
+            return RedirectToAction("Bookings");
         }
 
         // GET: /Customer/Home/Vehicles
