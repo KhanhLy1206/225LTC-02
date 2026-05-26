@@ -27,9 +27,9 @@
                 <h5 class="fw-bold mb-1">@kh.HoTen</h5>
                 <div class="text-muted mb-2" style="font-size:.85rem">@@kh.TaiKhoan.TenDangNhap</div>
 
-                @if (kh.LoaiKH == "VIP")
+                @if (kh.DatChos.Count >= 10)
                 { <span class="badge mb-2" style="background:#fbbf24;color:#78350f;font-size:.8rem"><i class="fa-solid fa-star me-1"></i>VIP</span> }
-                else if (kh.LoaiKH == "Thường xuyên")
+                else if (kh.DatChos.Count >= 3)
                 { <span class="badge bg-info text-dark mb-2">Thường xuyên</span> }
                 else
                 { <span class="badge bg-secondary mb-2">Vãng lai</span> }

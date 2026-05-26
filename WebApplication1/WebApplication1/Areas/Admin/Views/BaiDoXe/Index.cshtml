@@ -170,7 +170,7 @@
                                             <div class="col-6">
                                                 <div class="info-box">
                                                     <small>Chủ bãi</small>
-                                                    <span>@don.TenChuBai</span>
+                                                    <span>@(don.ChuBaiXe?.TenChuBai ?? "—")</span>
                                                 </div>
                                             </div>
                                             <div class="col-6">
@@ -182,19 +182,19 @@
                                             <div class="col-6">
                                                 <div class="info-box">
                                                     <small>SĐT</small>
-                                                    <span>@don.SDT</span>
+                                                    <span>@(don.ChuBaiXe?.SDT ?? "—")</span>
                                                 </div>
                                             </div>
                                             <div class="col-6">
                                                 <div class="info-box">
                                                     <small>Email</small>
-                                                    <span style="font-size:.78rem">@don.Email</span>
+                                                    <span style="font-size:.78rem">@(don.ChuBaiXe?.Email ?? "—")</span>
                                                 </div>
                                             </div>
                                             <div class="col-6">
                                                 <div class="info-box">
                                                     <small>CCCD</small>
-                                                    <span>@don.CCCD</span>
+                                                    <span>@(don.ChuBaiXe?.CCCD ?? "—")</span>
                                                 </div>
                                             </div>
                                             <div class="col-6">

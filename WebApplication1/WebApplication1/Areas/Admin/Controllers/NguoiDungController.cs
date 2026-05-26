@@ -37,9 +37,6 @@ namespace WebApplication1.Areas.Admin.Controllers
                     (k.Email != null && k.Email.Contains(search)) ||
                     (k.SDT   != null && k.SDT.Contains(search)));
 
-            if (!string.IsNullOrEmpty(loai))
-                khQuery = khQuery.Where(k => k.LoaiKH == loai);
-
             var cbQuery = _db.ChuBaiXes
                 .Include(c => c.TaiKhoan)
                 .Include(c => c.BaiXes)

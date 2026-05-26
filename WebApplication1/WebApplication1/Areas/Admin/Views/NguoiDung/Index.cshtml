@@ -165,9 +165,9 @@
                                         <small class="text-muted"><i class="fa-solid fa-envelope fa-xs me-1"></i>@(kh.Email ?? "—")</small>
                                     </td>
                                     <td>
-                                        @if (kh.LoaiKH == "VIP")
+                                        @if (kh.DatChos.Count >= 10)
                                         { <span class="badge" style="background:#fbbf24;color:#78350f"><i class="fa-solid fa-star me-1"></i>VIP</span> }
-                                        else if (kh.LoaiKH == "Thường xuyên")
+                                        else if (kh.DatChos.Count >= 3)
                                         { <span class="badge bg-info text-dark">Thường xuyên</span> }
                                         else
                                         { <span class="badge bg-secondary">Vãng lai</span> }

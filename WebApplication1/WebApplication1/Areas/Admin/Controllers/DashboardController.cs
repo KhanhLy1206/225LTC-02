@@ -54,10 +54,10 @@ namespace WebApplication1.Areas.Admin.Controllers
                     .CountAsync(c => c.TrangThaiO == "Đang đỗ" || c.TrangThaiO == "Đã đặt"),
 
                 // ── Đơn chờ duyệt ────────────────────────────────
-                DonChoduyet = await _db.DangKyBaiXes
-                    .Where(d => d.TrangThai == "Chờ duyệt")
-                    .Include(d => d.XaPhuong)
-                    .OrderByDescending(d => d.NgayGui)
+                DonChoduyet = await _db.BaiXes
+                    .Where(b => b.TrangThai == "Chờ duyệt")
+                    .Include(b => b.XaPhuong)
+                    .OrderByDescending(b => b.NgayGui)
                     .Take(3)
                     .ToListAsync()
             };
