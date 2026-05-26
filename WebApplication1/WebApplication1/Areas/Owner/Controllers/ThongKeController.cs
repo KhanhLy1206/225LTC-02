@@ -7,6 +7,7 @@ using System.Linq;
 using WebApplication1.Models.Entities;
 using System.Threading.Tasks;
 using System;
+using System.Security.Claims;
 
 namespace WebApplication1.Areas.Owner.Controllers
 {
@@ -23,8 +24,20 @@ namespace WebApplication1.Areas.Owner.Controllers
 
         [Route("")]
         [Route("Index")]
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
+            int ownerAccountId = GetCurrentOwnerId();
+            if (ownerAccountId == 0)
+            {
+                return RedirectToAction("Login", "Account", new { area = "" });
+            }
+
+            int chuBaiId = GetChuBaiId(ownerAccountId);
+            var baiXes = await _context.BaiXes
+                .Where(b => b.IDChuBai == chuBaiId)
+                .ToListAsync();
+
+            ViewBag.BaiXes = baiXes;
             return View();
         }
 
@@ -105,6 +118,12 @@ namespace WebApplication1.Areas.Owner.Controllers
             var luotDoXe = hoaDons.Count;
             var doanhThuTB = luotDoXe > 0 ? tongDoanhThu / luotDoXe : 0;
 
+            var totalSpotsCount = await _context.ChoDauXes
+                .CountAsync(c => baiXeIds.Contains(c.KhuVuc!.IDBaiXe));
+            var occupiedSpotsCount = await _context.ChoDauXes
+                .CountAsync(c => baiXeIds.Contains(c.KhuVuc!.IDBaiXe) && (c.TrangThaiO == "Đang đỗ" || c.TrangThaiO == "Đã đặt"));
+            var occupancyRate = totalSpotsCount > 0 ? (double)occupiedSpotsCount / totalSpotsCount * 100 : 0;
+
             // Transactions payload
             var giaoDich = hoaDons
                 .OrderByDescending(x => x.NgayTao)
@@ -121,13 +140,20 @@ namespace WebApplication1.Areas.Owner.Controllers
                         typeName = x.DatCho?.ChoDauXe?.KhuVuc?.LoaiXe?.TenLoaiXe ?? string.Empty;
                     }
 
+                    var typeKey = "oto";
+                    if (typeName.Contains("bán tải", StringComparison.OrdinalIgnoreCase)) typeKey = "xebantai";
+                    else if (typeName.Contains("buýt", StringComparison.OrdinalIgnoreCase) || typeName.Contains("bus", StringComparison.OrdinalIgnoreCase)) typeKey = "xebuyt";
+                    else if (typeName.Contains("tải", StringComparison.OrdinalIgnoreCase)) typeKey = "xetai";
+                    else if (typeName.Contains("máy", StringComparison.OrdinalIgnoreCase)) typeKey = "xemay";
+                    else if (typeName.Contains("đạp", StringComparison.OrdinalIgnoreCase)) typeKey = "xedapdien";
+
                     return new
                     {
                         id = x.ID,
                         bienSo = bien,
                         lotName = x.DatCho?.ChoDauXe?.KhuVuc?.BaiXe?.TenBai ?? string.Empty,
                         spotName = x.DatCho?.ChoDauXe?.TenChoDau ?? string.Empty,
-                        type = typeName,
+                        type = typeKey,
                         tongTien = x.TongTien,
                         thoiGian = x.NgayTao.ToString("dd/MM/yyyy HH:mm"),
                         trangThai = x.TrangThai
@@ -210,8 +236,31 @@ namespace WebApplication1.Areas.Owner.Controllers
                 chartLabels,
                 chartData,
                 doughnutLabels,
-                doughnutData
+                doughnutData,
+                hieuSuat = Math.Round(occupancyRate, 0)
             });
+        }
+
+        private int GetCurrentOwnerId()
+        {
+            var userIdClaim = User.FindFirst("UserId") ?? User.FindFirst("AccountId") ?? User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int id))
+            {
+                return id;
+            }
+            var username = User.Identity?.Name;
+            if (!string.IsNullOrEmpty(username))
+            {
+                var tk = _context.TaiKhoans.FirstOrDefault(t => t.TenDangNhap == username);
+                if (tk != null) return tk.ID;
+            }
+            return 0;
+        }
+
+        private int GetChuBaiId(int accountId)
+        {
+            var chuBai = _context.ChuBaiXes.FirstOrDefault(c => c.IDTaiKhoan == accountId);
+            return chuBai != null ? chuBai.ID : 0;
         }
     }
 }

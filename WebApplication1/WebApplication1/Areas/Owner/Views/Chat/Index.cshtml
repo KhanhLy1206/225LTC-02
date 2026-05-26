@@ -1,5 +1,24 @@
+@using WebApplication1.Models.Entities
+@using System.Text.Encodings.Web
 @{
     ViewData["Title"] = "Chat hỗ trợ khách hàng";
+    var chatSessions = ViewBag.ChatSessions as List<PhienChat> ?? new List<PhienChat>();
+    var activeSession = ViewBag.ActiveSession as PhienChat;
+    var messages = ViewBag.Messages as List<TinNhan> ?? new List<TinNhan>();
+    var userAccountId = (int)(ViewBag.UserAccountId ?? 0);
+}
+
+@{
+    string GetInitials(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "KH";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+        {
+            return (parts[parts.Length - 2][0].ToString() + parts[parts.Length - 1][0].ToString()).ToUpper();
+        }
+        return name.Substring(0, Math.Min(2, name.Length)).ToUpper();
+    }
 }
 
 <style>
@@ -688,323 +707,415 @@
 </div>
 
 @section Scripts {
-<script>
-    // ===== MOCK DATA =====
-    const conversations = [
-        {
-            id: 1,
-            name: 'Nguyễn Văn An',
-            initials: 'NA',
-            phone: '0901 234 567',
-            email: 'nguyenvanan@@gmail.com',
-            status: 'online',
-            unread: 2,
-            lastMsg: 'Cho tôi hỏi chỗ A-03 còn trống không ạ?',
-            lastTime: '21:48',
-            totalBookings: 12,
-            since: 'Tháng 3/2025',
-            bookings: [
-                { code: 'BK-2091', lot: 'Cống Quỳnh', spot: 'A-03', date: '24/05/2026' }
-            ],
-            messages: [
-                { from: 'customer', text: 'Xin chào, tôi muốn hỏi về bãi đỗ Cống Quỳnh.', time: '21:40' },
-                { from: 'customer', text: 'Hiện tại chỗ A-03 còn trống không ạ?', time: '21:41' },
-                { from: 'owner',    text: 'Chào bạn! Hiện tại chỗ A-03 đang còn trống nhé. Bạn muốn đặt chỗ không?', time: '21:43' },
-                { from: 'customer', text: 'Vậy giá một ngày là bao nhiêu ạ?', time: '21:45' },
-                { from: 'owner',    text: 'Giá cho ô tô con là 35.000đ/giờ hoặc 200.000đ/ngày bạn nhé 😊', time: '21:46' },
-                { from: 'customer', text: 'Cho tôi hỏi chỗ A-03 còn trống không ạ?', time: '21:48' }
-            ]
-        },
-        {
-            id: 2,
-            name: 'Trần Thị Bình',
-            initials: 'TB',
-            phone: '0912 345 678',
-            email: 'tranthib@@gmail.com',
-            status: 'online',
-            unread: 1,
-            lastMsg: 'Cảm ơn bạn nhiều lắm!',
-            lastTime: '21:30',
-            totalBookings: 5,
-            since: 'Tháng 1/2026',
-            bookings: [
-                { code: 'BK-2045', lot: 'Sunrise City', spot: 'B-02', date: '24/05/2026' }
-            ],
-            messages: [
-                { from: 'customer', text: 'Chào, tôi đặt chỗ B-02 nhưng barrier không mở được.', time: '21:20' },
-                { from: 'owner',    text: 'Dạ, mình kiểm tra ngay! Bạn đang ở bãi Sunrise City đúng không?', time: '21:22' },
-                { from: 'customer', text: 'Đúng rồi ạ, biển số xe là 51A-12345.', time: '21:23' },
-                { from: 'owner',    text: 'Mình đã reset barrier từ xa, bạn thử lại nhé. Nếu vẫn không được báo mình!', time: '21:25' },
-                { from: 'customer', text: 'Mở được rồi ạ! 🎉', time: '21:29' },
-                { from: 'customer', text: 'Cảm ơn bạn nhiều lắm!', time: '21:30' }
-            ]
-        },
-        {
-            id: 3,
-            name: 'Lê Quốc Cường',
-            initials: 'LC',
-            phone: '0933 456 789',
-            email: 'lequocc@@gmail.com',
-            status: 'away',
-            unread: 0,
-            lastMsg: 'Ok bạn nhé, tôi sẽ đặt vào ngày mai.',
-            lastTime: '20:15',
-            totalBookings: 8,
-            since: 'Tháng 11/2024',
-            bookings: [],
-            messages: [
-                { from: 'customer', text: 'Hỏi về chính sách hoàn tiền khi hủy đặt chỗ bạn?', time: '20:00' },
-                { from: 'owner',    text: 'Dạ! Nếu hủy trước 2 tiếng thì hoàn 100%, trước 30 phút hoàn 50%, sau đó không hoàn nhé.', time: '20:05' },
-                { from: 'customer', text: 'Vậy ổn rồi.', time: '20:10' },
-                { from: 'customer', text: 'Ok bạn nhé, tôi sẽ đặt vào ngày mai.', time: '20:15' }
-            ]
-        },
-        {
-            id: 4,
-            name: 'Phạm Minh Đức',
-            initials: 'MD',
-            phone: '0944 567 890',
-            email: 'phammd@@gmail.com',
-            status: 'offline',
-            unread: 0,
-            lastMsg: 'Vâng cảm ơn ạ.',
-            lastTime: 'Hôm qua',
-            totalBookings: 3,
-            since: 'Tháng 4/2026',
-            bookings: [],
-            messages: [
-                { from: 'customer', text: 'Làm thế nào để thay đổi biển số xe trong app?', time: 'Hôm qua 15:30' },
-                { from: 'owner',    text: 'Bạn vào mục Tài khoản → Phương tiện → Chỉnh sửa nhé!', time: 'Hôm qua 15:32' },
-                { from: 'customer', text: 'Vâng cảm ơn ạ.', time: 'Hôm qua 15:33' }
-            ]
-        }
-    ];
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script>
+        // ===== DYNAMIC DATA FROM SERVER =====
+        const conversations = [
+            @foreach (var session in chatSessions)
+            {
+                var partnerName = session.KhachHang?.HoTen ?? "Khách hàng";
+                var initials = GetInitials(partnerName);
+                var lastMsg = session.TinNhans.OrderByDescending(m => m.NgayGui).FirstOrDefault();
+                var lastMsgText = lastMsg != null ? lastMsg.NoiDung : "Chưa có tin nhắn.";
+                var lastMsgTime = lastMsg != null ? lastMsg.NgayGui.ToString("HH:mm") : "";
+                var unreadCount = session.TinNhans.Count(m => m.IDTaiKhoanGui != userAccountId && !m.DaDoc);
+                
+                <text>
+                {
+                    id: @session.ID,
+                    customerId: @session.IDKhachHang,
+                    name: '@Html.Raw(JavaScriptEncoder.Default.Encode(partnerName))',
+                    initials: '@Html.Raw(JavaScriptEncoder.Default.Encode(initials))',
+                    phone: '@Html.Raw(JavaScriptEncoder.Default.Encode(session.KhachHang?.SDT ?? "Chưa có"))',
+                    email: '@Html.Raw(JavaScriptEncoder.Default.Encode(session.KhachHang?.Email ?? "Chưa có"))',
+                    status: 'online',
+                    unread: @unreadCount,
+                    lastMsg: '@Html.Raw(JavaScriptEncoder.Default.Encode(lastMsgText))',
+                    lastTime: '@Html.Raw(JavaScriptEncoder.Default.Encode(lastMsgTime))',
+                    totalBookings: 0,
+                    since: '',
+                    bookings: [],
+                    messages: []
+                },
+                </text>
+            }
+        ];
 
-    let currentConvId = null;
-    let currentFilter = 'all';
-    let searchQuery = '';
+        const activeSessionId = @(activeSession?.ID ?? 0);
+        const userAccountId = @userAccountId;
+        let currentConvId = null;
+        let currentFilter = 'all';
+        let searchQuery = '';
 
-    // ===== RENDER CONVERSATION LIST =====
-    function renderConvList() {
-        const list = document.getElementById('conversationList');
-        list.innerHTML = '';
+        // Establish SignalR connection
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/chatHub")
+            .withAutomaticReconnect()
+            .build();
 
-        let data = conversations;
-
-        // Apply filter
-        if (currentFilter === 'unread') data = data.filter(c => c.unread > 0);
-        if (currentFilter === 'active') data = data.filter(c => c.status === 'online');
-
-        // Apply search
-        if (searchQuery) {
-            data = data.filter(c => c.name.toLowerCase().includes(searchQuery));
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
         }
 
-        if (data.length === 0) {
-            list.innerHTML = '<div style="padding:30px 18px; text-align:center; color:var(--owner-text-muted); font-size:0.85rem;">Không tìm thấy cuộc trò chuyện nào.</div>';
-            return;
-        }
+        // Receive message from SignalR
+        connection.on("ReceiveMessage", function(msg) {
+            if (!msg) return;
 
-        data.forEach(c => {
-            const active = currentConvId === c.id ? 'active' : '';
-            const unreadHTML = c.unread > 0
-                ? `<span class="unread-count-badge">${c.unread}</span>`
-                : (c.status === 'online' ? '' : '');
-            const previewClass = c.unread > 0 ? 'unread' : '';
-            list.innerHTML += `
-                <div class="conv-item ${active}" onclick="openConversation(${c.id})">
-                    <div class="conv-avatar ${c.status}">${c.initials}</div>
-                    <div class="conv-info">
-                        <div class="conv-name">${c.name}</div>
-                        <div class="conv-preview ${previewClass}">${c.lastMsg}</div>
+            // Find the conversation
+            const conv = conversations.find(c => c.id === msg.sessionId);
+            if (!conv) return;
+
+            const isMe = msg.senderId === userAccountId;
+            const from = isMe ? 'owner' : 'customer';
+
+            // Add message to conversation cache if loaded
+            if (conv.messages) {
+                if (!conv.messages.some(m => m.id === msg.id)) {
+                    conv.messages.push({
+                        id: msg.id,
+                        from: from,
+                        text: msg.content,
+                        time: msg.time
+                    });
+                }
+            }
+
+            // Update last message in conversation list
+            conv.lastMsg = msg.content;
+            conv.lastTime = msg.time;
+
+            if (msg.sessionId === currentConvId) {
+                // If it's the active conversation, append immediately to chat area (prevent duplicate)
+                appendMessage(from, msg.content, msg.time, msg.id);
+
+                if (!isMe) {
+                    // Mark as read in local array
+                    conv.unread = 0;
+                    // Send request to server to mark as read
+                    $.ajax({
+                        url: '/Owner/Chat/GetChatMessages',
+                        type: 'GET',
+                        data: { sessionId: msg.sessionId }
+                    });
+                }
+            } else {
+                // Increment unread count for non-active conversation
+                if (!isMe) {
+                    conv.unread = (conv.unread || 0) + 1;
+                }
+            }
+
+            // Re-render conversation list & update unread badge
+            renderConvList();
+            updateUnreadTotal();
+        });
+
+        // ===== RENDER CONVERSATION LIST =====
+        function renderConvList() {
+            const list = document.getElementById('conversationList');
+            list.innerHTML = '';
+
+            let data = conversations;
+
+            // Apply filter
+            if (currentFilter === 'unread') data = data.filter(c => c.unread > 0);
+            if (currentFilter === 'active') data = data.filter(c => c.status === 'online');
+
+            // Apply search
+            if (searchQuery) {
+                data = data.filter(c => c.name.toLowerCase().includes(searchQuery));
+            }
+
+            if (data.length === 0) {
+                list.innerHTML = '<div style="padding:30px 18px; text-align:center; color:var(--owner-text-muted); font-size:0.85rem;">Không tìm thấy cuộc trò chuyện nào.</div>';
+                return;
+            }
+
+            data.forEach(c => {
+                const active = currentConvId === c.id ? 'active' : '';
+                const unreadHTML = c.unread > 0
+                    ? `<span class="unread-count-badge">${c.unread}</span>`
+                    : '';
+                const previewClass = c.unread > 0 ? 'unread' : '';
+                list.innerHTML += `
+                    <div class="conv-item ${active}" onclick="openConversation(${c.id})">
+                        <div class="conv-avatar ${c.status}">${c.initials}</div>
+                        <div class="conv-info">
+                            <div class="conv-name">${c.name}</div>
+                            <div class="conv-preview ${previewClass}">${escapeHtml(c.lastMsg)}</div>
+                        </div>
+                        <div class="conv-meta">
+                            <span class="conv-time">${c.lastTime}</span>
+                            ${unreadHTML}
+                        </div>
                     </div>
-                    <div class="conv-meta">
-                        <span class="conv-time">${c.lastTime}</span>
-                        ${unreadHTML}
+                `;
+            });
+        }
+
+        // ===== OPEN CONVERSATION =====
+        function openConversation(id) {
+            currentConvId = id;
+            const conv = conversations.find(c => c.id === id);
+            if (!conv) return;
+
+            // Mark as read in local array
+            conv.unread = 0;
+            updateUnreadTotal();
+
+            // Show active chat area
+            document.getElementById('chatEmptyState').style.display = 'none';
+            const area = document.getElementById('chatActiveArea');
+            area.style.display = 'flex';
+
+            // Update header
+            document.getElementById('chatHeaderAvatar').textContent = conv.initials;
+            document.getElementById('chatHeaderName').textContent = conv.name;
+            const statusEl = document.getElementById('chatHeaderStatus');
+            if (conv.status === 'online') { statusEl.className = 'chat-header-status'; statusEl.textContent = '● Đang hoạt động'; }
+            else if (conv.status === 'away') { statusEl.className = 'chat-header-status away'; statusEl.textContent = '● Vắng mặt'; }
+            else { statusEl.className = 'chat-header-status offline'; statusEl.textContent = '○ Ngoại tuyến'; }
+
+            // Ensure we are joined to this group in case of reconnection
+            if (connection.state === signalR.HubConnectionState.Connected) {
+                connection.invoke("JoinSession", id).catch(function(err) {
+                    console.error("JoinSession error: ", err.toString());
+                });
+            }
+
+            // Fetch messages via AJAX
+            $.ajax({
+                url: '/Owner/Chat/GetChatMessages',
+                type: 'GET',
+                data: { sessionId: id },
+                success: function(res) {
+                    if (res.success) {
+                        conv.messages = res.messages.map(m => ({
+                            id: m.id,
+                            from: m.isMe ? 'owner' : 'customer',
+                            text: m.content,
+                            time: m.time
+                        }));
+
+                        // Render messages
+                        const messagesEl = document.getElementById('chatMessages');
+                        messagesEl.innerHTML = '';
+                        messagesEl.innerHTML += `<div class="chat-date-divider">Cuộc trò chuyện</div>`;
+                        conv.messages.forEach(m => appendMessage(m.from, m.text, m.time, m.id));
+                        messagesEl.scrollTop = messagesEl.scrollHeight;
+                    } else {
+                        console.error("Failed to load messages:", res.message);
+                    }
+                },
+                error: function(err) {
+                    console.error("AJAX error loading messages:", err);
+                }
+            });
+
+            // Fetch customer details via AJAX
+            $.ajax({
+                url: '/Owner/Chat/GetCustomerDetails',
+                type: 'GET',
+                data: { customerId: conv.customerId },
+                success: function(res) {
+                    if (res.success) {
+                        document.getElementById('infoPanelEmpty').style.display = 'none';
+                        document.getElementById('infoPanelContent').style.display = 'block';
+                        document.getElementById('ip-name').textContent = res.name;
+                        document.getElementById('ip-phone').textContent = res.phone;
+                        document.getElementById('ip-email').textContent = res.email;
+                        
+                        const statusText = res.status === 'online' ? '🟢 Online' : res.status === 'away' ? '🟡 Vắng' : '⚫ Offline';
+                        document.getElementById('ip-status').textContent = statusText;
+                        document.getElementById('ip-total').textContent = res.totalBookings + ' lượt';
+                        document.getElementById('ip-since').textContent = res.since;
+
+                        const bookingsEl = document.getElementById('ip-bookings');
+                        if (!res.bookings || res.bookings.length === 0) {
+                            bookingsEl.innerHTML = '<span style="font-size:0.8rem; color:var(--owner-text-muted);">Không có đặt chỗ hiện tại.</span>';
+                        } else {
+                            bookingsEl.innerHTML = res.bookings.map(b => `
+                                <div class="booking-tag"><i class="fa-solid fa-square-parking"></i> ${b.spot} – ${b.lot}</div>
+                                <div style="font-size:0.78rem; color:var(--owner-text-muted); margin-bottom:4px;">${b.code} | ${b.date}</div>
+                            `).join('');
+                        }
+                    }
+                },
+                error: function(err) {
+                    console.error("AJAX error loading customer details:", err);
+                }
+            });
+
+            // Re-render list to update active state
+            renderConvList();
+        }
+
+        // ===== APPEND MESSAGE TO CHAT =====
+        function appendMessage(from, text, time, msgId = null) {
+            const el = document.getElementById('chatMessages');
+            const rowClass = from === 'owner' ? 'from-owner' : 'from-customer';
+            
+            // Prevent duplicate message rendering
+            if (msgId && el.querySelector(`[data-msg-id="${msgId}"]`)) {
+                return;
+            }
+
+            const initials = from === 'owner' ? 'CB' : (conversations.find(c => c.id === currentConvId)?.initials || 'KH');
+            const avatarStyle = from === 'owner'
+                ? 'background:linear-gradient(135deg,var(--owner-primary),#818cf8);'
+                : 'background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:var(--owner-primary);';
+
+            const idAttr = msgId ? `data-msg-id="${msgId}"` : '';
+
+            el.innerHTML += `
+                <div class="msg-row ${rowClass}" ${idAttr}>
+                    <div class="msg-avatar-sm" style="${avatarStyle}">${initials}</div>
+                    <div>
+                        <div class="msg-bubble">${escapeHtml(text)}<span class="msg-time">${time}</span></div>
                     </div>
                 </div>
             `;
-        });
-    }
-
-    // ===== OPEN CONVERSATION =====
-    function openConversation(id) {
-        currentConvId = id;
-        const conv = conversations.find(c => c.id === id);
-        if (!conv) return;
-
-        // Mark as read
-        conv.unread = 0;
-        updateUnreadTotal();
-
-        // Show active chat area
-        document.getElementById('chatEmptyState').style.display = 'none';
-        const area = document.getElementById('chatActiveArea');
-        area.style.display = 'flex';
-
-        // Update header
-        document.getElementById('chatHeaderAvatar').textContent = conv.initials;
-        document.getElementById('chatHeaderName').textContent = conv.name;
-        const statusEl = document.getElementById('chatHeaderStatus');
-        if (conv.status === 'online') { statusEl.className = 'chat-header-status'; statusEl.textContent = '● Đang hoạt động'; }
-        else if (conv.status === 'away') { statusEl.className = 'chat-header-status away'; statusEl.textContent = '● Vắng mặt'; }
-        else { statusEl.className = 'chat-header-status offline'; statusEl.textContent = '○ Ngoại tuyến'; }
-
-        // Render messages
-        const messagesEl = document.getElementById('chatMessages');
-        messagesEl.innerHTML = '';
-        messagesEl.innerHTML += `<div class="chat-date-divider">Hôm nay, 24/05/2026</div>`;
-        conv.messages.forEach(m => appendMessage(m.from, m.text, m.time, false));
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-
-        // Update info panel
-        document.getElementById('infoPanelEmpty').style.display = 'none';
-        document.getElementById('infoPanelContent').style.display = 'block';
-        document.getElementById('ip-name').textContent = conv.name;
-        document.getElementById('ip-phone').textContent = conv.phone;
-        document.getElementById('ip-email').textContent = conv.email;
-        const statusText = conv.status === 'online' ? '🟢 Online' : conv.status === 'away' ? '🟡 Vắng' : '⚫ Offline';
-        document.getElementById('ip-status').textContent = statusText;
-        document.getElementById('ip-total').textContent = conv.totalBookings + ' lượt';
-        document.getElementById('ip-since').textContent = conv.since;
-
-        const bookingsEl = document.getElementById('ip-bookings');
-        if (conv.bookings.length === 0) {
-            bookingsEl.innerHTML = '<span style="font-size:0.8rem; color:var(--owner-text-muted);">Không có đặt chỗ hiện tại.</span>';
-        } else {
-            bookingsEl.innerHTML = conv.bookings.map(b => `
-                <div class="booking-tag"><i class="fa-solid fa-square-parking"></i> ${b.spot} – ${b.lot}</div>
-                <div style="font-size:0.78rem; color:var(--owner-text-muted); margin-bottom:4px;">${b.code} | ${b.date}</div>
-            `).join('');
+            el.scrollTop = el.scrollHeight;
         }
 
-        // Re-render list to update active state
-        renderConvList();
-    }
+        // ===== SEND MESSAGE =====
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text || !currentConvId) return;
 
-    // ===== APPEND MESSAGE TO CHAT =====
-    function appendMessage(from, text, time, animate = true) {
-        const el = document.getElementById('chatMessages');
-        const rowClass = from === 'owner' ? 'from-owner' : 'from-customer';
-        const initials = from === 'owner' ? 'CN' : (conversations.find(c => c.id === currentConvId)?.initials || 'KH');
-        const avatarStyle = from === 'owner'
-            ? 'background:linear-gradient(135deg,var(--owner-primary),#818cf8);'
-            : 'background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:var(--owner-primary);';
+            $.ajax({
+                url: '/Owner/Chat/SendChatMessage',
+                type: 'POST',
+                data: {
+                    sessionId: currentConvId,
+                    content: text
+                },
+                success: function(res) {
+                    if (res.success) {
+                        input.value = '';
+                        input.style.height = 'auto';
+                        
+                        // Append locally immediately for instant feedback
+                        appendMessage('owner', text, res.time, res.messageId);
 
-        el.innerHTML += `
-            <div class="msg-row ${rowClass}" style="${animate ? '' : ''}">
-                <div class="msg-avatar-sm" style="${avatarStyle}">${initials}</div>
-                <div>
-                    <div class="msg-bubble">${text}<span class="msg-time">${time}</span></div>
+                        // Update last message in conversation list
+                        const conv = conversations.find(c => c.id === currentConvId);
+                        if (conv) {
+                            conv.lastMsg = text;
+                            conv.lastTime = res.time;
+                            renderConvList();
+                        }
+                    } else {
+                        alert(res.message || "Gửi tin nhắn thất bại.");
+                    }
+                },
+                error: function() {
+                    alert("Không thể gửi tin nhắn. Vui lòng kiểm tra lại kết nối.");
+                }
+            });
+        }
+
+        // ===== QUICK REPLY =====
+        function sendQuickReply(btn) {
+            const input = document.getElementById('chatInput');
+            input.value = btn.textContent;
+            input.focus();
+        }
+
+        // ===== MARK RESOLVED =====
+        function markResolved() {
+            if (!currentConvId) return;
+            const time = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+            const el = document.getElementById('chatMessages');
+            el.innerHTML += `
+                <div style="text-align:center; margin:10px 0;">
+                    <span style="background:var(--owner-success-light); color:var(--owner-success); font-size:0.75rem; font-weight:700; padding:4px 12px; border-radius:20px;">
+                        <i class="fa-solid fa-circle-check"></i> Đã đánh dấu xử lý xong lúc ${time}
+                    </span>
                 </div>
-            </div>
-        `;
-        el.scrollTop = el.scrollHeight;
-    }
-
-    // ===== SEND MESSAGE =====
-    function sendMessage() {
-        const input = document.getElementById('chatInput');
-        const text = input.value.trim();
-        if (!text || !currentConvId) return;
-
-        const now = new Date();
-        const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-        appendMessage('owner', text, time, true);
-
-        // Update last message in conv list
-        const conv = conversations.find(c => c.id === currentConvId);
-        if (conv) {
-            conv.messages.push({ from: 'owner', text, time });
-            conv.lastMsg = text;
-            conv.lastTime = time;
+            `;
+            el.scrollTop = el.scrollHeight;
         }
 
-        input.value = '';
-        input.style.height = 'auto';
-        renderConvList();
+        // ===== FILTER TABS =====
+        function filterConvs(filter, btn) {
+            currentFilter = filter;
+            document.querySelectorAll('.chat-filter-tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            renderConvList();
+        }
 
-        // Simulate customer response after 2s
-        if (conv && conv.status === 'online') {
-            setTimeout(() => {
-                const autoReplies = [
-                    'Cảm ơn bạn đã phản hồi!',
-                    'Vâng, tôi hiểu rồi ạ.',
-                    'Ok được, cảm ơn bạn nhé 😊',
-                    'Mình sẽ thử lại ngay!'
-                ];
-                const reply = autoReplies[Math.floor(Math.random() * autoReplies.length)];
-                appendMessage('customer', reply, time, true);
-                conv.messages.push({ from: 'customer', text: reply, time });
-                conv.lastMsg = reply;
-                conv.lastTime = time;
+        // ===== UPDATE UNREAD BADGE =====
+        function updateUnreadTotal() {
+            const total = conversations.reduce((s, c) => s + c.unread, 0);
+            const badge = document.getElementById('unreadTotalBadge');
+            if (badge) {
+                badge.textContent = total;
+                badge.style.display = total > 0 ? '' : 'none';
+            }
+            
+            // Sync with sidebar badge
+            const sidebarBadge = $('#sidebar-chat-badge');
+            if (sidebarBadge.length) {
+                sidebarBadge.text(total);
+                if (total > 0) {
+                    sidebarBadge.removeClass('d-none');
+                } else {
+                    sidebarBadge.addClass('d-none');
+                }
+            }
+        }
+
+        $(document).ready(function() {
+            // Render conversation list
+            renderConvList();
+            updateUnreadTotal();
+
+            // Connect to SignalR
+            connection.start().then(function() {
+                // Join all conversation groups
+                conversations.forEach(conv => {
+                    connection.invoke("JoinSession", conv.id).catch(function(err) {
+                        console.error("JoinSession error: ", err.toString());
+                    });
+                });
+
+                // Open the default active conversation
+                if (activeSessionId > 0) {
+                    openConversation(activeSessionId);
+                }
+            }).catch(function(err) {
+                console.error("SignalR connection error: ", err.toString());
+                if (activeSessionId > 0) {
+                    openConversation(activeSessionId);
+                }
+            });
+
+            // Search input listener
+            document.getElementById('convSearchInput').addEventListener('input', function () {
+                searchQuery = this.value.toLowerCase().trim();
                 renderConvList();
-            }, 2000);
-        }
-    }
+            });
 
-    // ===== QUICK REPLY =====
-    function sendQuickReply(btn) {
-        const input = document.getElementById('chatInput');
-        input.value = btn.textContent;
-        input.focus();
-    }
+            // Textarea auto-grow
+            document.getElementById('chatInput').addEventListener('input', function () {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+            });
 
-    // ===== MARK RESOLVED =====
-    function markResolved() {
-        if (!currentConvId) return;
-        const conv = conversations.find(c => c.id === currentConvId);
-        if (!conv) return;
-        const time = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-        const el = document.getElementById('chatMessages');
-        el.innerHTML += `
-            <div style="text-align:center; margin:10px 0;">
-                <span style="background:var(--owner-success-light); color:var(--owner-success); font-size:0.75rem; font-weight:700; padding:4px 12px; border-radius:20px;">
-                    <i class="fa-solid fa-circle-check"></i> Đã đánh dấu xử lý xong lúc ${time}
-                </span>
-            </div>
-        `;
-        el.scrollTop = el.scrollHeight;
-    }
-
-    // ===== FILTER TABS =====
-    function filterConvs(filter, btn) {
-        currentFilter = filter;
-        document.querySelectorAll('.chat-filter-tab').forEach(t => t.classList.remove('active'));
-        btn.classList.add('active');
-        renderConvList();
-    }
-
-    // ===== UPDATE UNREAD BADGE =====
-    function updateUnreadTotal() {
-        const total = conversations.reduce((s, c) => s + c.unread, 0);
-        const badge = document.getElementById('unreadTotalBadge');
-        badge.textContent = total;
-        badge.style.display = total > 0 ? '' : 'none';
-    }
-
-    // ===== SEARCH =====
-    document.getElementById('convSearchInput').addEventListener('input', function () {
-        searchQuery = this.value.toLowerCase().trim();
-        renderConvList();
-    });
-
-    // ===== AUTO-GROW TEXTAREA =====
-    document.getElementById('chatInput').addEventListener('input', function () {
-        this.style.height = 'auto';
-        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-    });
-
-    // ===== SEND ON ENTER (SHIFT+ENTER = new line) =====
-    document.getElementById('chatInput').addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
-
-    // ===== INIT =====
-    renderConvList();
-    updateUnreadTotal();
-</script>
+            // Send on Enter
+            document.getElementById('chatInput').addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        });
+    </script>
 }
