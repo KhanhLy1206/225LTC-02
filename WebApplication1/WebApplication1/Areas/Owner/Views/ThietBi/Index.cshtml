@@ -750,9 +750,13 @@
                 let cardStateClass = '';
                 let statusBadgeClass = '';
                 let statusText = '';
-                let isError = device.lockState === 'Lỗi';
+                let isError = device.lockState === 'Lỗi' || device.occupancyState === 'Bảo trì';
 
-                if (device.lockState === 'Mở') {
+                if (device.occupancyState === 'Bảo trì') {
+                    cardStateClass = 'state-error';
+                    statusBadgeClass = 'status-error';
+                    statusText = 'Đang bảo trì';
+                } else if (device.lockState === 'Mở') {
                     cardStateClass = 'state-open';
                     statusBadgeClass = 'status-open';
                     statusText = 'Đang mở (Hạ)';
@@ -814,12 +818,18 @@
                                     id="btn-toggle-${device.id}" 
                                     onclick="triggerBarrierAction(${device.id})" 
                                     ${isError ? 'disabled' : ''}>
-                                ${device.lockState === 'Mở' ? '<i class="fa-solid fa-lock"></i> Đóng khóa' : '<i class="fa-solid fa-lock-open"></i> Mở khóa'}
+                                ${device.lockState === 'Mở' ? '<i class="fa-solid fa-lock"></i> Đóng' : '<i class="fa-solid fa-lock-open"></i> Mở'}
                             </button>
                             <button class="btn btn-sm btn-light device-btn text-dark border py-2" 
                                     id="btn-reset-${device.id}" 
                                     onclick="triggerBarrierReset(${device.id})">
                                 <i class="fa-solid fa-arrows-rotate"></i> Reset
+                            </button>
+                            <button class="btn btn-sm ${device.occupancyState === 'Bảo trì' ? 'btn-danger text-white' : 'btn-outline-danger'} device-btn py-2" 
+                                    id="btn-maint-${device.id}" 
+                                    onclick="triggerBarrierMaintenance(${device.id})"
+                                    title="${device.occupancyState === 'Bảo trì' ? 'Bỏ bảo trì' : 'Đưa vào bảo trì'}">
+                                <i class="fa-solid fa-wrench"></i> ${device.occupancyState === 'Bảo trì' ? 'Bỏ BT' : 'Bảo trì'}
                             </button>
                             <button class="btn btn-sm btn-light device-btn text-primary border py-2" 
                                     onclick="filterLogsBySpot('${device.lockCode}', '${device.name}', ${device.id})" 
@@ -893,6 +903,7 @@
                 __RequestVerificationToken: token
             }, function(res) {
                 if (res.success) {
+                    alert('✅ Khởi động lại thiết bị (Reset) thành công!');
                     loadLotData(currentActiveLot);
                 } else {
                     alert('❌ Lỗi: ' + (res.message || 'Không thể thực hiện Reset.'));
@@ -900,6 +911,34 @@
                 }
             }).fail(function() {
                 alert('❌ Có lỗi xảy ra khi gửi lệnh Reset.');
+                $btn.prop('disabled', false).html(originalHtml);
+            });
+        }
+
+        // Action: Toggle Maintenance status - Đưa vào hoặc bỏ bảo trì
+        function triggerBarrierMaintenance(id) {
+            const device = currentLotSpots.find(d => d.id === id);
+            if (!device) return;
+
+            const $btn = $(`#btn-maint-${id}`);
+            const originalHtml = $btn.html();
+            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+
+            const token = $('input[name="__RequestVerificationToken"]').val();
+
+            $.post('/Owner/ThietBi/ToggleMaintenance', {
+                spotId: id,
+                __RequestVerificationToken: token
+            }, function(res) {
+                if (res.success) {
+                    alert(`✅ Đã cập nhật trạng thái thiết bị [${device.lockCode}] sang: ${res.newOccupancyState === 'Bảo trì' ? 'Bảo trì' : 'Hoạt động bình thường'}!`);
+                    loadLotData(currentActiveLot);
+                } else {
+                    alert('❌ Lỗi: ' + (res.message || 'Không thể thay đổi trạng thái bảo trì.'));
+                    $btn.prop('disabled', false).html(originalHtml);
+                }
+            }).fail(function() {
+                alert('❌ Có lỗi xảy ra khi gửi lệnh bảo trì.');
                 $btn.prop('disabled', false).html(originalHtml);
             });
         }

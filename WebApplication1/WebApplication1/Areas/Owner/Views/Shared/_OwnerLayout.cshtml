@@ -59,6 +59,7 @@
                     <a href="/Owner/Chat" class="owner-menu-link @(currentController == "Chat" ? "active" : "")">
                         <i class="fa-solid fa-comments"></i>
                         <span>Chat hỗ trợ</span>
+                        <span id="sidebar-chat-badge" class="badge bg-danger rounded-pill ms-auto d-none" style="font-size: 0.75rem; padding: 0.25em 0.6em;">0</span>
                     </a>
                 </li>
             </ul>
@@ -113,6 +114,8 @@
     <!-- Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SignalR client library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
     <!-- Chart.js for statistics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -120,6 +123,60 @@
     <script>
         document.getElementById('sidebarToggle').addEventListener('click', function () {
             document.getElementById('ownerSidebar').classList.toggle('show');
+        });
+    </script>
+
+    <!-- Global Chat Notification Badge JS -->
+    <script>
+        $(document).ready(function() {
+            function updateSidebarChatBadge() {
+                $.getJSON('/Owner/Chat/GetUnreadCount')
+                    .done(function(resp) {
+                        const count = resp.count || 0;
+                        const badge = $('#sidebar-chat-badge');
+                        if (badge.length) {
+                            badge.text(count);
+                            if (count > 0) {
+                                badge.removeClass('d-none');
+                            } else {
+                                badge.addClass('d-none');
+                            }
+                        }
+                    });
+            }
+
+            // Initial load update
+            updateSidebarChatBadge();
+
+            // Establish SignalR connection for notifications
+            const globalChatConnection = new signalR.HubConnectionBuilder()
+                .withUrl("/chatHub")
+                .withAutomaticReconnect()
+                .build();
+
+            globalChatConnection.on("ReceiveMessage", function(msg) {
+                // If a message is received in any of the joined session groups, update the sidebar badge
+                updateSidebarChatBadge();
+            });
+
+            globalChatConnection.start().then(function() {
+                // Once connected, fetch all session IDs for this owner and join them
+                $.getJSON('/Owner/Chat/GetOwnerSessions')
+                    .done(function(sessionIds) {
+                        if (Array.isArray(sessionIds)) {
+                            sessionIds.forEach(function(sid) {
+                                globalChatConnection.invoke("JoinSession", sid).catch(function(err) {
+                                    console.warn("Error joining session: ", sid, err.toString());
+                                });
+                            });
+                        }
+                    });
+            }).catch(function(err) {
+                console.warn("Global chat connection failed: ", err.toString());
+            });
+
+            // Expose globally so chat view can use it
+            window.updateSidebarChatBadge = updateSidebarChatBadge;
         });
     </script>
     @await RenderSectionAsync("Scripts", required: false)

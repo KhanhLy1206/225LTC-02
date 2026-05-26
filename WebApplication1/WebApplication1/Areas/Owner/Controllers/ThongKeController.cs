@@ -7,6 +7,7 @@ using System.Linq;
 using WebApplication1.Models.Entities;
 using System.Threading.Tasks;
 using System;
+using System.Security.Claims;
 
 namespace WebApplication1.Areas.Owner.Controllers
 {
@@ -23,8 +24,20 @@ namespace WebApplication1.Areas.Owner.Controllers
 
         [Route("")]
         [Route("Index")]
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
+            int ownerAccountId = GetCurrentOwnerId();
+            if (ownerAccountId == 0)
+            {
+                return RedirectToAction("Login", "Account", new { area = "" });
+            }
+
+            int chuBaiId = GetChuBaiId(ownerAccountId);
+            var baiXes = await _context.BaiXes
+                .Where(b => b.IDChuBai == chuBaiId)
+                .ToListAsync();
+
+            ViewBag.BaiXes = baiXes;
             return View();
         }
 
@@ -105,6 +118,12 @@ namespace WebApplication1.Areas.Owner.Controllers
             var luotDoXe = hoaDons.Count;
             var doanhThuTB = luotDoXe > 0 ? tongDoanhThu / luotDoXe : 0;
 
+            var totalSpotsCount = await _context.ChoDauXes
+                .CountAsync(c => baiXeIds.Contains(c.KhuVuc!.IDBaiXe));
+            var occupiedSpotsCount = await _context.ChoDauXes
+                .CountAsync(c => baiXeIds.Contains(c.KhuVuc!.IDBaiXe) && (c.TrangThaiO == "Đang đỗ" || c.TrangThaiO == "Đã đặt"));
+            var occupancyRate = totalSpotsCount > 0 ? (double)occupiedSpotsCount / totalSpotsCount * 100 : 0;
+
             // Transactions payload
             var giaoDich = hoaDons
                 .OrderByDescending(x => x.NgayTao)
@@ -121,13 +140,20 @@ namespace WebApplication1.Areas.Owner.Controllers
                         typeName = x.DatCho?.ChoDauXe?.KhuVuc?.LoaiXe?.TenLoaiXe ?? string.Empty;
                     }
 
+                    var typeKey = "oto";
+                    if (typeName.Contains("bán tải", StringComparison.OrdinalIgnoreCase)) typeKey = "xebantai";
+                    else if (typeName.Contains("buýt", StringComparison.OrdinalIgnoreCase) || typeName.Contains("bus", StringComparison.OrdinalIgnoreCase)) typeKey = "xebuyt";
+                    else if (typeName.Contains("tải", StringComparison.OrdinalIgnoreCase)) typeKey = "xetai";
+                    else if (typeName.Contains("máy", StringComparison.OrdinalIgnoreCase)) typeKey = "xemay";
+                    else if (typeName.Contains("đạp", StringComparison.OrdinalIgnoreCase)) typeKey = "xedapdien";
+
                     return new
                     {
                         id = x.ID,
                         bienSo = bien,
                         lotName = x.DatCho?.ChoDauXe?.KhuVuc?.BaiXe?.TenBai ?? string.Empty,
                         spotName = x.DatCho?.ChoDauXe?.TenChoDau ?? string.Empty,
-                        type = typeName,
+                        type = typeKey,
                         tongTien = x.TongTien,
                         thoiGian = x.NgayTao.ToString("dd/MM/yyyy HH:mm"),
                         trangThai = x.TrangThai
@@ -210,7 +236,108 @@ namespace WebApplication1.Areas.Owner.Controllers
                 chartLabels,
                 chartData,
                 doughnutLabels,
-                doughnutData
+                doughnutData,
+                hieuSuat = Math.Round(occupancyRate, 0)
+            });
+        }
+
+        private int GetCurrentOwnerId()
+        {
+            var userIdClaim = User.FindFirst("UserId") ?? User.FindFirst("AccountId") ?? User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int id))
+            {
+                return id;
+            }
+            var username = User.Identity?.Name;
+            if (!string.IsNullOrEmpty(username))
+            {
+                var tk = _context.TaiKhoans.FirstOrDefault(t => t.TenDangNhap == username);
+                if (tk != null) return tk.ID;
+            }
+            return 0;
+        }
+
+        private int GetChuBaiId(int accountId)
+        {
+            var chuBai = _context.ChuBaiXes.FirstOrDefault(c => c.IDTaiKhoan == accountId);
+            return chuBai != null ? chuBai.ID : 0;
+        }
+
+        [HttpGet("GetInvoiceDetails")]
+        public async Task<IActionResult> GetInvoiceDetails(int id)
+        {
+            int ownerId = GetCurrentOwnerId();
+            if (ownerId == 0) return Json(new { success = false, message = "Chưa đăng nhập." });
+
+            int chuBaiId = GetChuBaiId(ownerId);
+            if (chuBaiId == 0) return Json(new { success = false, message = "Không tìm thấy thông tin chủ bãi." });
+
+            // Load invoice with related data
+            var invoice = await _context.HoaDons
+                .Include(h => h.DatCho)
+                    .ThenInclude(d => d.ChoDauXe)
+                        .ThenInclude(cd => cd.KhuVuc)
+                            .ThenInclude(k => k.BaiXe)
+                .Include(h => h.DatCho)
+                    .ThenInclude(d => d.ChoDauXe)
+                        .ThenInclude(cd => cd.KhuVuc)
+                            .ThenInclude(k => k.LoaiXe)
+                .Include(h => h.DatCho)
+                    .ThenInclude(d => d.KhachHang)
+                .Include(h => h.ThanhToans)
+                .FirstOrDefaultAsync(h => h.ID == id);
+
+            if (invoice == null) return Json(new { success = false, message = "Không tìm thấy hóa đơn." });
+
+            // Security Check: Verify if this spot belongs to one of the owner's parking lots
+            var spot = invoice.DatCho?.ChoDauXe;
+            if (spot == null || spot.KhuVuc?.BaiXe?.IDChuBai != chuBaiId)
+            {
+                return Json(new { success = false, message = "Bạn không có quyền xem hóa đơn này." });
+            }
+
+            var payment = invoice.ThanhToans.OrderByDescending(p => p.ID).FirstOrDefault();
+            var paymentMethod = payment?.PhuongThuc ?? "VNPAY";
+
+            // Map license plate to vehicle model type name
+            string vehicleTypeName = string.Empty;
+            var bien = invoice.DatCho?.BienSoXe;
+            if (!string.IsNullOrEmpty(bien))
+            {
+                var xe = await _context.Xes
+                    .Include(x => x.LoaiXe)
+                    .FirstOrDefaultAsync(x => x.BienSoXe == bien);
+                if (xe != null)
+                {
+                    vehicleTypeName = xe.LoaiXe?.TenLoaiXe ?? string.Empty;
+                }
+            }
+            if (string.IsNullOrEmpty(vehicleTypeName))
+            {
+                vehicleTypeName = invoice.DatCho?.ChoDauXe?.KhuVuc?.LoaiXe?.TenLoaiXe ?? "Ô tô con";
+            }
+
+            return Json(new
+            {
+                success = true,
+                invoiceId = invoice.ID,
+                bookingId = invoice.IDDatCho,
+                customerName = invoice.DatCho?.KhachHang?.HoTen ?? "Khách vãng lai",
+                customerPhone = invoice.DatCho?.KhachHang?.SDT ?? "Chưa có",
+                customerEmail = invoice.DatCho?.KhachHang?.Email ?? "Chưa có",
+                lotName = spot.KhuVuc?.BaiXe?.TenBai ?? "Bãi xe",
+                spotName = spot.TenChoDau ?? "Vị trí",
+                areaName = spot.KhuVuc?.TenKhuVuc ?? "Khu",
+                licensePlate = bien ?? "Chưa rõ",
+                vehicleType = vehicleTypeName,
+                startTime = invoice.DatCho?.TgianBatDau.ToString("dd/MM/yyyy HH:mm"),
+                endTime = invoice.DatCho?.TgianKetThuc.ToString("dd/MM/yyyy HH:mm"),
+                createdTime = invoice.NgayTao.ToString("dd/MM/yyyy HH:mm"),
+                totalAmount = invoice.TongTien,
+                feeAdmin = invoice.TienChietKhauAdmin,
+                ownerAmount = invoice.TienChuBaiNhan,
+                paymentStatus = invoice.TrangThai,
+                paymentMethod = paymentMethod
             });
         }
     }

@@ -50,7 +50,7 @@ namespace WebApplication1.Areas.Owner.Controllers
                 return RedirectToAction("Login", "Account", new { area = "" });
             }
 
-            // Sync Database Schema: Make IDDatCho nullable and add IDChoDau in LogDieuKhienBarrier table
+            // Sync Database Schema: Make IDDatCho nullable, add IDChoDau, and drop HanhDong constraint in LogDieuKhienBarrier table
             try
             {
                 await _context.Database.ExecuteSqlRawAsync("ALTER TABLE LogDieuKhienBarrier ALTER COLUMN IDDatCho INT NULL;");
@@ -59,6 +59,11 @@ namespace WebApplication1.Areas.Owner.Controllers
             try
             {
                 await _context.Database.ExecuteSqlRawAsync("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('LogDieuKhienBarrier') AND name = 'IDChoDau') ALTER TABLE LogDieuKhienBarrier ADD IDChoDau INT NULL;");
+            }
+            catch (Exception) {}
+            try
+            {
+                await _context.Database.ExecuteSqlRawAsync("IF EXISTS (SELECT * FROM sys.objects WHERE name = 'CK_LogDieuKhien_HanhDong' AND parent_object_id = OBJECT_ID('LogDieuKhienBarrier')) ALTER TABLE LogDieuKhienBarrier DROP CONSTRAINT CK_LogDieuKhien_HanhDong;");
             }
             catch (Exception) {}
 
@@ -90,7 +95,8 @@ namespace WebApplication1.Areas.Owner.Controllers
                          s.KhuVuc.LoaiXe.TenLoaiXe == "Xe buýt" ? "xebuyt" :
                          s.KhuVuc.LoaiXe.TenLoaiXe == "Xe máy" ? "xemay" : "oto") : "oto",
                     lockCode = s.MaSoKhoa,
-                    lockState = s.TrangThaiKhoa ?? "Đóng"
+                    lockState = s.TrangThaiKhoa ?? "Đóng",
+                    occupancyState = s.TrangThaiO ?? "Trống"
                 })
                 .ToListAsync();
 
@@ -146,89 +152,207 @@ namespace WebApplication1.Areas.Owner.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleBarrier(int spotId, string action, int? bookingId = null, string? note = null)
         {
-            var spot = await _context.ChoDauXes.FindAsync(spotId);
-            if (spot == null) return Json(new { success = false, message = "Không tìm thấy chỗ đỗ." });
-
             string resultStatus = action == "Open" ? "Mở" : "Đóng";
-            spot.TrangThaiKhoa = resultStatus;
-            _context.Update(spot);
-
-            int ownerId = GetCurrentOwnerId();
-            if (ownerId != 0)
+            try
             {
-                int? finalBookingId = bookingId;
-                if (!finalBookingId.HasValue)
+                var spot = await _context.ChoDauXes.FindAsync(spotId);
+                if (spot == null) return Json(new { success = false, message = "Không tìm thấy chỗ đỗ." });
+
+                spot.TrangThaiKhoa = resultStatus;
+                _context.Update(spot);
+
+                int ownerId = GetCurrentOwnerId();
+                if (ownerId != 0)
                 {
-                    var lastBooking = await _context.DatChos
-                        .Where(d => d.IDChoDau == spotId)
-                        .OrderByDescending(d => d.ID)
-                        .FirstOrDefaultAsync();
-                    if (lastBooking != null)
+                    int? finalBookingId = bookingId;
+                    if (!finalBookingId.HasValue)
                     {
-                        finalBookingId = lastBooking.ID;
+                        var lastBooking = await _context.DatChos
+                            .Where(d => d.IDChoDau == spotId)
+                            .OrderByDescending(d => d.ID)
+                            .FirstOrDefaultAsync();
+                        if (lastBooking != null)
+                        {
+                            finalBookingId = lastBooking.ID;
+                        }
                     }
+
+                    var log = new LogDieuKhienBarrier
+                    {
+                        IDDatCho = finalBookingId,
+                        IDChoDau = spotId,
+                        IDTaiKhoan = ownerId,
+                        ThoiGianLệnh = DateTime.Now,
+                        HanhDong = action == "Open" ? "Mở khóa" : "Khóa lại",
+                        KetQua = "Thành công",
+                        GhiChu = string.IsNullOrEmpty(note) ? $"Chủ bãi điều khiển IoT Barrier {spot.MaSoKhoa} sang trạng thái {resultStatus}" : note
+                    };
+                    _context.LogDieuKhienBarriers.Add(log);
                 }
 
-                var log = new LogDieuKhienBarrier
-                {
-                    IDDatCho = finalBookingId,
-                    IDChoDau = spotId,
-                    IDTaiKhoan = ownerId,
-                    ThoiGianLệnh = DateTime.Now,
-                    HanhDong = action == "Open" ? "Mở khóa" : "Khóa lại",
-                    KetQua = "Thành công",
-                    GhiChu = string.IsNullOrEmpty(note) ? $"Chủ bãi điều khiển IoT Barrier {spot.MaSoKhoa} sang trạng thái {resultStatus}" : note
-                };
-                _context.LogDieuKhienBarriers.Add(log);
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, newLockState = resultStatus });
             }
-
-            await _context.SaveChangesAsync();
-            return Json(new { success = true, newLockState = resultStatus });
+            catch (Exception ex)
+            {
+                if (ex.ToString().Contains("CK_LogDieuKhien_HanhDong") || (ex.InnerException != null && ex.InnerException.Message.Contains("CK_LogDieuKhien_HanhDong")))
+                {
+                    try
+                    {
+                        // Drop check constraint dynamically and retry saving
+                        await _context.Database.ExecuteSqlRawAsync("IF EXISTS (SELECT * FROM sys.objects WHERE name = 'CK_LogDieuKhien_HanhDong' AND parent_object_id = OBJECT_ID('LogDieuKhienBarrier')) ALTER TABLE LogDieuKhienBarrier DROP CONSTRAINT CK_LogDieuKhien_HanhDong;");
+                        await _context.SaveChangesAsync();
+                        return Json(new { success = true, newLockState = resultStatus });
+                    }
+                    catch (Exception retryEx)
+                    {
+                        Console.Error.WriteLine("=== RETRY TOGGLE BARRIER ERROR ===");
+                        Console.Error.WriteLine(retryEx.ToString());
+                        return Json(new { success = false, message = retryEx.Message + (retryEx.InnerException != null ? " | " + retryEx.InnerException.Message : "") });
+                    }
+                }
+                Console.Error.WriteLine("=== TOGGLE BARRIER ERROR ===");
+                Console.Error.WriteLine(ex.ToString());
+                return Json(new { success = false, message = ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "") });
+            }
         }
 
         [HttpPost("ResetBarrier")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ResetBarrier(int spotId, int? bookingId = null, string? note = null)
         {
-            var spot = await _context.ChoDauXes.FindAsync(spotId);
-            if (spot == null) return Json(new { success = false, message = "Không tìm thấy chỗ đỗ." });
-
-            string oldStatus = spot.TrangThaiKhoa ?? "Đóng";
-            string newStatus = oldStatus == "Lỗi" ? "Đóng" : oldStatus;
-            spot.TrangThaiKhoa = newStatus;
-            _context.Update(spot);
-
-            int ownerId = GetCurrentOwnerId();
-            if (ownerId != 0)
+            string newStatus = "Đóng";
+            try
             {
-                int? finalBookingId = bookingId;
-                if (!finalBookingId.HasValue)
+                var spot = await _context.ChoDauXes.FindAsync(spotId);
+                if (spot == null) return Json(new { success = false, message = "Không tìm thấy chỗ đỗ." });
+
+                string oldStatus = spot.TrangThaiKhoa ?? "Đóng";
+                newStatus = oldStatus == "Lỗi" ? "Đóng" : oldStatus;
+                spot.TrangThaiKhoa = newStatus;
+
+                if (spot.TrangThaiO == "Bảo trì")
                 {
-                    var lastBooking = await _context.DatChos
-                        .Where(d => d.IDChoDau == spotId)
-                        .OrderByDescending(d => d.ID)
-                        .FirstOrDefaultAsync();
-                    if (lastBooking != null)
+                    spot.TrangThaiO = "Trống";
+                }
+
+                _context.Update(spot);
+
+                int ownerId = GetCurrentOwnerId();
+                if (ownerId != 0)
+                {
+                    int? finalBookingId = bookingId;
+                    if (!finalBookingId.HasValue)
                     {
-                        finalBookingId = lastBooking.ID;
+                        var lastBooking = await _context.DatChos
+                            .Where(d => d.IDChoDau == spotId)
+                            .OrderByDescending(d => d.ID)
+                            .FirstOrDefaultAsync();
+                        if (lastBooking != null)
+                        {
+                            finalBookingId = lastBooking.ID;
+                        }
+                    }
+
+                    var log = new LogDieuKhienBarrier
+                    {
+                        IDDatCho = finalBookingId,
+                        IDChoDau = spotId,
+                        IDTaiKhoan = ownerId,
+                        ThoiGianLệnh = DateTime.Now,
+                        HanhDong = "Reset",
+                        KetQua = "Thành công",
+                        GhiChu = string.IsNullOrEmpty(note) ? $"Chủ bãi khởi động lại phần cứng thiết bị {spot.MaSoKhoa}." : note
+                    };
+                    _context.LogDieuKhienBarriers.Add(log);
+                }
+
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, newLockState = newStatus });
+            }
+            catch (Exception ex)
+            {
+                if (ex.ToString().Contains("CK_LogDieuKhien_HanhDong") || (ex.InnerException != null && ex.InnerException.Message.Contains("CK_LogDieuKhien_HanhDong")))
+                {
+                    try
+                    {
+                        // Drop check constraint dynamically and retry saving
+                        await _context.Database.ExecuteSqlRawAsync("IF EXISTS (SELECT * FROM sys.objects WHERE name = 'CK_LogDieuKhien_HanhDong' AND parent_object_id = OBJECT_ID('LogDieuKhienBarrier')) ALTER TABLE LogDieuKhienBarrier DROP CONSTRAINT CK_LogDieuKhien_HanhDong;");
+                        await _context.SaveChangesAsync();
+                        return Json(new { success = true, newLockState = newStatus });
+                    }
+                    catch (Exception retryEx)
+                    {
+                        Console.Error.WriteLine("=== RETRY RESET BARRIER ERROR ===");
+                        Console.Error.WriteLine(retryEx.ToString());
+                        return Json(new { success = false, message = retryEx.Message + (retryEx.InnerException != null ? " | " + retryEx.InnerException.Message : "") });
                     }
                 }
+                Console.Error.WriteLine("=== RESET BARRIER ERROR ===");
+                Console.Error.WriteLine(ex.ToString());
+                return Json(new { success = false, message = ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "") });
+            }
+        }
+
+        [HttpPost("ToggleMaintenance")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleMaintenance(int spotId)
+        {
+            try
+            {
+                var spot = await _context.ChoDauXes.FindAsync(spotId);
+                if (spot == null) return Json(new { success = false, message = "Không tìm thấy chỗ đỗ." });
+
+                int ownerId = GetCurrentOwnerId();
+                if (ownerId == 0) return Json(new { success = false, message = "Chưa đăng nhập." });
+
+                string oldOcc = spot.TrangThaiO ?? "Trống";
+                string newOcc = oldOcc == "Bảo trì" ? "Trống" : "Bảo trì";
+                string newLock = newOcc == "Bảo trì" ? "Lỗi" : "Đóng";
+
+                spot.TrangThaiO = newOcc;
+                spot.TrangThaiKhoa = newLock;
+                _context.Update(spot);
 
                 var log = new LogDieuKhienBarrier
                 {
-                    IDDatCho = finalBookingId,
                     IDChoDau = spotId,
                     IDTaiKhoan = ownerId,
                     ThoiGianLệnh = DateTime.Now,
-                    HanhDong = "Reset",
+                    HanhDong = newOcc == "Bảo trì" ? "Bảo trì" : "Bỏ bảo trì",
                     KetQua = "Thành công",
-                    GhiChu = string.IsNullOrEmpty(note) ? $"Chủ bãi khởi động lại phần cứng thiết bị {spot.MaSoKhoa}." : note
+                    GhiChu = $"Chủ bãi thiết lập thiết bị {spot.MaSoKhoa} sang trạng thái {newOcc}."
                 };
                 _context.LogDieuKhienBarriers.Add(log);
-            }
 
-            await _context.SaveChangesAsync();
-            return Json(new { success = true, newLockState = newStatus });
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, newOccupancyState = newOcc, newLockState = newLock });
+            }
+            catch (Exception ex)
+            {
+                if (ex.ToString().Contains("CK_LogDieuKhien_HanhDong") || (ex.InnerException != null && ex.InnerException.Message.Contains("CK_LogDieuKhien_HanhDong")))
+                {
+                    try
+                    {
+                        await _context.Database.ExecuteSqlRawAsync("IF EXISTS (SELECT * FROM sys.objects WHERE name = 'CK_LogDieuKhien_HanhDong' AND parent_object_id = OBJECT_ID('LogDieuKhienBarrier')) ALTER TABLE LogDieuKhienBarrier DROP CONSTRAINT CK_LogDieuKhien_HanhDong;");
+                        await _context.SaveChangesAsync();
+                        var spot = await _context.ChoDauXes.FindAsync(spotId);
+                        if (spot != null)
+                        {
+                            return Json(new { success = true, newOccupancyState = spot.TrangThaiO, newLockState = spot.TrangThaiKhoa });
+                        }
+                    }
+                    catch (Exception retryEx)
+                    {
+                        Console.Error.WriteLine("=== RETRY TOGGLE MAINTENANCE ERROR ===");
+                        Console.Error.WriteLine(retryEx.ToString());
+                        return Json(new { success = false, message = retryEx.Message + (retryEx.InnerException != null ? " | " + retryEx.InnerException.Message : "") });
+                    }
+                }
+                Console.Error.WriteLine("=== TOGGLE MAINTENANCE ERROR ===");
+                Console.Error.WriteLine(ex.ToString());
+                return Json(new { success = false, message = ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "") });
+            }
         }
 
         [HttpPost("AddBarrier")]
