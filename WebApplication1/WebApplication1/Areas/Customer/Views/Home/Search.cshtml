@@ -376,11 +376,14 @@
 
             $('#modalStartTime, #modalEndTime').on('input change', function() {
                 recalculatePrice();
+                loadVisualLotDetails();
             });
 
             function loadVisualLotDetails() {
                 const lotId = $('#modalLotId').val();
                 const bienSoXe = $('#modalSelectVehicle').val();
+                const startTime = $('#modalStartTime').val();
+                const endTime = $('#modalEndTime').val();
                 const $areaContainer = $('#modalAreaContainer');
                 const $spotGrid = $('#modalSpotGrid');
 
@@ -388,7 +391,12 @@
                 $spotGrid.html('<div class="text-center w-100 py-3 text-muted">Đang tải sơ đồ...</div>');
 
                 if (lotId && bienSoXe) {
-                    $.getJSON('/Customer/Home/GetLotDetails', { lotId: lotId, bienSoXe: bienSoXe }, function(response) {
+                    $.getJSON('/Customer/Home/GetLotDetails', { 
+                        lotId: lotId, 
+                        bienSoXe: bienSoXe,
+                        startTime: startTime,
+                        endTime: endTime
+                    }, function(response) {
                         if (response.success && response.areas.length > 0) {
                             currentAreasData = response.areas;
                             $areaContainer.empty();
@@ -587,9 +595,9 @@
                     },
                     success: function(response) {
                         if (response.success) {
-                            alert(`Thanh toán thành công ${response.cost} từ số dư tài khoản của bạn!\n\nĐã khởi tạo đặt chỗ đỗ xe mã đơn #SP-${response.bookingId}. Vui lòng kiểm tra mục Đơn Đặt Chỗ để điều khiển barie.`);
+                            alert('Khởi tạo đơn đặt chỗ thành công! Hệ thống sẽ chuyển hướng bạn sang cổng thanh toán VNPAY Sandbox để thanh toán tiền cọc.');
                             bootstrap.Modal.getInstance(document.getElementById('bookingModal')).hide();
-                            window.location.href = '/Customer/Home/Bookings';
+                            window.location.href = response.paymentUrl;
                         } else {
                             alert(response.message || 'Lỗi khi đặt chỗ.');
                         }

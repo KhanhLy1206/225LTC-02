@@ -359,6 +359,7 @@ CREATE TABLE ThanhToan (
     SoTien          DECIMAL(18,2)       NOT NULL,
     TrangThai       BIT                 NOT NULL DEFAULT 0, -- 0 = Chờ thanh toán, 1 = Thành công
     NgayThanhToan   DATETIME            NOT NULL DEFAULT GETDATE(),
+    MaGiaoDich      VARCHAR(100)        NULL,
 
     CONSTRAINT PK_ThanhToan             PRIMARY KEY (ID),
     CONSTRAINT FK_ThanhToan_HoaDon      FOREIGN KEY (IDHoaDon) REFERENCES HoaDon(ID),
