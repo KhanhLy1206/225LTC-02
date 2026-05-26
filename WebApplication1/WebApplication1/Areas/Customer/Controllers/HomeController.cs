@@ -8,6 +8,8 @@ using System;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR;
+using WebApplication1.Hubs;
 
 namespace WebApplication1.Areas.Customer.Controllers
 {
@@ -17,11 +19,13 @@ namespace WebApplication1.Areas.Customer.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly IHubContext<ChatHub> _hubContext;
 
-        public HomeController(AppDbContext context, IConfiguration configuration)
+        public HomeController(AppDbContext context, IConfiguration configuration, IHubContext<ChatHub> hubContext)
         {
             _context = context;
             _configuration = configuration;
+            _hubContext = hubContext;
         }
 
         private int GetCurrentAccountId()
@@ -804,6 +808,178 @@ namespace WebApplication1.Areas.Customer.Controllers
                 .Select(w => new { id = w.MaXa, name = w.TenXa })
                 .ToList();
             return Json(wards);
+        }
+
+        // GET: /Customer/Home/Chat
+        [HttpGet]
+        public async Task<IActionResult> Chat(int? ownerId, int? activeChatId)
+        {
+            var customer = GetCurrentCustomer();
+            if (customer == null)
+            {
+                return RedirectToAction("Login", "Account", new { area = "" });
+            }
+
+            var customerAccountId = customer.IDTaiKhoan;
+
+            // If ownerId is provided, check or create a session
+            if (ownerId.HasValue)
+            {
+                var existingSession = await _context.PhienChats
+                    .FirstOrDefaultAsync(pc => pc.IDKhachHang == customer.ID && pc.IDChuBai == ownerId.Value);
+
+                if (existingSession == null)
+                {
+                    var newSession = new PhienChat
+                    {
+                        IDKhachHang = customer.ID,
+                        IDChuBai = ownerId.Value,
+                        NgayBatDau = DateTime.Now
+                    };
+                    _context.PhienChats.Add(newSession);
+                    await _context.SaveChangesAsync();
+                    activeChatId = newSession.ID;
+                }
+                else
+                {
+                    activeChatId = existingSession.ID;
+                }
+
+                // Redirect to the chat view with the active session ID to prevent resubmission
+                return RedirectToAction("Chat", new { activeChatId = activeChatId });
+            }
+
+            // Load all chat sessions for this customer
+            var chatSessions = await _context.PhienChats
+                .Include(pc => pc.ChuBaiXe)
+                .Include(pc => pc.TinNhans)
+                .Where(pc => pc.IDKhachHang == customer.ID)
+                .ToListAsync();
+
+            // Find active chat session
+            PhienChat? activeChatSession = null;
+            if (activeChatId.HasValue)
+            {
+                activeChatSession = chatSessions.FirstOrDefault(pc => pc.ID == activeChatId.Value);
+            }
+            if (activeChatSession == null)
+            {
+                activeChatSession = chatSessions.FirstOrDefault();
+            }
+
+            // Load messages for the active session
+            List<TinNhan> messages = new List<TinNhan>();
+            if (activeChatSession != null)
+            {
+                messages = await _context.TinNhans
+                    .Where(m => m.IDPhienChat == activeChatSession.ID)
+                    .OrderBy(m => m.NgayGui)
+                    .ToListAsync();
+
+                // Mark unread messages from owner as read
+                var unreadMessages = messages.Where(m => m.IDTaiKhoanGui != customerAccountId && !m.DaDoc).ToList();
+                if (unreadMessages.Any())
+                {
+                    foreach (var msg in unreadMessages)
+                    {
+                        msg.DaDoc = true;
+                    }
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            ViewBag.ChatSessions = chatSessions;
+            ViewBag.ActiveSession = activeChatSession;
+            ViewBag.Messages = messages;
+            ViewBag.UserAccountId = customerAccountId;
+
+            return View();
+        }
+
+        // POST: /Customer/Home/SendChatMessage
+        [HttpPost]
+        public async Task<IActionResult> SendChatMessage(int sessionId, string content)
+        {
+            var customer = GetCurrentCustomer();
+            if (customer == null || string.IsNullOrWhiteSpace(content))
+            {
+                return Json(new { success = false, message = "Yêu cầu không hợp lệ." });
+            }
+
+            var session = await _context.PhienChats.FirstOrDefaultAsync(pc => pc.ID == sessionId && pc.IDKhachHang == customer.ID);
+            if (session == null)
+            {
+                return Json(new { success = false, message = "Phiên chat không tồn tại." });
+            }
+
+            var message = new TinNhan
+            {
+                IDPhienChat = sessionId,
+                IDTaiKhoanGui = customer.IDTaiKhoan,
+                NoiDung = content,
+                NgayGui = DateTime.Now,
+                DaDoc = false
+            };
+
+            _context.TinNhans.Add(message);
+            await _context.SaveChangesAsync();
+
+            // Broadcast the message via SignalR to all users in this session group
+            await _hubContext.Clients.Group($"Session_{sessionId}").SendAsync("ReceiveMessage", new
+            {
+                id = message.ID,
+                senderId = message.IDTaiKhoanGui,
+                content = message.NoiDung,
+                time = message.NgayGui.ToString("HH:mm")
+            });
+
+            return Json(new { success = true, messageId = message.ID, time = message.NgayGui.ToString("HH:mm") });
+        }
+
+        // GET: /Customer/Home/GetChatMessages
+        [HttpGet]
+        public async Task<IActionResult> GetChatMessages(int sessionId)
+        {
+            var customer = GetCurrentCustomer();
+            if (customer == null)
+            {
+                return Json(new { success = false, message = "Không có quyền truy cập." });
+            }
+
+            var session = await _context.PhienChats.FirstOrDefaultAsync(pc => pc.ID == sessionId && pc.IDKhachHang == customer.ID);
+            if (session == null)
+            {
+                return Json(new { success = false, message = "Phiên chat không tồn tại." });
+            }
+
+            var messages = await _context.TinNhans
+                .Where(m => m.IDPhienChat == sessionId)
+                .OrderBy(m => m.NgayGui)
+                .Select(m => new
+                {
+                    id = m.ID,
+                    senderId = m.IDTaiKhoanGui,
+                    content = m.NoiDung,
+                    time = m.NgayGui.ToString("HH:mm"),
+                    isMe = m.IDTaiKhoanGui == customer.IDTaiKhoan
+                })
+                .ToListAsync();
+
+            // Mark unread messages from owner as read
+            var unreadMessages = await _context.TinNhans
+                .Where(m => m.IDPhienChat == sessionId && m.IDTaiKhoanGui != customer.IDTaiKhoan && !m.DaDoc)
+                .ToListAsync();
+
+            if (unreadMessages.Any())
+            {
+                foreach (var msg in unreadMessages)
+                {
+                    msg.DaDoc = true;
+                }
+                await _context.SaveChangesAsync();
+            }
+
+            return Json(new { success = true, messages = messages });
         }
     }
 }

@@ -161,20 +161,30 @@
                     <div class="mt-auto">
                         @if (spotsLeft > 0)
                         {
-                            <button class="btn btn-secondary-custom w-100 btn-book-trigger" 
-                                    data-id="@lot.ID"
-                                    data-name="@lot.TenBai"
-                                    data-address="@lot.DiaChiChiTiet"
-                                    data-car-price="@((int)carPrice)"
-                                    data-moto-price="@((int)motoPrice)">
-                                Chi Tiết & Đặt Chỗ <i class="fa-solid fa-arrow-right ms-1"></i>
-                            </button>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-secondary-custom flex-grow-1 btn-book-trigger" 
+                                        data-id="@lot.ID"
+                                        data-name="@lot.TenBai"
+                                        data-address="@lot.DiaChiChiTiet"
+                                        data-car-price="@((int)carPrice)"
+                                        data-moto-price="@((int)motoPrice)">
+                                    Chi Tiết & Đặt Chỗ <i class="fa-solid fa-arrow-right ms-1"></i>
+                                </button>
+                                <a href="/Customer/Home/Chat?ownerId=@lot.IDChuBai" class="btn btn-outline-secondary d-flex align-items-center justify-content-center px-3" title="Nhắn tin với chủ bãi" style="border-radius: 10px;">
+                                    <i class="fa-solid fa-comments"></i>
+                                </a>
+                            </div>
                         }
                         else
                         {
-                            <button class="btn btn-secondary w-100" disabled>
-                                Bãi Xe Đầy Chỗ <i class="fa-solid fa-ban ms-1"></i>
-                            </button>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-secondary flex-grow-1" disabled>
+                                    Bãi Xe Đầy Chỗ <i class="fa-solid fa-ban ms-1"></i>
+                                </button>
+                                <a href="/Customer/Home/Chat?ownerId=@lot.IDChuBai" class="btn btn-outline-secondary d-flex align-items-center justify-content-center px-3" title="Nhắn tin với chủ bãi" style="border-radius: 10px;">
+                                    <i class="fa-solid fa-comments"></i>
+                                </a>
+                            </div>
                         }
                     </div>
                 </div>
