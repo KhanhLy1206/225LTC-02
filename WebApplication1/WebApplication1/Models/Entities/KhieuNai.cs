@@ -45,5 +45,8 @@ namespace WebApplication1.Models.Entities
 
         [ForeignKey("IDDatCho")]
         public DatCho? DatCho { get; set; }
+
+        [ForeignKey("IDAdminXuLy")]
+        public Admin? Admin { get; set; }
     }
 }

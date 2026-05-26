@@ -28,5 +28,7 @@ namespace WebApplication1.Models.Entities
 
         [ForeignKey("IDLoaiXe")]
         public LoaiXe? LoaiXe { get; set; }
+
+        public virtual ICollection<ChoDauXe> ChoDauXes { get; set; } = new List<ChoDauXe>();
     }
 }

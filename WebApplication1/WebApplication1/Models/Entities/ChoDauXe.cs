@@ -33,5 +33,7 @@ namespace WebApplication1.Models.Entities
 
         [ForeignKey("IDKhuVuc")]
         public KhuVuc? KhuVuc { get; set; }
+
+        public virtual ICollection<DatCho> DatChos { get; set; } = new List<DatCho>();
     }
 }

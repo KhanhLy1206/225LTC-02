@@ -40,5 +40,7 @@ namespace WebApplication1.Models.Entities
 
         [ForeignKey("MaXa")]
         public virtual XaPhuong? XaPhuong { get; set; }
+
+        public virtual ICollection<BaiXe> BaiXes { get; set; } = new List<BaiXe>();
     }
 }

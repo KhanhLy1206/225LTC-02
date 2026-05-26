@@ -13,5 +13,7 @@ namespace WebApplication1.Models.Entities
         [Required]
         [StringLength(100)]
         public string TenTinh { get; set; } = null!;
+
+        public virtual ICollection<QuanHuyen> QuanHuyens { get; set; } = new List<QuanHuyen>();
     }
 }

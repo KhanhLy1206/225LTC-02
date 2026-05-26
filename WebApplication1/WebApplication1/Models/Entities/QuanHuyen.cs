@@ -20,5 +20,7 @@ namespace WebApplication1.Models.Entities
 
         [ForeignKey("MaTinh")]
         public TinhThanh? TinhThanh { get; set; }
+
+        public virtual ICollection<XaPhuong> XaPhuongs { get; set; } = new List<XaPhuong>();
     }
 }

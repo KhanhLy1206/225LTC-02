@@ -39,25 +39,27 @@ namespace WebApplication1.Models.DataContext
             base.OnModelCreating(modelBuilder);
 
             // ── TinhThanh ──────────────────────────────────────────────────
-            modelBuilder.Entity<TinhThanh>().HasKey(t => t.MaTinh);
+            modelBuilder.Entity<TinhThanh>().ToTable("TinhThanh").HasKey(t => t.MaTinh);
 
             // ── QuanHuyen ──────────────────────────────────────────────────
-            modelBuilder.Entity<QuanHuyen>().HasKey(q => q.MaHuyen);
+            modelBuilder.Entity<QuanHuyen>().ToTable("QuanHuyen").HasKey(q => q.MaHuyen);
             modelBuilder.Entity<QuanHuyen>()
                 .HasOne(q => q.TinhThanh).WithMany(t => t.QuanHuyens)
                 .HasForeignKey(q => q.MaTinh);
 
             // ── XaPhuong ───────────────────────────────────────────────────
-            modelBuilder.Entity<XaPhuong>().HasKey(x => x.MaXa);
+            modelBuilder.Entity<XaPhuong>().ToTable("XaPhuong").HasKey(x => x.MaXa);
             modelBuilder.Entity<XaPhuong>()
                 .HasOne(x => x.QuanHuyen).WithMany(q => q.XaPhuongs)
                 .HasForeignKey(x => x.MaHuyen);
 
             // ── VaiTro ─────────────────────────────────────────────────────
+            modelBuilder.Entity<VaiTro>().ToTable("VaiTro");
             modelBuilder.Entity<VaiTro>()
                 .HasIndex(v => v.TenVaiTro).IsUnique();
 
             // ── TaiKhoan ───────────────────────────────────────────────────
+            modelBuilder.Entity<TaiKhoan>().ToTable("TaiKhoan");
             modelBuilder.Entity<TaiKhoan>()
                 .HasIndex(t => t.TenDangNhap).IsUnique();
             modelBuilder.Entity<TaiKhoan>()
@@ -65,6 +67,7 @@ namespace WebApplication1.Models.DataContext
                 .HasForeignKey(t => t.IDVaiTro);
 
             // ── KhachHang ──────────────────────────────────────────────────
+            modelBuilder.Entity<KhachHang>().ToTable("KhachHang");
             modelBuilder.Entity<KhachHang>()
                 .HasOne(k => k.TaiKhoan).WithOne(t => t.KhachHang)
                 .HasForeignKey<KhachHang>(k => k.IDTaiKhoan);
@@ -73,6 +76,7 @@ namespace WebApplication1.Models.DataContext
                 .HasForeignKey(k => k.MaXa);
 
             // ── ChuBaiXe ───────────────────────────────────────────────────
+            modelBuilder.Entity<ChuBaiXe>().ToTable("ChuBaiXe");
             modelBuilder.Entity<ChuBaiXe>()
                 .HasOne(c => c.TaiKhoan).WithOne(t => t.ChuBaiXe)
                 .HasForeignKey<ChuBaiXe>(c => c.IDTaiKhoan);
@@ -81,11 +85,13 @@ namespace WebApplication1.Models.DataContext
                 .HasForeignKey(c => c.MaXa);
 
             // ── Admin ──────────────────────────────────────────────────────
+            modelBuilder.Entity<Admin>().ToTable("Admin");
             modelBuilder.Entity<Admin>()
                 .HasOne(a => a.TaiKhoan).WithOne(t => t.Admin)
                 .HasForeignKey<Admin>(a => a.IDTaiKhoan);
 
             // ── BaiXe (gộp đăng ký, TrangThai: Chờ duyệt/Hoạt động/...) ──
+            modelBuilder.Entity<BaiXe>().ToTable("BaiXe");
             modelBuilder.Entity<BaiXe>()
                 .HasOne(b => b.ChuBaiXe).WithMany(c => c.BaiXes)
                 .HasForeignKey(b => b.IDChuBai);
@@ -98,12 +104,13 @@ namespace WebApplication1.Models.DataContext
                 .Property(b => b.DienTich).HasPrecision(10, 2);
 
             // ── Xe ─────────────────────────────────────────────────────────
-            modelBuilder.Entity<Xe>().HasKey(x => x.BienSoXe);
+            modelBuilder.Entity<Xe>().ToTable("Xe").HasKey(x => x.BienSoXe);
             modelBuilder.Entity<Xe>()
                 .HasOne(x => x.LoaiXe).WithMany()
                 .HasForeignKey(x => x.IDLoaiXe);
 
             // ── KhachHang_Xe ───────────────────────────────────────────────
+            modelBuilder.Entity<KhachHang_Xe>().ToTable("KhachHang_Xe");
             modelBuilder.Entity<KhachHang_Xe>()
                 .HasKey(kx => new { kx.IDKhachHang, kx.IDXe });
             modelBuilder.Entity<KhachHang_Xe>()
@@ -114,6 +121,7 @@ namespace WebApplication1.Models.DataContext
                 .HasForeignKey(kx => kx.IDXe).OnDelete(DeleteBehavior.Cascade);
 
             // ── KhuVuc ─────────────────────────────────────────────────────
+            modelBuilder.Entity<KhuVuc>().ToTable("KhuVuc");
             modelBuilder.Entity<KhuVuc>()
                 .HasOne(k => k.BaiXe).WithMany(b => b.KhuVucs)
                 .HasForeignKey(k => k.IDBaiXe);
@@ -122,6 +130,7 @@ namespace WebApplication1.Models.DataContext
                 .HasForeignKey(k => k.IDLoaiXe);
 
             // ── ChoDauXe ───────────────────────────────────────────────────
+            modelBuilder.Entity<ChoDauXe>().ToTable("ChoDauXe");
             modelBuilder.Entity<ChoDauXe>()
                 .HasOne(c => c.KhuVuc).WithMany(k => k.ChoDauXes)
                 .HasForeignKey(c => c.IDKhuVuc);
@@ -149,7 +158,7 @@ namespace WebApplication1.Models.DataContext
 
             // ── LogDieuKhienBarrier ────────────────────────────────────────
             modelBuilder.Entity<LogDieuKhienBarrier>()
-                .Property(l => l.ThoiGianLenh).HasColumnName("ThoiGianLệnh");
+                .Property(l => l.ThoiGianLệnh).HasColumnName("ThoiGianLệnh");
             modelBuilder.Entity<LogDieuKhienBarrier>()
                 .HasOne(l => l.DatCho).WithMany(d => d.LogDieuKhienBarriers)
                 .HasForeignKey(l => l.IDDatCho);

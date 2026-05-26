@@ -62,10 +62,13 @@ namespace WebApplication1.Services
             // Retrieve account matching either Username or Customer Email
             var taiKhoan = await _context.TaiKhoans
                 .Include(t => t.VaiTro)
-                .Include(t => t.KhachHangs)
+                .Include(t => t.KhachHang)
+                .Include(t => t.ChuBaiXe)
+                .Include(t => t.Admin)
                 .FirstOrDefaultAsync(t => 
                     (t.TenDangNhap.ToLower() == usernameOrEmail.ToLower() ||
-                     t.KhachHangs.Any(kh => kh.Email != null && kh.Email.ToLower() == usernameOrEmail.ToLower())) &&
+                     (t.KhachHang != null && t.KhachHang.Email != null && t.KhachHang.Email.ToLower() == usernameOrEmail.ToLower()) ||
+                     (t.ChuBaiXe != null && t.ChuBaiXe.Email != null && t.ChuBaiXe.Email.ToLower() == usernameOrEmail.ToLower())) &&
                     t.TrangThai);
 
             if (taiKhoan == null)

@@ -13,5 +13,8 @@ namespace WebApplication1.Models.Entities
         [Required]
         [StringLength(50)]
         public string TenLoaiXe { get; set; } = null!;
+
+        public virtual ICollection<KhuVuc> KhuVucs { get; set; } = new List<KhuVuc>();
+        public virtual ICollection<BangGia> BangGias { get; set; } = new List<BangGia>();
     }
 }

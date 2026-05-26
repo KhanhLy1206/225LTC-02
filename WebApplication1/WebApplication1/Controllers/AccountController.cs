@@ -53,7 +53,7 @@ namespace WebApplication1.Controllers
             };
 
             // Add customer's full name if available
-            var khachHang = taiKhoan.KhachHangs.FirstOrDefault();
+            var khachHang = taiKhoan.KhachHang;
             if (khachHang != null)
             {
                 claims.Add(new Claim("FullName", khachHang.HoTen));
@@ -74,7 +74,7 @@ namespace WebApplication1.Controllers
             // Redirect according to user role
             if (taiKhoan.VaiTro.TenVaiTro == "Admin")
             {
-                return RedirectToAction("Index", "Home", new { area = "Admin" });
+                return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
             }
             else if (taiKhoan.VaiTro.TenVaiTro == "Chủ bãi xe")
             {
@@ -137,7 +137,7 @@ namespace WebApplication1.Controllers
         {
             if (User.IsInRole("Admin"))
             {
-                return RedirectToAction("Index", "Home", new { area = "Admin" });
+                return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
             }
             if (User.IsInRole("Chủ bãi xe"))
             {

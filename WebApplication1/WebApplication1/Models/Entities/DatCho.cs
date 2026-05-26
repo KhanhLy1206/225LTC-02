@@ -43,5 +43,8 @@ namespace WebApplication1.Models.Entities
 
         [ForeignKey("IDChoDau")]
         public ChoDauXe? ChoDauXe { get; set; }
+
+        public virtual HoaDon? HoaDon { get; set; }
+        public virtual ICollection<LogDieuKhienBarrier> LogDieuKhienBarriers { get; set; } = new List<LogDieuKhienBarrier>();
     }
 }
