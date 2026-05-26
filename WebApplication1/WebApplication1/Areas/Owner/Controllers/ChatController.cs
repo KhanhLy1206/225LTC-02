@@ -287,5 +287,28 @@ namespace WebApplication1.Areas.Owner.Controllers
 
             return Json(new { count = unreadCount });
         }
+
+        [HttpGet("GetOwnerSessions")]
+        public async Task<IActionResult> GetOwnerSessions()
+        {
+            int ownerAccountId = GetCurrentOwnerId();
+            if (ownerAccountId == 0)
+            {
+                return Json(new List<int>());
+            }
+
+            int chuBaiId = GetChuBaiId(ownerAccountId);
+            if (chuBaiId == 0)
+            {
+                return Json(new List<int>());
+            }
+
+            var sessionIds = await _context.PhienChats
+                .Where(pc => pc.IDChuBai == chuBaiId)
+                .Select(pc => pc.ID)
+                .ToListAsync();
+
+            return Json(sessionIds);
+        }
     }
 }
