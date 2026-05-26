@@ -11,8 +11,7 @@ namespace WebApplication1.Models.Entities
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int ID { get; set; }
 
-        [Required]
-        public int IDDatCho { get; set; }
+        public int? IDDatCho { get; set; }
 
         [Required]
         public int IDTaiKhoan { get; set; }
@@ -36,5 +35,10 @@ namespace WebApplication1.Models.Entities
 
         [ForeignKey("IDTaiKhoan")]
         public TaiKhoan? TaiKhoan { get; set; }
+
+        public int? IDChoDau { get; set; }
+
+        [ForeignKey("IDChoDau")]
+        public ChoDauXe? ChoDauXe { get; set; }
     }
 }

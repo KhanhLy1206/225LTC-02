@@ -161,10 +161,15 @@ namespace WebApplication1.Models.DataContext
                 .Property(l => l.ThoiGianLệnh).HasColumnName("ThoiGianLệnh");
             modelBuilder.Entity<LogDieuKhienBarrier>()
                 .HasOne(l => l.DatCho).WithMany(d => d.LogDieuKhienBarriers)
-                .HasForeignKey(l => l.IDDatCho);
+                .HasForeignKey(l => l.IDDatCho)
+                .IsRequired(false);
             modelBuilder.Entity<LogDieuKhienBarrier>()
                 .HasOne(l => l.TaiKhoan).WithMany(t => t.LogDieuKhienBarriers)
                 .HasForeignKey(l => l.IDTaiKhoan);
+            modelBuilder.Entity<LogDieuKhienBarrier>()
+                .HasOne(l => l.ChoDauXe).WithMany()
+                .HasForeignKey(l => l.IDChoDau)
+                .IsRequired(false);
 
             // ── HoaDon ─────────────────────────────────────────────────────
             modelBuilder.Entity<HoaDon>()

@@ -215,6 +215,95 @@
     }
 </style>
 
+<style>
+    /* ── Toast Notification ── */
+    #toastContainer {
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        pointer-events: none;
+    }
+
+    .owner-toast {
+        min-width: 340px;
+        max-width: 420px;
+        padding: 16px 20px;
+        border-radius: 16px;
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        box-shadow: 0 12px 40px -8px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.08);
+        pointer-events: all;
+        animation: toastSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        border-left: 5px solid transparent;
+    }
+
+    .owner-toast.toast-success {
+        background: #ffffff;
+        border-left-color: #10b981;
+    }
+    .owner-toast.toast-error {
+        background: #ffffff;
+        border-left-color: #ef4444;
+    }
+    .owner-toast.toast-warning {
+        background: #ffffff;
+        border-left-color: #f59e0b;
+    }
+
+    .toast-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+    .toast-success .toast-icon { background: #d1fae5; color: #059669; }
+    .toast-error .toast-icon   { background: #fee2e2; color: #dc2626; }
+    .toast-warning .toast-icon { background: #fef3c7; color: #d97706; }
+
+    .toast-body { flex: 1; }
+    .toast-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 3px; color: #1e293b; }
+    .toast-desc  { font-size: 0.82rem; color: #64748b; line-height: 1.5; }
+
+    .toast-close {
+        background: none;
+        border: none;
+        color: #94a3b8;
+        font-size: 1rem;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+        flex-shrink: 0;
+        transition: color 0.2s;
+    }
+    .toast-close:hover { color: #475569; }
+
+    .owner-toast.toast-hide {
+        animation: toastSlideOut 0.35s ease forwards;
+    }
+
+    @@keyframes toastSlideIn {
+        from { opacity: 0; transform: translateX(60px) scale(0.95); }
+        to   { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    @@keyframes toastSlideOut {
+        from { opacity: 1; transform: translateX(0); }
+        to   { opacity: 0; transform: translateX(60px); }
+    }
+</style>
+
+<!-- Toast Container -->
+<div id="toastContainer"></div>
+
 <div class="d-flex flex-column mb-4">
     <h1 class="owner-page-title">Cấu hình bảng giá</h1>
     <p class="owner-page-subtitle">Chọn bãi đỗ xe, khu vực và loại xe để bắt đầu điều chỉnh đơn giá.</p>
@@ -230,9 +319,15 @@
                     <label class="small fw-bold text-muted text-uppercase mb-1" for="lotSelect"><i class="fa-solid fa-warehouse text-primary me-1"></i> Bãi xe:</label>
                     <select class="form-select rounded-3 border-light shadow-sm py-2.5" id="lotSelect" style="border: 1px solid #cbd5e1 !important;">
                         <option value="" disabled selected>-- Chọn bãi xe --</option>
-                        <option value="1">SPMS Cống Quỳnh - Quận 1</option>
-                        <option value="2">SPMS Sunrise City - Quận 7</option>
-                        <option value="3">SPMS Landmark Plus - Bình Thạnh (Chờ duyệt)</option>
+                        @if (ViewBag.BaiXes != null)
+                        {
+                            foreach (var lot in ViewBag.BaiXes)
+                            {
+                                <option value="@lot.ID" data-trangthai="@lot.TrangThai">
+                                    @lot.TenBai @(lot.TrangThai != "Hoạt động" ? $"({lot.TrangThai})" : "")
+                                </option>
+                            }
+                        }
                     </select>
                 </div>
             </div>
@@ -258,6 +353,44 @@
     </div>
 </div>
 
+<!-- Banner: Bãi xe chưa được duyệt -->
+<div id="lotPendingBanner" class="d-none mb-4">
+    <div style="
+        background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+        border: 2px solid #fb923c;
+        border-radius: 20px;
+        padding: 48px 32px;
+        text-align: center;
+    ">
+        <div style="
+            width: 80px; height: 80px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 24px rgba(249,115,22,0.3);
+        ">
+            <i class="fa-solid fa-hourglass-half text-white" style="font-size: 2rem;"></i>
+        </div>
+        <h4 id="lotPendingTitle" class="fw-bold mb-2" style="color: #c2410c; font-size: 1.4rem;">Bãi xe đang chờ duyệt</h4>
+        <p id="lotPendingDesc" class="text-muted mb-4" style="max-width: 480px; margin: 0 auto;">
+            Bãi xe này hiện chưa được Admin phê duyệt. Bạn chưa thể cấu hình bảng giá ở đây.
+        </p>
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+            <a href="/Owner/BaiXe" class="btn btn-outline-warning fw-semibold px-4">
+                <i class="fa-solid fa-arrow-left me-2"></i> Xem danh sách bãi xe
+            </a>
+        </div>
+        <div class="mt-4 p-3 rounded-3" style="background: rgba(249,115,22,0.08); display: inline-block;">
+            <small class="text-muted"><i class="fa-solid fa-circle-info me-1 text-warning"></i>
+                Trạng thái hiện tại: <strong id="lotPendingStatusText" class="text-warning">Chờ duyệt</strong>
+            </small>
+        </div>
+    </div>
+</div>
+
+<!-- Nội dung chính Cấu hình giá -->
+<div id="mainContent">
 <!-- Select Prompt Card -->
 <div class="card text-center p-5 border-0 shadow-sm mb-4" id="selectPromptCard" style="border-radius: 20px; background-color: var(--owner-card-bg); border: 1px solid var(--owner-border) !important;">
     <div class="card-body py-5">
@@ -271,6 +404,7 @@
 
 <!-- Main One-Page Price Form -->
 <form id="inlinePricingForm">
+    @Html.AntiForgeryToken()
     
     <!-- Pricing Cards Grid -->
     <div class="row g-4 mb-4" id="pricingCardsContainer">
@@ -376,10 +510,16 @@
     </div>
 
     <!-- Master Controls Row -->
-    <div class="owner-table-card border-0 mb-4 p-3 bg-white">
-        <button type="submit" class="btn btn-primary-custom px-5 py-2.5 rounded-3 d-flex align-items-center gap-2">
+    <div class="owner-table-card border-0 mb-4 p-3 bg-white d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <button type="submit" id="btnSavePricing" class="btn btn-primary-custom px-5 py-2.5 rounded-3 d-flex align-items-center gap-2">
             <i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi bảng giá
         </button>
+        <div class="form-check form-switch d-flex align-items-center gap-2 m-0">
+            <input class="form-check-input fs-5 cursor-pointer m-0" type="checkbox" role="switch" id="switchStatus" checked style="cursor: pointer;">
+            <label class="form-check-label fw-bold text-dark cursor-pointer select-none" for="switchStatus" style="font-size: 0.95rem; cursor: pointer;">
+                Trạng thái áp dụng bảng giá
+            </label>
+        </div>
     </div>
 </form>
 
@@ -419,176 +559,40 @@
     </div>
 </div>
 
+</div><!-- end #mainContent -->
+
 @section Scripts {
     <script>
-        // Mock Pricing Database by Lot ID and Vehicle Type / Area
-        const pricingData = {
-            1: {
-                oto: {
-                    lotName: 'SPMS Cống Quỳnh - Q1',
-                    typeName: '🚗 Ô tô con',
-                    giaTheoGio: 20000,
-                    giaQuaDem: 80000,
-                    giaTheoThang: 1200000,
-                    giaDatCho: 30,
-                    trangThai: true
-                },
-                xebantai: {
-                    lotName: 'SPMS Cống Quỳnh - Q1',
-                    typeName: '🛻 Xe bán tải',
-                    giaTheoGio: 30000,
-                    giaQuaDem: 120000,
-                    giaTheoThang: 1800000,
-                    giaDatCho: 30,
-                    trangThai: true
-                },
-                xebuyt: {
-                    lotName: 'SPMS Cống Quỳnh - Q1',
-                    typeName: '🚌 Xe buýt',
-                    giaTheoGio: 50000,
-                    giaQuaDem: 180000,
-                    giaTheoThang: 2500000,
-                    giaDatCho: 30,
-                    trangThai: true
-                },
-                xetai: {
-                    lotName: 'SPMS Cống Quỳnh - Q1',
-                    typeName: '🚛 Xe tải',
-                    giaTheoGio: 60000,
-                    giaQuaDem: 220000,
-                    giaTheoThang: 3000000,
-                    giaDatCho: 30,
-                    trangThai: true
-                }
-            },
-            2: {
-                oto: {
-                    lotName: 'SPMS Sunrise City - Q7',
-                    typeName: '🚗 Ô tô con',
-                    giaTheoGio: 15000,
-                    giaQuaDem: 60000,
-                    giaTheoThang: 900000,
-                    giaDatCho: 30,
-                    trangThai: true
-                },
-                xebantai: {
-                    lotName: 'SPMS Sunrise City - Q7',
-                    typeName: '🛻 Xe bán tải',
-                    giaTheoGio: 25000,
-                    giaQuaDem: 100000,
-                    giaTheoThang: 1400000,
-                    giaDatCho: 30,
-                    trangThai: true
-                },
-                xebuyt: {
-                    lotName: 'SPMS Sunrise City - Q7',
-                    typeName: '🚌 Xe buýt',
-                    giaTheoGio: 40000,
-                    giaQuaDem: 150000,
-                    giaTheoThang: 2200000,
-                    giaDatCho: 30,
-                    trangThai: true
-                },
-                xetai: {
-                    lotName: 'SPMS Sunrise City - Q7',
-                    typeName: '🚛 Xe tải',
-                    giaTheoGio: 50000,
-                    giaQuaDem: 180000,
-                    giaTheoThang: 2600000,
-                    giaDatCho: 30,
-                    trangThai: true
-                }
-            },
-            3: {
-                oto: {
-                    lotName: 'SPMS Landmark Plus - Bình Thạnh',
-                    typeName: '🚗 Ô tô con',
-                    giaTheoGio: 25000,
-                    giaQuaDem: 100000,
-                    giaTheoThang: 1500000,
-                    giaDatCho: 30,
-                    trangThai: false
-                },
-                xebantai: {
-                    lotName: 'SPMS Landmark Plus - Bình Thạnh',
-                    typeName: '🛻 Xe bán tải',
-                    giaTheoGio: 35000,
-                    giaQuaDem: 140000,
-                    giaTheoThang: 2000000,
-                    giaDatCho: 30,
-                    trangThai: false
-                },
-                xebuyt: {
-                    lotName: 'SPMS Landmark Plus - Bình Thạnh',
-                    typeName: '🚌 Xe buýt',
-                    giaTheoGio: 55000,
-                    giaQuaDem: 210000,
-                    giaTheoThang: 2800000,
-                    giaDatCho: 30,
-                    trangThai: false
-                },
-                xetai: {
-                    lotName: 'SPMS Landmark Plus - Bình Thạnh',
-                    typeName: '🚛 Xe tải',
-                    giaTheoGio: 65000,
-                    giaQuaDem: 240000,
-                    giaTheoThang: 3200000,
-                    giaDatCho: 30,
-                    trangThai: false
-                }
-            }
-        };
+        // Store areas globally when fetched
+        const lotAreas = {};
+        
+        // Audit Log History database array
+        let auditLogs = [];
+
+        const rowsPerPage = 6;
+        let currentPage = 1;
 
         let currentActiveLot = null;
         let currentActiveArea = null;
         let currentActiveVehicleType = null;
 
-        const vehicleTypes = [
-            { value: 'oto', label: '🚗 Ô tô con' },
-            { value: 'xebantai', label: '🛻 Xe bán tải' },
-            { value: 'xebuyt', label: '🚌 Xe buýt' },
-            { value: 'xetai', label: '🚛 Xe tải' }
-        ];
-
-        const lotAreas = {
-            1: [
-                { value: 'A', label: 'Khu A', type: 'oto' },
-                { value: 'B', label: 'Khu B', type: 'xebantai' },
-                { value: 'C', label: 'Khu C', type: 'xebuyt' },
-                { value: 'D', label: 'Khu D', type: 'xetai' },
-                { value: 'E', label: 'Khu E', type: 'xemay' },
-                { value: 'F', label: 'Khu F', type: 'xedapdien' }
-            ],
-            2: [
-                { value: 'A', label: 'Khu A', type: 'oto' },
-                { value: 'B', label: 'Khu B', type: 'xebantai' },
-                { value: 'C', label: 'Khu C', type: 'xemay' }
-            ],
-            3: [
-                { value: 'A', label: 'Khu A (Chờ duyệt)', type: 'oto' },
-                { value: 'B', label: 'Khu B (Chờ duyệt)', type: 'xebantai' }
-            ]
-        };
-
-        // Audit Log History database array
-        const auditLogs = [
-            { lotName: 'SPMS Cống Quỳnh - Q1', areaLabel: 'Khu A', vehicleLabel: '🚗 Ô tô con', time: '15:30 - 24/05/2026', user: 'Lê Văn Chủ', giaTheoGio: 20000, giaQuaDem: 80000, giaTheoThang: 1200000, giaDatCho: 30, status: 'Đang áp dụng', statusClass: 'bg-success-light text-success' },
-            { lotName: 'SPMS Sunrise City - Q7', areaLabel: 'Khu A', vehicleLabel: '🚗 Ô tô con', time: '09:00 - 15/05/2026', user: 'Lê Văn Chủ', giaTheoGio: 15000, giaQuaDem: 60000, giaTheoThang: 900000, giaDatCho: 30, status: 'Hoạt động', statusClass: 'bg-light text-muted border' },
-            { lotName: 'SPMS Cống Quỳnh - Q1', areaLabel: 'Khu A', vehicleLabel: '🚗 Ô tô con', time: '08:00 - 01/05/2026', user: 'Lê Văn Chủ', giaTheoGio: 15000, giaQuaDem: 60000, giaTheoThang: 1000000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' },
-            { lotName: 'SPMS Cống Quỳnh - Q1', areaLabel: 'Khu B', vehicleLabel: '🛻 Xe bán tải', time: '10:15 - 28/04/2026', user: 'Lê Văn Chủ', giaTheoGio: 30000, giaQuaDem: 120000, giaTheoThang: 1800000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' },
-            { lotName: 'SPMS Sunrise City - Q7', areaLabel: 'Khu B', vehicleLabel: '🛻 Xe bán tải', time: '11:30 - 25/04/2026', user: 'Lê Văn Chủ', giaTheoGio: 25000, giaQuaDem: 100000, giaTheoThang: 1400000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' },
-            { lotName: 'SPMS Landmark Plus - Bình Thạnh', areaLabel: 'Khu A', vehicleLabel: '🚗 Ô tô con', time: '14:00 - 20/04/2026', user: 'Lê Văn Chủ', giaTheoGio: 25000, giaQuaDem: 100000, giaTheoThang: 1500000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' },
-            { lotName: 'SPMS Landmark Plus - Bình Thạnh', areaLabel: 'Khu B', vehicleLabel: '🛻 Xe bán tải', time: '16:30 - 18/04/2026', user: 'Lê Văn Chủ', giaTheoGio: 35000, giaQuaDem: 140000, giaTheoThang: 2000000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' },
-            { lotName: 'SPMS Cống Quỳnh - Q1', areaLabel: 'Khu A', vehicleLabel: '🚗 Ô tô con', time: '09:00 - 10/04/2026', user: 'Lê Văn Chủ', giaTheoGio: 12000, giaQuaDem: 50000, giaTheoThang: 800000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' },
-            { lotName: 'SPMS Sunrise City - Q7', areaLabel: 'Khu A', vehicleLabel: '🚗 Ô tô con', time: '08:30 - 05/04/2026', user: 'Lê Văn Chủ', giaTheoGio: 10000, giaQuaDem: 40000, giaTheoThang: 700000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' }
-        ];
-
-        const rowsPerPage = 6;
-        let currentPage = 1;
+        function checkLotStatus() {
+            const selectedOpt = $('#lotSelect').find('option:selected');
+            const isPending = selectedOpt.data('trangthai') === 'Chờ duyệt';
+            
+            if (isPending) {
+                $('#lotPendingBanner').show();
+                $('#mainContent').hide();
+            } else {
+                $('#lotPendingBanner').hide();
+                $('#mainContent').show();
+            }
+            return isPending;
+        }
 
         $(document).ready(function() {
-            // Render initial audit logs
-            renderAuditLogs();
+            // Render initial audit logs from database
+            loadAuditLogs();
 
             // Hide pricing form initially, show prompt
             $('#inlinePricingForm').hide();
@@ -602,20 +606,33 @@
                     return;
                 }
                 
+                checkLotStatus();
+                
                 currentActiveLot = parseInt(lotVal);
                 currentActiveArea = null;
                 currentActiveVehicleType = null;
 
-                // Populate Area dropdown
-                const areas = lotAreas[currentActiveLot] || [];
-                const areaSelect = $('#areaSelect');
-                areaSelect.empty().append('<option value="" disabled selected>-- Chọn khu vực --</option>');
-                
-                areas.forEach(area => {
-                    areaSelect.append(`<option value="${area.value}">${area.label}</option>`);
-                });
+                // Load Areas via AJAX
+                $.ajax({
+                    url: '/Owner/Gia/GetAreas',
+                    type: 'GET',
+                    data: { lotId: currentActiveLot },
+                    success: function(areas) {
+                        const areaSelect = $('#areaSelect');
+                        areaSelect.empty().append('<option value="" disabled selected>-- Chọn khu vực --</option>');
+                        
+                        lotAreas[currentActiveLot] = areas;
+                        
+                        areas.forEach(area => {
+                            areaSelect.append(`<option value="${area.value}">${area.label}</option>`);
+                        });
 
-                areaSelect.prop('disabled', false);
+                        areaSelect.prop('disabled', false);
+                    },
+                    error: function() {
+                        alert('Có lỗi xảy ra khi tải danh sách khu vực.');
+                    }
+                });
 
                 // Reset and disable Vehicle Type dropdown
                 $('#vehicleTypeSelect').empty().append('<option value="" disabled selected>-- Chọn khu vực trước --</option>').prop('disabled', true);
@@ -627,19 +644,16 @@
 
             // Handle Area dropdown change
             $('#areaSelect').change(function() {
-                currentActiveArea = $(this).val();
+                currentActiveArea = parseInt($(this).val());
                 
-                const areaConfig = lotAreas[currentActiveLot].find(a => a.value === currentActiveArea);
+                const areas = lotAreas[currentActiveLot] || [];
+                const areaConfig = areas.find(a => a.value === currentActiveArea);
                 const typeSelect = $('#vehicleTypeSelect');
                 typeSelect.empty().append('<option value="" disabled>-- Chọn loại xe --</option>');
 
                 if (areaConfig) {
-                    // Populate all system vehicle types
-                    vehicleTypes.forEach(vt => {
-                        const selectedAttr = (vt.value === areaConfig.type) ? 'selected' : '';
-                        typeSelect.append(`<option value="${vt.value}" ${selectedAttr}>${vt.label}</option>`);
-                    });
-                    
+                    // Populate only the vehicle type configured for this area
+                    typeSelect.append(`<option value="${areaConfig.type}" selected>${areaConfig.typeName}</option>`);
                     typeSelect.prop('disabled', false);
                     currentActiveVehicleType = areaConfig.type;
 
@@ -657,7 +671,7 @@
 
             // Handle Vehicle Type dropdown change manually
             $('#vehicleTypeSelect').change(function() {
-                currentActiveVehicleType = $(this).val();
+                currentActiveVehicleType = parseInt($(this).val());
                 if (currentActiveLot && currentActiveVehicleType) {
                     loadPricing();
                 }
@@ -667,49 +681,42 @@
             $('#inlinePricingForm').submit(function(e) {
                 e.preventDefault();
 
-                const data = pricingData[currentActiveLot][currentActiveVehicleType];
-                if (data) {
-                    // Update mock pricing database directly from card inputs
-                    data.giaTheoGio = parseInt($('#inputGiaTheoGio').val()) || 0;
-                    data.giaQuaDem = parseInt($('#inputGiaQuaDem').val()) || 0;
-                    data.giaTheoThang = parseInt($('#inputGiaTheoThang').val()) || 0;
-                    data.giaDatCho = parseInt($('#inputGiaDatCho').val()) || 0;
-                    data.trangThai = $('#switchStatus').is(':checked');
+                const giaTheoGio = parseFloat($('#inputGiaTheoGio').val()) || 0;
+                const giaQuaDem = parseFloat($('#inputGiaQuaDem').val()) || 0;
+                const giaTheoThang = parseFloat($('#inputGiaTheoThang').val()) || 0;
+                const giaDatCho = parseFloat($('#inputGiaDatCho').val()) || 0;
+                const trangThai = $('#switchStatus').is(':checked');
+                const token = $('input[name="__RequestVerificationToken"]').val();
 
-                    // Prepend a log item into Audit Log table
-                    const now = new Date();
-                    const formattedTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} - ${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
-                    
-                    const areaConfig = lotAreas[currentActiveLot].find(a => a.value === currentActiveArea);
-                    const areaLabel = areaConfig ? areaConfig.label : '';
+                $.ajax({
+                    url: '/Owner/Gia/SavePricing',
+                    type: 'POST',
+                    data: {
+                        lotId: currentActiveLot,
+                        loaiXeId: currentActiveVehicleType,
+                        giaTheoGio: giaTheoGio,
+                        giaQuaDem: giaQuaDem,
+                        giaTheoThang: giaTheoThang,
+                        giaDatCho: giaDatCho,
+                        trangThai: trangThai,
+                        __RequestVerificationToken: token
+                    },
+                    success: function(res) {
+                        if (res.success) {
+                            // Re-load UI cards to enforce clean visual state
+                            loadPricing();
+                            // Reload audit logs from DB
+                            loadAuditLogs();
 
-                    const vehicleConfig = vehicleTypes.find(v => v.value === currentActiveVehicleType);
-                    const vehicleLabel = vehicleConfig ? vehicleConfig.label : '';
-
-                    // Push to prepended list
-                    auditLogs.unshift({
-                        lotName: data.lotName,
-                        areaLabel: areaLabel,
-                        vehicleLabel: vehicleLabel,
-                        time: formattedTime,
-                        user: 'Lê Văn Chủ',
-                        giaTheoGio: data.giaTheoGio,
-                        giaQuaDem: data.giaQuaDem,
-                        giaTheoThang: data.giaTheoThang,
-                        giaDatCho: data.giaDatCho,
-                        status: 'Vừa cập nhật',
-                        statusClass: 'bg-success-light text-success'
-                    });
-
-                    // Reset to first page
-                    currentPage = 1;
-                    renderAuditLogs();
-
-                    // Re-load UI cards to enforce clean visual state
-                    loadPricing();
-
-                    alert(`Đã áp dụng đơn giá mới thành công cho ${vehicleLabel} tại bãi ${data.lotName}!`);
-                }
+                            const vehicleLabel = $('#vehicleTypeSelect option:selected').text().trim();
+                            const lotName = $('#lotSelect option:selected').text().trim();
+                            showToast('success', 'Lưu bảng giá thành công!', `Đã áp dụng giá mới cho <strong>${vehicleLabel}</strong> tại <strong>${lotName}</strong>.`);
+                        }
+                    },
+                    error: function() {
+                        showToast('error', 'Lưu thất bại', 'Không thể lưu bảng giá. Vui lòng kiểm tra lại thông tin.');
+                    }
+                });
             });
 
             // Dynamic change opacity visual indicator for switch status changes on the fly
@@ -728,6 +735,33 @@
             });
         });
 
+        // Load audit logs from DB
+        function loadAuditLogs() {
+            $.ajax({
+                url: '/Owner/Gia/GetPricingLogs',
+                type: 'GET',
+                success: function(data) {
+                    auditLogs = data.map(item => ({
+                        lotName: item.lotName,
+                        vehicleLabel: item.vehicleLabel,
+                        time: 'Đang áp dụng',
+                        user: 'Chủ bãi',
+                        giaTheoGio: item.giaTheoGio,
+                        giaQuaDem: item.giaQuaDem,
+                        giaTheoThang: item.giaTheoThang,
+                        giaDatCho: item.giaDatCho,
+                        status: item.trangThai ? 'Sẵn sàng' : 'Tạm ngưng',
+                        statusClass: item.trangThai ? 'bg-success-light text-success' : 'bg-danger-light text-danger'
+                    }));
+                    currentPage = 1;
+                    renderAuditLogs();
+                },
+                error: function() {
+                    console.error('Không thể tải nhật ký bảng giá.');
+                }
+            });
+        }
+
         // Dynamic rendering of audit logs table with client-side pagination
         function renderAuditLogs() {
             const tbody = $('#historyTableBody');
@@ -738,8 +772,8 @@
             const paginatedItems = auditLogs.slice(startIndex, endIndex);
 
             if (paginatedItems.length === 0) {
-                tbody.html('<tr><td colspan="9" class="text-center text-muted py-4">Chưa có lịch sử điều chỉnh</td></tr>');
-                $('#paginationInfo').text('Hiển thị 0 - 0 trong tổng số 0 nhật ký');
+                tbody.html('<tr><td colspan="9" class="text-center text-muted py-4">Chưa có cấu hình giá nào được tạo.</td></tr>');
+                $('#paginationInfo').text('Hiển thị 0 - 0 trong tổng số 0 cấu hình');
                 $('#paginationControls').empty();
                 return;
             }
@@ -748,7 +782,7 @@
                 const row = `
                     <tr style="animation: tableRowFadeIn 0.4s ease-out;">
                         <td><strong>${log.lotName}</strong></td>
-                        <td><span class="badge bg-light text-primary border">${log.areaLabel} - ${log.vehicleLabel}</span></td>
+                        <td><span class="badge bg-light text-primary border">${log.vehicleLabel}</span></td>
                         <td class="text-muted">${log.time}</td>
                         <td>${log.user}</td>
                         <td><span class="badge bg-light text-dark border history-badge">${log.giaTheoGio.toLocaleString()}đ</span></td>
@@ -765,7 +799,7 @@
             const totalRecords = auditLogs.length;
             const currentStart = startIndex + 1;
             const currentEnd = Math.min(endIndex, totalRecords);
-            $('#paginationInfo').text(`Hiển thị ${currentStart} - ${currentEnd} trong tổng số ${totalRecords} nhật ký`);
+            $('#paginationInfo').text(`Hiển thị ${currentStart} - ${currentEnd} trong tổng số ${totalRecords} cấu hình`);
 
             renderPaginationControls();
         }
@@ -830,28 +864,60 @@
 
         // Load pricing database values directly into input fields
         function loadPricing() {
-            const data = pricingData[currentActiveLot][currentActiveVehicleType];
-            if (!data) return;
+            if (!currentActiveLot || !currentActiveVehicleType) return;
 
-            // Load values to inputs embedded inside the cards
-            $('#inputGiaTheoGio').val(data.giaTheoGio);
-            $('#inputGiaQuaDem').val(data.giaQuaDem);
-            $('#inputGiaTheoThang').val(data.giaTheoThang);
-            $('#inputGiaDatCho').val(data.giaDatCho);
-            $('#switchStatus').prop('checked', data.trangThai);
+            $.ajax({
+                url: '/Owner/Gia/GetPricing',
+                type: 'GET',
+                data: { lotId: currentActiveLot, loaiXeId: currentActiveVehicleType },
+                success: function(data) {
+                    // Load values to inputs embedded inside the cards
+                    $('#inputGiaTheoGio').val(data.giaTheoGio);
+                    $('#inputGiaQuaDem').val(data.giaQuaDem);
+                    $('#inputGiaTheoThang').val(data.giaTheoThang);
+                    $('#inputGiaDatCho').val(data.giaDatCho);
+                    $('#switchStatus').prop('checked', data.trangThai);
 
-            // Set state badges
-            updateStatusBadge($('#status-day'), data.trangThai);
-            updateStatusBadge($('#status-night'), data.trangThai);
-            updateStatusBadge($('#status-monthly'), data.trangThai);
-            updateStatusBadge($('#status-booking'), data.trangThai);
+                    // Set state badges
+                    updateStatusBadge($('#status-day'), data.trangThai);
+                    updateStatusBadge($('#status-night'), data.trangThai);
+                    updateStatusBadge($('#status-monthly'), data.trangThai);
+                    updateStatusBadge($('#status-booking'), data.trangThai);
 
-            // Handle inactive state appearance visually
-            if (!data.trangThai) {
-                $('#pricingCardsContainer').css('opacity', '0.7');
-            } else {
-                $('#pricingCardsContainer').css('opacity', '1');
-            }
+                    // Handle inactive state appearance visually
+                    if (!data.trangThai) {
+                        $('#pricingCardsContainer').css('opacity', '0.7');
+                    } else {
+                        $('#pricingCardsContainer').css('opacity', '1');
+                    }
+
+                    // Check lot approval status and disable controls if pending
+                    const lotStatus = $('#lotSelect option:selected').data('trangthai');
+                    const isPending = (lotStatus === 'Chờ duyệt');
+
+                    $('#inputGiaTheoGio').prop('disabled', isPending);
+                    $('#inputGiaQuaDem').prop('disabled', isPending);
+                    $('#inputGiaTheoThang').prop('disabled', isPending);
+                    $('#inputGiaDatCho').prop('disabled', isPending);
+                    $('#switchStatus').prop('disabled', isPending);
+
+                    const saveBtn = $('#btnSavePricing');
+                    if (isPending) {
+                        saveBtn.prop('disabled', true)
+                               .html('<i class="fa-solid fa-ban"></i> Bãi xe chưa được duyệt - Không thể cập nhật')
+                               .removeClass('btn-primary-custom')
+                               .addClass('btn-secondary');
+                    } else {
+                        saveBtn.prop('disabled', false)
+                               .html('<i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi bảng giá')
+                               .removeClass('btn-secondary')
+                               .addClass('btn-primary-custom');
+                    }
+                },
+                error: function() {
+                    alert('Có lỗi xảy ra khi tải cấu hình giá.');
+                }
+            });
         }
 
         // Toggle pricing active status indicators
@@ -862,6 +928,87 @@
             } else {
                 element.addClass('pricing-status inactive').html('<i class="fa-solid fa-circle-xmark"></i> Tạm ngưng');
             }
+        }
+        // Check lot approval status and show/hide pending banner
+        function checkLotStatus() {
+            const selectedOption = $('#lotSelect option:selected');
+            const trangThai = selectedOption.data('trangthai') || '';
+
+            if (trangThai && trangThai !== 'Hoạt động') {
+                let icon = 'fa-hourglass-half';
+                let color = '#f97316';
+                let borderColor = '#fb923c';
+                let bgGradient = 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)';
+                let titleText = 'Bãi xe đang chờ duyệt';
+                let descText = 'Bãi xe này hiện chưa được Admin phê duyệt. Bạn chưa thể cấu hình bảng giá ở đây.';
+                let btnClass = 'btn-outline-warning';
+
+                if (trangThai === 'Từ chối' || trangThai === 'Bị từ chối') {
+                    icon = 'fa-circle-xmark';
+                    color = '#dc2626';
+                    borderColor = '#f87171';
+                    bgGradient = 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)';
+                    titleText = 'Bãi xe đã bị từ chối';
+                    descText = 'Yêu cầu đăng ký bãi xe này đã bị Admin từ chối. Vui lòng liên hệ quản trị viên.';
+                    btnClass = 'btn-outline-danger';
+                } else if (trangThai === 'Tạm ngưng' || trangThai === 'Ngưng hoạt động') {
+                    icon = 'fa-pause-circle';
+                    color = '#6b7280';
+                    borderColor = '#9ca3af';
+                    bgGradient = 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)';
+                    titleText = 'Bãi xe đang tạm ngưng';
+                    descText = 'Bãi xe này hiện đang tạm ngưng hoạt động. Bạn chưa thể sử dụng các tính năng quản lý.';
+                    btnClass = 'btn-outline-secondary';
+                }
+
+                const bannerInner = $('#lotPendingBanner > div');
+                bannerInner.css({ 'background': bgGradient, 'border-color': borderColor });
+                bannerInner.find('div:first').css('background', `linear-gradient(135deg, ${color}, ${color}dd)`);
+                bannerInner.find('i.fa-solid').attr('class', `fa-solid ${icon} text-white`);
+                bannerInner.find('.btn').attr('class', `btn ${btnClass} fw-semibold px-4`);
+                $('#lotPendingTitle').text(titleText).css('color', color);
+                $('#lotPendingDesc').text(descText);
+                $('#lotPendingStatusText').text(trangThai).css('color', color);
+
+                $('#lotPendingBanner').removeClass('d-none');
+                $('#mainContent').addClass('d-none');
+            } else if (trangThai === 'Hoạt động') {
+                $('#lotPendingBanner').addClass('d-none');
+                $('#mainContent').removeClass('d-none');
+            }
+        }
+        // ── Show toast notification ──
+        function showToast(type, title, desc, duration = 4000) {
+            const icons = {
+                success: 'fa-circle-check',
+                error:   'fa-circle-xmark',
+                warning: 'fa-triangle-exclamation'
+            };
+            const id = 'toast-' + Date.now();
+            const html = `
+                <div class="owner-toast toast-${type}" id="${id}">
+                    <div class="toast-icon">
+                        <i class="fa-solid ${icons[type] || 'fa-info-circle'}"></i>
+                    </div>
+                    <div class="toast-body">
+                        <div class="toast-title">${title}</div>
+                        <div class="toast-desc">${desc}</div>
+                    </div>
+                    <button class="toast-close" onclick="dismissToast('${id}')">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            `;
+            $('#toastContainer').append(html);
+
+            // Auto dismiss
+            setTimeout(() => dismissToast(id), duration);
+        }
+
+        function dismissToast(id) {
+            const el = $(`#${id}`);
+            el.addClass('toast-hide');
+            setTimeout(() => el.remove(), 380);
         }
     </script>
 }

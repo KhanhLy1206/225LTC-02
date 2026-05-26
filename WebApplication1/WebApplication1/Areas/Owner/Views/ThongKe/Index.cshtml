@@ -295,27 +295,24 @@
         let vehicleDoughnutInstance = null;
 
         $(document).ready(function() {
-            // Render default stats elements
-            updateKPIValues();
-            initRevenueChart();
-            initVehicleDoughnutChart();
-            refreshTxnTable();
+            // Initialize charts with empty data
+            initRevenueChart([] , []);
+            initVehicleDoughnutChart([], []);
+
+            // Fetch data from server and render
+            fetchAndApplyStatistics();
 
             // Listeners
             $('#lotSelect').change(function() {
                 selectedLot = $(this).val();
-                updateKPIValues();
-                updateCharts();
+                fetchAndApplyStatistics();
                 currentTxnPage = 1;
-                refreshTxnTable();
             });
 
             $('#timeSelect').change(function() {
                 selectedTime = $(this).val();
-                updateKPIValues();
-                updateCharts();
+                fetchAndApplyStatistics();
                 currentTxnPage = 1;
-                refreshTxnTable();
             });
 
             $('#txnSearchInput').on('input', function() {
@@ -335,17 +332,16 @@
         }
 
         // Initialize Bar Chart for Revenue
-        function initRevenueChart() {
+        function initRevenueChart(labels = [], numbers = []) {
             const ctx = document.getElementById('revenueBarChart').getContext('2d');
-            const data = lotStatsData[selectedLot][selectedTime];
 
             revenueChartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: data.chartLabels,
+                    labels: labels,
                     datasets: [{
                         label: 'Doanh thu (VNĐ)',
-                        data: data.chartData,
+                        data: numbers,
                         backgroundColor: 'rgba(79, 70, 229, 0.85)',
                         borderColor: '#4f46e5',
                         borderWidth: 1,
@@ -394,16 +390,15 @@
         }
 
         // Initialize Doughnut Chart for Vehicle type percentage
-        function initVehicleDoughnutChart() {
+        function initVehicleDoughnutChart(labels = [], numbers = []) {
             const ctx = document.getElementById('vehicleDoughnutChart').getContext('2d');
-            const data = lotStatsData[selectedLot][selectedTime];
 
             vehicleDoughnutInstance = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Ô tô con', 'Xe bán tải', 'Xe buýt', 'Xe tải'],
+                    labels: labels,
                     datasets: [{
-                        data: data.doughnutData,
+                        data: numbers,
                         backgroundColor: [
                             '#4f46e5', // Primary indigo
                             '#f59e0b', // Warning yellow
@@ -442,19 +437,62 @@
             });
         }
 
-        // Update charts when filters change
-        function updateCharts() {
-            const data = lotStatsData[selectedLot][selectedTime];
-
-            // Update Bar Chart
-            revenueChartInstance.data.labels = data.chartLabels;
-            revenueChartInstance.data.datasets[0].data = data.chartData;
+        // Update charts when filters change (server-driven)
+        function updateChartsFromServer(resp) {
+            if (!resp) return;
+            // Bar chart
+            revenueChartInstance.data.labels = resp.chartLabels || [];
+            revenueChartInstance.data.datasets[0].data = resp.chartData || [];
             revenueChartInstance.data.datasets[0].barThickness = selectedTime === 'year' ? 15 : (selectedTime === '7days' ? 40 : 25);
             revenueChartInstance.update();
 
-            // Update Doughnut Chart
-            vehicleDoughnutInstance.data.datasets[0].data = data.doughnutData;
+            // Doughnut chart
+            vehicleDoughnutInstance.data.labels = resp.doughnutLabels || [];
+            vehicleDoughnutInstance.data.datasets[0].data = resp.doughnutData || [];
             vehicleDoughnutInstance.update();
+        }
+
+        // Fetch statistics from server and apply to KPI, charts and transactions
+        function fetchAndApplyStatistics() {
+            const params = {};
+            if (selectedLot !== 'all') params.baiXeId = selectedLot;
+            params.range = selectedTime;
+
+            $.getJSON('/Owner/ThongKe/GetThongKe', params)
+                .done(function(resp) {
+                    // Update KPI
+                    const tong = resp.tongDoanhThu || 0;
+                    $('#kpi-revenue').text((+tong).toLocaleString('vi-VN') + 'đ');
+                    $('#kpi-parkings').text((resp.luotDoXe || 0) + ' lượt');
+                    $('#kpi-average').text((+(resp.doanhThuTB || 0)).toLocaleString('vi-VN') + 'đ');
+
+                    // Update charts
+                    updateChartsFromServer(resp);
+
+                    // Map transactions for table
+                    if (Array.isArray(resp.giaoDich)) {
+                        transactionLogs.length = 0;
+                        resp.giaoDich.forEach(g => {
+                            transactionLogs.push({
+                                id: 'HD-' + g.id,
+                                time: g.thoiGian,
+                                lotName: g.lotName || '—',
+                                spotName: g.spotName || '—',
+                                type: (g.type || '').toLowerCase(),
+                                amount: (+(g.tongTien || 0)).toLocaleString('vi-VN') + 'đ',
+                                status: g.trangThai || ''
+                            });
+                        });
+                    }
+
+                    // Refresh table UI
+                    currentTxnPage = 1;
+                    refreshTxnTable();
+                })
+                .fail(function() {
+                    // fallback to local mock data if server call fails
+                    refreshTxnTable();
+                });
         }
 
         // Populate and paginate Transaction log table

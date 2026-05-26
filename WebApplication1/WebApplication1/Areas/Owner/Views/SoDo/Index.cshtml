@@ -180,6 +180,39 @@
     .barrier-ctrl-btn {
         transition: all 0.2s ease;
     }
+
+    /* Add Spot Card Styling */
+    .spot-card.add-spot-card {
+        border: 2px dashed var(--owner-primary) !important;
+        background-color: rgba(79, 70, 229, 0.02) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        min-height: 150px !important;
+        transition: all 0.25s ease !important;
+    }
+
+    .spot-card.add-spot-card:hover {
+        background-color: rgba(79, 70, 229, 0.08) !important;
+        border-color: var(--owner-primary) !important;
+        transform: translateY(-4px) !important;
+        box-shadow: var(--owner-shadow) !important;
+    }
+
+    .add-spot-icon {
+        font-size: 2rem;
+        color: var(--owner-primary);
+    }
+
+    .add-spot-text {
+        font-size: 0.85rem;
+        font-weight: 750;
+        color: var(--owner-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
 </style>
 
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
@@ -281,6 +314,44 @@
     </div>
 </div>
 
+<!-- Banner: Bãi xe chưa được duyệt -->
+<div id="lotPendingBanner" class="d-none mb-4">
+    <div style="
+        background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+        border: 2px solid #fb923c;
+        border-radius: 20px;
+        padding: 48px 32px;
+        text-align: center;
+    ">
+        <div style="
+            width: 80px; height: 80px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 24px rgba(249,115,22,0.3);
+        ">
+            <i class="fa-solid fa-hourglass-half text-white" style="font-size: 2rem;"></i>
+        </div>
+        <h4 id="lotPendingTitle" class="fw-bold mb-2" style="color: #c2410c; font-size: 1.4rem;">Bãi xe đang chờ duyệt</h4>
+        <p id="lotPendingDesc" class="text-muted mb-4" style="max-width: 480px; margin: 0 auto;">
+            Bãi xe này hiện chưa được Admin phê duyệt. Bạn chưa thể xem sơ đồ bãi đỗ ở đây.
+        </p>
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+            <a href="/Owner/BaiXe" class="btn btn-outline-warning fw-semibold px-4">
+                <i class="fa-solid fa-arrow-left me-2"></i> Xem danh sách bãi xe
+            </a>
+        </div>
+        <div class="mt-4 p-3 rounded-3" style="background: rgba(249,115,22,0.08); display: inline-block;">
+            <small class="text-muted"><i class="fa-solid fa-circle-info me-1 text-warning"></i>
+                Trạng thái hiện tại: <strong id="lotPendingStatusText" class="text-warning">Chờ duyệt</strong>
+            </small>
+        </div>
+    </div>
+</div>
+
+<!-- Nội dung chính Sơ đồ -->
+<div id="mainContent">
 <!-- Filters & Search Toolbar -->
 <div class="owner-table-card border-0 mb-4">
     <div class="p-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
@@ -419,7 +490,7 @@
                     <div class="mb-3">
                         <label for="addAreaNameInput" class="form-label fw-semibold text-dark">Tên khu vực (Ký hiệu)</label>
                         <input type="text" class="form-control rounded-3" id="addAreaNameInput" placeholder="Ví dụ: C, D, E..." required maxlength="5" pattern="^[a-zA-Z0-9]+$" title="Vui lòng chỉ nhập chữ và số">
-                        <div class="form-text">Nhập ký hiệu ngắn gọn của khu vực. Hệ thống sẽ tự động ghép tên ô (Ví dụ: C-01, C-02...)</div>
+                        <div class="form-text">Nhập ký hiệu khu vực. Nếu khu vực đã tồn tại với cùng loại xe, hệ thống sẽ tự động thêm nối tiếp các chỗ đỗ mới (Ví dụ: E-11, E-12...).</div>
                     </div>
 
                     <!-- Vehicle Type -->
@@ -449,6 +520,8 @@
         </div>
     </div>
 </div>
+</div>
+</div><!-- end #mainContent -->
 
 @section Scripts {
     <script>
@@ -490,6 +563,13 @@
 
         // Initial setup on document ready
         $(document).ready(function() {
+            const savedLot = localStorage.getItem('owner_active_lot');
+            if (savedLot && $('#lotSelect option[value="' + savedLot + '"]').length > 0) {
+                $('#lotSelect').val(savedLot);
+                currentActiveLot = parseInt(savedLot);
+            }
+
+            checkLotStatus();
             renderAreaFilters();
             renderSpots();
             updateStats();
@@ -517,9 +597,11 @@
             // Handle lot change
             $('#lotSelect').change(function() {
                 currentActiveLot = parseInt($(this).val());
+                localStorage.setItem('owner_active_lot', currentActiveLot);
                 areaFilter = 'all';
                 searchQuery = '';
                 $('#spotSearchInput').val('');
+                checkLotStatus();
                 renderAreaFilters();
                 renderSpots();
                 updateStats();
@@ -644,6 +726,22 @@
                 }
             });
 
+            // Auto-select active lot when Add Area modal is shown, and reset inputs if opened by generic button
+            $('#addAreaModal').on('show.bs.modal', function(e) {
+                const activeLot = $('#lotSelect').val();
+                if (activeLot) {
+                    $('#addAreaLotSelect').val(activeLot);
+                }
+
+                const button = $(e.relatedTarget);
+                if (button.attr('id') === 'btnAddArea') {
+                    $('#addAreaNameInput').val('').prop('readonly', false);
+                    $('#addAreaVehicleType').prop('disabled', false);
+                    $('#addAreaSpotCount').val('');
+                    $('#addAreaModalLabel').html('<i class="fa-solid fa-square-plus text-primary me-2"></i> Thêm khu vực đỗ xe mới');
+                }
+            });
+
             // Handle Add Area Form Submit with AJAX
             $('#addAreaForm').submit(function(e) {
                 e.preventDefault();
@@ -676,14 +774,17 @@
                         SpotCount: spotCount
                     },
                     success: function(response) {
-                        btn.prop('disabled', false).html('<i class="fa-solid fa-floppy-disk me-1"></i>Tạo khu vực');
+                        btn.prop('disabled', false).html('<i class="fa-solid fa-check me-1"></i> Xác nhận thêm');
                         if (response.success) {
-                            alert(`Đã thêm khu vực ${areaName} mới với ${spotCount} chỗ đỗ thành công!`);
+                            alert(`Đã thêm/cập nhật khu vực ${areaName} với ${spotCount} chỗ đỗ thành công!`);
                             $('#addAreaModal').modal('hide');
                             
                             // Reset form fields
                             $('#addAreaNameInput').val('');
                             $('#addAreaSpotCount').val('');
+                            
+                            // Save lot to localStorage to ensure reload stays on this lot
+                            localStorage.setItem('owner_active_lot', lotId);
                             
                             // Reload page to reflect database-generated ID and details
                             location.reload();
@@ -804,13 +905,20 @@
                 }
 
                 // Show plate instead of state if occupied
+                // Hiển thị biển số nếu đang đỗ
                 let centerContent = '';
-                if (spot.occupancyState === 'Đang đỗ' && spot.plate) {
-                    centerContent = `<span class="spot-plate">${spot.plate}</span>`;
-                } else if (spot.occupancyState === 'Đã đặt' && spot.plate) {
-                    centerContent = `<span class="spot-plate bg-light border-primary-subtle text-primary">${spot.plate}</span>`;
-                } else {
-                    centerContent = `<span class="spot-status-text">${statusText}</span>`;
+
+                if (spot.occupancyState === 'Đang đỗ') {
+                    centerContent = `
+                        <span class="spot-plate">
+                            ${spot.plate || 'Chưa có BSX'}
+                        </span>`;
+                }
+                else {
+                    centerContent = `
+                        <span class="spot-status-text">
+                            ${statusText}
+                        </span>`;
                 }
 
                 let lockIcon = '';
@@ -842,6 +950,19 @@
                 `;
                 container.append(cardHtml);
             });
+
+            // Append the "+ Thêm chỗ" card at the end of the spots grid if a specific area is filtered
+            if (areaFilter !== 'all') {
+                const addCardHtml = `
+                    <div class="spot-card add-spot-card" onclick="openAddSpotToArea('${areaFilter}')">
+                        <div class="d-flex flex-column align-items-center justify-content-center h-100 w-100 py-3 text-center">
+                            <i class="fa-solid fa-circle-plus add-spot-icon mb-2"></i>
+                            <span class="add-spot-text">Thêm chỗ đỗ</span>
+                        </div>
+                    </div>
+                `;
+                container.append(addCardHtml);
+            }
         }
 
         // Single spot card DOM update to prevent redraw
@@ -879,14 +1000,19 @@
             let vehicleIcon = vehicleTypeIcons[spot.type] || 'fa-car';
             
             let centerContent = '';
-            if (spot.occupancyState === 'Đang đỗ' && spot.plate) {
-                centerContent = `<span class="spot-plate">${spot.plate}</span>`;
-            } else if (spot.occupancyState === 'Đã đặt' && spot.plate) {
-                centerContent = `<span class="spot-plate bg-light border-primary-subtle text-primary">${spot.plate}</span>`;
-            } else {
-                centerContent = `<span class="spot-status-text">${statusText}</span>`;
+
+            if (spot.occupancyState === 'Đang đỗ') {
+                centerContent = `
+                    <span class="spot-plate">
+                        ${spot.plate || 'Chưa có BSX'}
+                    </span>`;
             }
-            body.html(`<i class="fa-solid ${vehicleIcon} spot-icon"></i> ${centerContent}`);
+            else {
+                centerContent = `
+                    <span class="spot-status-text">
+                        ${statusText}
+                    </span>`;
+            }
 
             // Update lock badge
             const badge = card.find('.spot-lock-badge');
@@ -960,6 +1086,80 @@
             } else {
                 statusEl.html('<i class="fa-solid fa-circle-exclamation text-warning me-1"></i> Lỗi kết nối / Kẹt khóa (⚠️)');
                 toggleBtn.text('Thử mở khóa').removeClass('btn-outline-danger').addClass('btn-outline-primary');
+            }
+        }
+
+        // Open Add Spot Modal with prefilled parameters for a specific area
+        function openAddSpotToArea(areaName) {
+            // Find one spot in this area to determine its vehicle type
+            const list = spotsData[currentActiveLot] || [];
+            const spotInArea = list.find(s => s.area === areaName);
+            
+            // Map spot type to vehicle type select value
+            let vehicleType = 'oto';
+            if (spotInArea) {
+                vehicleType = spotInArea.type;
+            }
+
+            // Set modal values
+            $('#addAreaLotSelect').val(currentActiveLot);
+            $('#addAreaNameInput').val(areaName).prop('readonly', true);
+            // Disable vehicle type input to prevent changing it since it is an existing area
+            $('#addAreaVehicleType').val(vehicleType).prop('disabled', true);
+            $('#addAreaSpotCount').val('');
+            
+            // Change modal title to reflect adding spots
+            $('#addAreaModalLabel').html(`<i class="fa-solid fa-circle-plus text-primary me-2"></i> Thêm chỗ đỗ vào Khu ${areaName}`);
+            
+            // Show the modal
+            $('#addAreaModal').modal('show');
+        }
+        // Check lot approval status and show/hide pending banner
+        function checkLotStatus() {
+            const selectedOption = $('#lotSelect option:selected');
+            const trangThai = selectedOption.data('trangthai') || 'Hoạt động';
+
+            if (trangThai !== 'Hoạt động') {
+                let icon = 'fa-hourglass-half';
+                let color = '#f97316';
+                let borderColor = '#fb923c';
+                let bgGradient = 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)';
+                let titleText = 'Bãi xe đang chờ duyệt';
+                let descText = 'Bãi xe này hiện chưa được Admin phê duyệt. Bạn chưa thể xem sơ đồ bãi đỗ ở đây.';
+                let btnClass = 'btn-outline-warning';
+
+                if (trangThai === 'Từ chối' || trangThai === 'Bị từ chối') {
+                    icon = 'fa-circle-xmark';
+                    color = '#dc2626';
+                    borderColor = '#f87171';
+                    bgGradient = 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)';
+                    titleText = 'Bãi xe đã bị từ chối';
+                    descText = 'Yêu cầu đăng ký bãi xe này đã bị Admin từ chối. Vui lòng liên hệ quản trị viên để biết thêm chi tiết.';
+                    btnClass = 'btn-outline-danger';
+                } else if (trangThai === 'Tạm ngưng' || trangThai === 'Ngưng hoạt động') {
+                    icon = 'fa-pause-circle';
+                    color = '#6b7280';
+                    borderColor = '#9ca3af';
+                    bgGradient = 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)';
+                    titleText = 'Bãi xe đang tạm ngưng';
+                    descText = 'Bãi xe này hiện đang tạm ngưng hoạt động. Bạn chưa thể sử dụng các tính năng quản lý.';
+                    btnClass = 'btn-outline-secondary';
+                }
+
+                const bannerInner = $('#lotPendingBanner > div');
+                bannerInner.css({ 'background': bgGradient, 'border-color': borderColor });
+                bannerInner.find('div:first').css('background', `linear-gradient(135deg, ${color}, ${color}dd)`);
+                bannerInner.find('i.fa-solid').attr('class', `fa-solid ${icon} text-white`);
+                bannerInner.find('.btn').attr('class', `btn ${btnClass} fw-semibold px-4`);
+                $('#lotPendingTitle').text(titleText).css('color', color);
+                $('#lotPendingDesc').text(descText);
+                $('#lotPendingStatusText').text(trangThai).css('color', color);
+
+                $('#lotPendingBanner').removeClass('d-none');
+                $('#mainContent').addClass('d-none');
+            } else {
+                $('#lotPendingBanner').addClass('d-none');
+                $('#mainContent').removeClass('d-none');
             }
         }
     </script>

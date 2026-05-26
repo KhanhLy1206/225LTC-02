@@ -2,6 +2,8 @@
     ViewData["Title"] = "Quản lý thiết bị";
 }
 
+@Html.AntiForgeryToken()
+
 <!-- Custom Styles for Device Management -->
 <style>
     .device-grid {
@@ -187,10 +189,14 @@
             <div class="modal-body pt-3">
                 <div class="mb-3">
                     <label class="form-label fw-semibold text-muted small text-uppercase">Bãi đỗ xe</label>
-                    <select class="form-select" id="addBarrier_lot" onchange="populateModalAreaSelect()">
-                        <option value="1">SPMS Cống Quỳnh - Quận 1</option>
-                        <option value="2">SPMS Sunrise City - Quận 7</option>
-                        <option value="3">SPMS Landmark Plus - Bình Thạnh</option>
+                    <select class="form-select" id="addBarrier_lot" onchange="loadModalSpots()">
+                        @if (ViewBag.BaiXes != null)
+                        {
+                            foreach (var lot in (List<WebApplication1.Models.Entities.BaiXe>)ViewBag.BaiXes)
+                            {
+                                <option value="@lot.ID">@lot.TenBai</option>
+                            }
+                        }
                     </select>
                 </div>
                 <div class="row g-3 mb-3">
@@ -223,6 +229,57 @@
                 <button type="button" class="btn btn-primary-custom" id="btnConfirmAddBarrier" onclick="addNewBarrier()">
                     <i class="fa-solid fa-floppy-disk me-1"></i> Lưu thiết bị
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Xem nhật ký điều khiển thiết bị (Device Logs) -->
+<div class="modal fade" id="deviceLogsModal" tabindex="-1" aria-labelledby="deviceLogsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="deviceLogsModalLabel">
+                    <i class="fa-solid fa-clock-rotate-left text-primary me-2"></i> Nhật ký điều khiển Barrier
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body pt-3">
+                <div class="p-3 mb-3 bg-light rounded-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <span class="d-block text-muted small text-uppercase fw-semibold">Thiết bị</span>
+                        <strong id="modal_device_name" class="text-dark" style="font-size: 1.1rem;">-</strong>
+                    </div>
+                    <div>
+                        <span class="d-block text-muted small text-uppercase fw-semibold">Mã khóa (IoT)</span>
+                        <strong id="modal_device_lockCode" class="text-primary font-monospace" style="font-size: 1.1rem;">-</strong>
+                    </div>
+                    <div>
+                        <span class="d-block text-muted small text-uppercase fw-semibold">Trạng thái</span>
+                        <span id="modal_device_status" class="badge rounded-pill">-</span>
+                    </div>
+                </div>
+
+                <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+                    <table class="table table-hover align-middle log-table m-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 100px;">Mã lệnh</th>
+                                <th style="width: 140px;">Thời gian</th>
+                                <th style="width: 130px;">Người gửi lệnh</th>
+                                <th style="width: 110px;">Lệnh thao tác</th>
+                                <th style="width: 100px;">Kết quả</th>
+                                <th>Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalLogsTableBody">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
             </div>
         </div>
     </div>
@@ -295,9 +352,17 @@
         <div class="col-md-3">
             <label class="form-label small fw-semibold text-muted text-uppercase">Bãi đỗ xe</label>
             <select class="form-select rounded-3 border-light shadow-sm py-2" id="lotSelect">
-                <option value="1" selected>SPMS Cống Quỳnh - Quận 1</option>
-                <option value="2">SPMS Sunrise City - Quận 7</option>
-                <option value="3">SPMS Landmark Plus - Bình Thạnh (Chờ duyệt)</option>
+                @if (ViewBag.BaiXes != null)
+                {
+                    var isFirst = true;
+                    foreach (var lot in (List<WebApplication1.Models.Entities.BaiXe>)ViewBag.BaiXes)
+                    {
+                        <option value="@lot.ID" data-trangthai="@lot.TrangThai" selected="@(isFirst ? "selected" : null)">
+                            @lot.TenBai @(lot.TrangThai != "Hoạt động" ? $"({lot.TrangThai})" : "")
+                        </option>
+                        isFirst = false;
+                    }
+                }
             </select>
         </div>
         <!-- Area Filter -->
@@ -342,7 +407,44 @@
     </div>
 </div>
 
-<!-- Control History Log Section -->
+<!-- Banner: Bãi xe chưa được duyệt -->
+<div id="lotPendingBanner" class="d-none mb-4">
+    <div style="
+        background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+        border: 2px solid #fb923c;
+        border-radius: 20px;
+        padding: 48px 32px;
+        text-align: center;
+    ">
+        <div style="
+            width: 80px; height: 80px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 24px rgba(249,115,22,0.3);
+        ">
+            <i class="fa-solid fa-hourglass-half text-white" style="font-size: 2rem;"></i>
+        </div>
+        <h4 id="lotPendingTitle" class="fw-bold mb-2" style="color: #c2410c; font-size: 1.4rem;">Bãi xe đang chờ duyệt</h4>
+        <p id="lotPendingDesc" class="text-muted mb-4" style="max-width: 480px; margin: 0 auto;">
+            Bãi xe này hiện chưa được Admin phê duyệt. Bạn chưa thể quản lý thiết bị Barrier ở đây.
+        </p>
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+            <a href="/Owner/BaiXe" class="btn btn-outline-warning fw-semibold px-4">
+                <i class="fa-solid fa-arrow-left me-2"></i> Xem danh sách bãi xe
+            </a>
+        </div>
+        <div class="mt-4 p-3 rounded-3" style="background: rgba(249,115,22,0.08); display: inline-block;">
+            <small class="text-muted"><i class="fa-solid fa-circle-info me-1 text-warning"></i> 
+                Trạng thái hiện tại: <strong id="lotPendingStatusText" class="text-warning">Chờ duyệt</strong>
+            </small>
+        </div>
+    </div>
+</div>
+
+<!-- Nội dung chính (Device Grid + Log) -->
+<div id="mainContent">
 <div class="owner-table-card border-0 p-4">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
         <div>
@@ -397,6 +499,7 @@
         </nav>
     </div>
 </div>
+</div><!-- end #mainContent -->
 
 @section Scripts {
     <script>
@@ -419,53 +522,13 @@
             'xedapdien': 'fa-bicycle'
         };
 
-        // Shared Simulated Database for Parking Spots (Barrier-enabled)
-        // Set up initial battery levels, signal values, and device identifiers
-        const spotsData = {
-            1: [
-                { id: 1, area: 'A', name: 'A-01', type: 'oto', lockCode: 'LOCK-QT-A01', lockState: 'Đóng', battery: 94, signal: 4 },
-                { id: 2, area: 'A', name: 'A-02', type: 'oto', lockCode: 'LOCK-QT-A02', lockState: 'Đóng', battery: 85, signal: 3 },
-                { id: 3, area: 'A', name: 'A-03', type: 'oto', lockCode: 'LOCK-QT-A03', lockState: 'Mở', battery: 72, signal: 4 },
-                { id: 4, area: 'A', name: 'A-04', type: 'oto', lockCode: 'LOCK-QT-A04', lockState: 'Đóng', battery: 99, signal: 4 },
-                { id: 5, area: 'A', name: 'A-05', type: 'oto', lockCode: 'LOCK-QT-A05', lockState: 'Đóng', battery: 45, signal: 2 },
-                { id: 6, area: 'A', name: 'A-06', type: 'oto', lockCode: 'LOCK-QT-A06', lockState: 'Lỗi', battery: 12, signal: 0 },
-                { id: 7, area: 'A', name: 'A-07', type: 'oto', lockCode: 'LOCK-QT-A07', lockState: 'Đóng', battery: 88, signal: 3 },
-                { id: 8, area: 'A', name: 'A-08', type: 'oto', lockCode: 'LOCK-QT-A08', lockState: 'Đóng', battery: 92, signal: 4 },
-                { id: 9, area: 'A', name: 'A-09', type: 'oto', lockCode: 'LOCK-QT-A09', lockState: 'Đóng', battery: 76, signal: 3 },
-                { id: 10, area: 'A', name: 'A-10', type: 'oto', lockCode: 'LOCK-QT-A10', lockState: 'Đóng', battery: 83, signal: 4 },
-                { id: 11, area: 'A', name: 'A-11', type: 'oto', lockCode: 'LOCK-QT-A11', lockState: 'Đóng', battery: 91, signal: 4 },
-                { id: 12, area: 'A', name: 'A-12', type: 'oto', lockCode: 'LOCK-QT-A12', lockState: 'Đóng', battery: 60, signal: 3 },
-                { id: 13, area: 'A', name: 'A-13', type: 'oto', lockCode: 'LOCK-QT-A13', lockState: 'Đóng', battery: 52, signal: 2 },
-                { id: 14, area: 'A', name: 'A-14', type: 'oto', lockCode: 'LOCK-QT-A14', lockState: 'Đóng', battery: 84, signal: 3 },
-                { id: 15, area: 'A', name: 'A-15', type: 'oto', lockCode: 'LOCK-QT-A15', lockState: 'Đóng', battery: 79, signal: 4 },
-                { id: 31, area: 'B', name: 'B-01', type: 'oto', lockCode: 'LOCK-QT-B01', lockState: 'Đóng', battery: 87, signal: 4 },
-                { id: 32, area: 'B', name: 'B-02', type: 'oto', lockCode: 'LOCK-QT-B02', lockState: 'Đóng', battery: 93, signal: 3 },
-                { id: 33, area: 'B', name: 'B-03', type: 'oto', lockCode: 'LOCK-QT-B03', lockState: 'Mở', battery: 68, signal: 4 },
-                { id: 34, area: 'B', name: 'B-04', type: 'oto', lockCode: 'LOCK-QT-B04', lockState: 'Đóng', battery: 74, signal: 3 },
-                { id: 35, area: 'B', name: 'B-05', type: 'oto', lockCode: 'LOCK-QT-B05', lockState: 'Đóng', battery: 81, signal: 4 },
-                { id: 39, area: 'B', name: 'B-09', type: 'oto', lockCode: 'LOCK-QT-B09', lockState: 'Lỗi', battery: 8, signal: 1 }
-            ],
-            2: [
-                { id: 1, area: 'A', name: 'A-01', type: 'oto', lockCode: 'LOCK-SR-A01', lockState: 'Đóng', battery: 96, signal: 4 },
-                { id: 2, area: 'A', name: 'A-02', type: 'oto', lockCode: 'LOCK-SR-A02', lockState: 'Đóng', battery: 89, signal: 4 },
-                { id: 3, area: 'A', name: 'A-03', type: 'oto', lockCode: 'LOCK-SR-A03', lockState: 'Đóng', battery: 78, signal: 3 },
-                { id: 4, area: 'B', name: 'B-01', type: 'oto', lockCode: 'LOCK-SR-B01', lockState: 'Đóng', battery: 82, signal: 3 }
-            ],
-            3: []
-        };
-
-        // Mock Logs Database matching LogDieuKhienBarrier
-        let barrierLogsData = [
-            { id: 'CMD-1092', time: '2026-05-24 21:05:12', spotName: 'A-01', lockCode: 'LOCK-QT-A01', operator: 'khachhang01', action: 'Mở khóa', result: 'Thành công', note: 'Khách hàng kích hoạt mở barie qua ứng dụng di động khi đến vị trí đỗ.' },
-            { id: 'CMD-1091', time: '2026-05-24 20:30:15', spotName: 'B-01', lockCode: 'LOCK-QT-B01', operator: 'Chủ bãi xe (Web)', action: 'Khóa lại', result: 'Thành công', note: 'Chủ bãi đỗ thực hiện khóa cưỡng bức từ trung tâm điều khiển.' },
-            { id: 'CMD-1090', time: '2026-05-24 19:15:45', spotName: 'A-03', lockCode: 'LOCK-QT-A03', operator: 'khachhang02', action: 'Mở khóa', result: 'Thành công', note: 'Mở khóa tự động khi xác nhận đặt chỗ thành công.' },
-            { id: 'CMD-1089', time: '2026-05-24 18:40:02', spotName: 'A-06', lockCode: 'LOCK-QT-A06', operator: 'Hệ thống IoT', action: 'Mở khóa', result: 'Thất bại', note: 'Thiết bị không phản hồi. Lỗi kẹt cơ học hoặc mất nguồn cấp điện.' },
-            { id: 'CMD-1088', time: '2026-05-24 17:55:20', spotName: 'B-03', lockCode: 'LOCK-QT-B03', operator: 'khachhang03', action: 'Khóa lại', result: 'Thành công', note: 'Hoàn thành lượt đỗ, khóa tự động hạ xuống.' },
-            { id: 'CMD-1087', time: '2026-05-24 16:30:00', spotName: 'A-08', lockCode: 'LOCK-QT-A08', operator: 'Chủ bãi xe (Web)', action: 'Mở khóa', result: 'Thành công', note: 'Mở khóa kiểm tra kỹ thuật định kỳ bãi xe.' },
-            { id: 'CMD-1086', time: '2026-05-24 15:20:10', spotName: 'A-11', lockCode: 'LOCK-QT-A11', operator: 'khachhang01', action: 'Mở khóa', result: 'Thành công', note: 'Yêu cầu mở từ app di động của khách hàng.' }
-        ];
-
-        let currentActiveLot = 1;
+        // Shared State loaded from DB
+        let currentLotSpots = [];
+        let barrierLogsData = [];
+        
+        let currentActiveLot = @(ViewBag.BaiXes != null && ((List<WebApplication1.Models.Entities.BaiXe>)ViewBag.BaiXes).Any() 
+            ? ((List<WebApplication1.Models.Entities.BaiXe>)ViewBag.BaiXes).First().ID 
+            : 0);
         let selectedArea = 'all';
         let selectedSpot = 'all';
         let selectedStatus = 'all';
@@ -477,11 +540,11 @@
         const logsPerPage = 6;
 
         $(document).ready(function() {
-            // Load filters and refresh page elements
-            populateAreaSelect();
-            populateSpotSelect();
-            refreshDeviceGrid();
-            refreshLogsTable();
+            // Load initial data
+            if (currentActiveLot > 0) {
+                checkLotStatus();
+                loadLotData(currentActiveLot);
+            }
 
             // Listeners
             $('#lotSelect').change(function() {
@@ -491,9 +554,8 @@
                 selectedStatus = 'all';
                 $('#statusFilter').val('all');
                 
-                populateAreaSelect();
-                populateSpotSelect();
-                refreshDeviceGrid();
+                checkLotStatus();
+                loadLotData(currentActiveLot);
             });
 
             $('#areaSelect').change(function() {
@@ -520,15 +582,48 @@
             });
         });
 
+        // Combined data loader for a selected Lot
+        function loadLotData(lotId) {
+            // Show loading or clear current elements
+            $('#deviceGridContainer').html('<div class="col-12 text-center p-5 text-muted"><span class="spinner-border spinner-border-sm me-2" role="status"></span>Đang tải thiết bị...</div>');
+            $('#logsTableBody').html('<tr><td colspan="8" class="text-center p-4 text-muted"><span class="spinner-border spinner-border-sm me-2" role="status"></span>Đang tải nhật ký...</td></tr>');
+
+            $.when(
+                $.get('/Owner/ThietBi/GetSpotsForLot', { lotId: lotId }),
+                $.get('/Owner/ThietBi/GetControlLogs', { lotId: lotId })
+            ).then(function(spotsRes, logsRes) {
+                currentLotSpots = spotsRes[0] || [];
+                barrierLogsData = logsRes[0] || [];
+
+                // Synthesize simulated metrics for display (battery & signal) if not present in DB
+                // Since ChoDauXe doesn't store battery and signal, we generate them deterministically based on spot ID
+                currentLotSpots.forEach(s => {
+                    s.battery = s.lockState === 'Lỗi' ? 12 : (95 - (s.id % 20));
+                    s.signal = s.lockState === 'Lỗi' ? 0 : (s.id % 2 === 0 ? 4 : 3);
+                });
+
+                populateAreaSelect();
+                populateSpotSelect();
+                refreshDeviceGrid();
+                currentLogsPage = 1;
+                refreshLogsTable();
+            }, function() {
+                $('#deviceGridContainer').html('<div class="col-12 text-center p-5 text-danger"><i class="fa-solid fa-triangle-exclamation fs-2 mb-3"></i><p>Lỗi tải dữ liệu thiết bị.</p></div>');
+                $('#logsTableBody').html('<tr><td colspan="8" class="text-center p-4 text-danger">Lỗi tải dữ liệu nhật ký điều khiển.</td></tr>');
+            });
+        }
+
         // Fill area select dropdown dynamically based on selected Lot
         function populateAreaSelect() {
             const select = $('#areaSelect');
             select.empty();
             select.append('<option value="all">Tất cả khu vực</option>');
 
-            const list = spotsData[currentActiveLot] || [];
+            const list = currentLotSpots || [];
+            // Only list areas that have spots with active lock codes installed
+            const installedSpots = list.filter(item => item.lockCode);
             const uniqueAreas = [];
-            list.forEach(item => {
+            installedSpots.forEach(item => {
                 if (!uniqueAreas.includes(item.area)) {
                     uniqueAreas.push(item.area);
                 }
@@ -550,8 +645,9 @@
             }
 
             select.prop('disabled', false);
-            const list = spotsData[currentActiveLot] || [];
-            const areaSpots = list.filter(s => s.area === selectedArea);
+            const list = currentLotSpots || [];
+            // Only show spots in this area that have active lock codes installed
+            const areaSpots = list.filter(s => s.area === selectedArea && s.lockCode);
             
             // Sort by spot name numerically/alphabetically (A-01, A-02)
             areaSpots.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
@@ -561,10 +657,26 @@
             });
         }
 
-        // Modal: populate area dropdown based on selected lot
-        function populateModalAreaSelect() {
+        // Modal: load spots dynamically when modal lot changes
+        let modalLotSpots = [];
+        function loadModalSpots() {
             const lotId = parseInt($('#addBarrier_lot').val());
-            const list  = spotsData[lotId] || [];
+            if (!lotId) return;
+
+            $('#addBarrier_area').empty().append('<option value="">-- Đang tải... --</option>');
+            $('#addBarrier_name').empty().append('<option value="">-- Đang tải... --</option>').prop('disabled', true);
+
+            $.get('/Owner/ThietBi/GetSpotsForLot', { lotId: lotId }, function(data) {
+                modalLotSpots = data || [];
+                populateModalAreaSelect();
+            }).fail(function() {
+                $('#addBarrier_area').empty().append('<option value="">-- Lỗi tải dữ liệu --</option>');
+            });
+        }
+
+        // Modal: populate area dropdown with all spots
+        function populateModalAreaSelect() {
+            const list  = modalLotSpots || [];
             const areas = [...new Set(list.map(d => d.area))].sort();
 
             const areaSelect = $('#addBarrier_area');
@@ -575,11 +687,10 @@
             $('#addBarrier_name').empty().append('<option value="">-- Chọn chỗ đỗ --</option>').prop('disabled', true);
         }
 
-        // Modal: populate spot dropdown based on selected area
+        // Modal: populate spot dropdown with all spots in selected area (showing existing lock codes)
         function populateModalSpotSelect() {
-            const lotId = parseInt($('#addBarrier_lot').val());
             const area  = $('#addBarrier_area').val();
-            const list  = spotsData[lotId] || [];
+            const list  = modalLotSpots || [];
 
             const nameSelect = $('#addBarrier_name');
             nameSelect.empty().append('<option value="">-- Chọn chỗ đỗ --</option>');
@@ -591,24 +702,31 @@
 
             const spots = list.filter(d => d.area === area)
                               .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
-            spots.forEach(s => nameSelect.append(`<option value="${s.name}">${s.name}</option>`));
+            
+            spots.forEach(s => {
+                const label = s.lockCode ? `${s.name} (${s.lockCode})` : `${s.name} (Chưa cài đặt)`;
+                nameSelect.append(`<option value="${s.id}">${label}</option>`);
+            });
             nameSelect.prop('disabled', false);
         }
 
         // Calculate metrics and update device card displays
         function refreshDeviceGrid() {
-            const list = spotsData[currentActiveLot] || [];
+            const list = currentLotSpots || [];
             const container = $('#deviceGridContainer');
             container.empty();
 
-            if (list.length === 0) {
-                container.html('<div class="col-12 text-center p-5 text-muted"><i class="fa-solid fa-hourglass-empty fs-2 mb-3"></i><p>Không có thiết bị hoặc bãi đỗ xe chưa được kích hoạt.</p></div>');
+            // We only show spots in the device grid if they have lockCode configured!
+            const activeDevices = list.filter(d => d.lockCode);
+
+            if (activeDevices.length === 0) {
+                container.html('<div class="col-12 text-center p-5 text-muted"><i class="fa-solid fa-hourglass-empty fs-2 mb-3"></i><p>Không có thiết bị hoặc bãi đỗ xe chưa được lắp đặt thiết bị Barrier.</p></div>');
                 updateKPIs([]);
                 return;
             }
 
             // Apply Filters
-            let filteredList = list;
+            let filteredList = activeDevices;
             if (selectedArea !== 'all') {
                 filteredList = filteredList.filter(d => d.area === selectedArea);
             }
@@ -619,8 +737,8 @@
                 filteredList = filteredList.filter(d => d.lockState === selectedStatus);
             }
 
-            // Render KPIs based on lot data (regardless of area/status filters for correct lot stats)
-            updateKPIs(list);
+            // Render KPIs based on all active devices of the lot (ignoring limits)
+            updateKPIs(activeDevices);
 
             if (filteredList.length === 0) {
                 container.html('<div class="col-12 text-center p-5 text-muted"><i class="fa-solid fa-magnifying-glass fs-2 mb-3"></i><p>Không tìm thấy thiết bị phù hợp với bộ lọc.</p></div>');
@@ -648,7 +766,7 @@
                     statusText = 'Lỗi kết nối';
                 }
 
-                // Battery design
+                // Battery icon
                 let batteryIcon = 'fa-battery-full text-success';
                 if (device.battery <= 20) {
                     batteryIcon = 'fa-battery-quarter text-danger';
@@ -656,7 +774,7 @@
                     batteryIcon = 'fa-battery-half text-warning';
                 }
 
-                // Wifi Signal design
+                // Wifi Signal
                 let wifiIcon = 'fa-wifi text-success';
                 let signalText = 'Tốt';
                 if (device.signal === 0) {
@@ -704,7 +822,7 @@
                                 <i class="fa-solid fa-arrows-rotate"></i> Reset
                             </button>
                             <button class="btn btn-sm btn-light device-btn text-primary border py-2" 
-                                    onclick="filterLogsBySpot('${device.lockCode}', '${device.name}')" 
+                                    onclick="filterLogsBySpot('${device.lockCode}', '${device.name}', ${device.id})" 
                                     title="Xem lịch sử điều khiển">
                                 <i class="fa-solid fa-clock-rotate-left"></i> Log
                             </button>
@@ -728,95 +846,62 @@
             $('#stat-error').text(error + ' thiết bị');
         }
 
-        // Action: Remote control (Open/Close) simulated IoT command
+        // Action: Remote control (Open/Close) IoT command - gửi trực tiếp, ghi log tự động
         function triggerBarrierAction(id) {
-            const list = spotsData[currentActiveLot] || [];
-            const device = list.find(d => d.id === id);
+            const device = currentLotSpots.find(d => d.id === id);
             if (!device) return;
 
-            const nextState = device.lockState === 'Mở' ? 'Đóng' : 'Mở';
-            const actionText = nextState === 'Mở' ? 'Mở khóa' : 'Khóa lại';
+            const nextAction = device.lockState === 'Mở' ? 'Close' : 'Open';
+            const actionText = nextAction === 'Open' ? 'Mở khóa' : 'Đóng khóa';
+
             const $btn = $(`#btn-toggle-${id}`);
+            const originalHtml = $btn.html();
+            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status"></span>');
 
-            // Loading state
-            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Gửi lệnh...');
+            const token = $('input[name="__RequestVerificationToken"]').val();
 
-            setTimeout(() => {
-                device.lockState = nextState;
-                $btn.prop('disabled', false);
-
-                // Add audit log entry
-                const logTime = new Date().toISOString().replace('T', ' ').substring(0, 19);
-                const randomCmdId = 'CMD-' + Math.floor(1000 + Math.random() * 9000);
-                
-                const newLog = {
-                    id: randomCmdId,
-                    time: logTime,
-                    spotName: device.name,
-                    lockCode: device.lockCode,
-                    operator: 'Chủ bãi xe (Web)',
-                    action: actionText,
-                    result: 'Thành công',
-                    note: `Lệnh ${actionText} khẩn cấp được gửi từ Cổng quản trị web của Chủ bãi.`
-                };
-                barrierLogsData.unshift(newLog);
-
-                // Re-render UI
-                refreshDeviceGrid();
-                currentLogsPage = 1;
-                refreshLogsTable();
-
-                alert(`Đã truyền lệnh điều khiển IoT đến [${device.lockCode}] thành công. Trạng thái hiện tại: ${nextState === 'Mở' ? 'Đang mở (Hạ)' : 'Đang đóng (Khóa)'}`);
-            }, 1000);
+            $.post('/Owner/ThietBi/ToggleBarrier', {
+                spotId: id,
+                action: nextAction,
+                __RequestVerificationToken: token
+            }, function(res) {
+                if (res.success) {
+                    loadLotData(currentActiveLot);
+                } else {
+                    alert('❌ Lỗi: ' + (res.message || 'Không thể thực hiện lệnh.'));
+                    $btn.prop('disabled', false).html(originalHtml);
+                }
+            }).fail(function() {
+                alert('❌ Có lỗi xảy ra khi gửi lệnh điều khiển.');
+                $btn.prop('disabled', false).html(originalHtml);
+            });
         }
 
-        // Action: Reset hardware simulated command
+        // Action: Reset hardware command - gửi trực tiếp, ghi log tự động
         function triggerBarrierReset(id) {
-            const list = spotsData[currentActiveLot] || [];
-            const device = list.find(d => d.id === id);
+            const device = currentLotSpots.find(d => d.id === id);
             if (!device) return;
 
             const $btn = $(`#btn-reset-${id}`);
             const originalHtml = $btn.html();
-            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Reset...');
+            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status"></span>');
 
-            setTimeout(() => {
-                $btn.prop('disabled', false).html(originalHtml);
-                
-                // If it was error state, restore connection with random battery / signal
-                let message = '';
-                if (device.lockState === 'Lỗi') {
-                    device.lockState = 'Đóng';
-                    device.battery = 80;
-                    device.signal = 3;
-                    message = `Khôi phục thành công kết nối IoT trên thiết bị [${device.lockCode}]. Trạng thái thiết bị đặt về Đóng.`;
+            const token = $('input[name="__RequestVerificationToken"]').val();
+
+            $.post('/Owner/ThietBi/ResetBarrier', {
+                spotId: id,
+                __RequestVerificationToken: token
+            }, function(res) {
+                if (res.success) {
+                    loadLotData(currentActiveLot);
                 } else {
-                    message = `Reset thành công thiết bị [${device.lockCode}]. Trạng thái kết nối ổn định.`;
+                    alert('❌ Lỗi: ' + (res.message || 'Không thể thực hiện Reset.'));
+                    $btn.prop('disabled', false).html(originalHtml);
                 }
-
-                // Add audit log
-                const logTime = new Date().toISOString().replace('T', ' ').substring(0, 19);
-                const randomCmdId = 'CMD-' + Math.floor(1000 + Math.random() * 9000);
-                
-                const newLog = {
-                    id: randomCmdId,
-                    time: logTime,
-                    spotName: device.name,
-                    lockCode: device.lockCode,
-                    operator: 'Chủ bãi xe (Web)',
-                    action: 'Reset',
-                    result: 'Thành công',
-                    note: `Khởi động lại phần cứng và kết nối viễn thông trên bo mạch thiết bị.`
-                };
-                barrierLogsData.unshift(newLog);
-
-                // Re-render UI
-                refreshDeviceGrid();
-                currentLogsPage = 1;
-                refreshLogsTable();
-
-                alert(message);
-            }, 1200);
+            }).fail(function() {
+                alert('❌ Có lỗi xảy ra khi gửi lệnh Reset.');
+                $btn.prop('disabled', false).html(originalHtml);
+            });
         }
 
         // Render Logs table with filter, search and page selection
@@ -824,7 +909,7 @@
             const tbody = $('#logsTableBody');
             tbody.empty();
 
-            let logs = barrierLogsData;
+            let logs = barrierLogsData || [];
 
             // Apply Spot Filter (Log button clicked on card)
             if (selectedSpotFilter) {
@@ -838,10 +923,10 @@
             // Apply Search filter
             if (logSearchQuery !== '') {
                 logs = logs.filter(l => {
-                    return l.operator.toLowerCase().includes(logSearchQuery) || 
-                           l.spotName.toLowerCase().includes(logSearchQuery) ||
-                           l.lockCode.toLowerCase().includes(logSearchQuery) ||
-                           l.note.toLowerCase().includes(logSearchQuery);
+                    return (l.operatorName && l.operatorName.toLowerCase().includes(logSearchQuery)) || 
+                           (l.spotName && l.spotName.toLowerCase().includes(logSearchQuery)) ||
+                           (l.lockCode && l.lockCode.toLowerCase().includes(logSearchQuery)) ||
+                           (l.note && l.note.toLowerCase().includes(logSearchQuery));
                 });
             }
 
@@ -878,10 +963,10 @@
                         <td class="text-muted small text-nowrap">${log.time}</td>
                         <td class="text-nowrap"><span class="badge bg-light text-dark fw-bold border">${log.spotName}</span></td>
                         <td class="font-monospace text-primary small text-nowrap">${log.lockCode}</td>
-                        <td class="text-nowrap"><i class="fa-solid fa-circle-user text-muted me-1"></i> ${log.operator}</td>
+                        <td class="text-nowrap"><i class="fa-solid fa-circle-user text-muted me-1"></i> ${log.operatorName}</td>
                         <td class="fw-bold text-nowrap ${actionBadge}">${log.action}</td>
                         <td class="text-nowrap"><span class="${badgeClass}">${log.result}</span></td>
-                        <td class="text-muted small text-wrap" style="min-width: 250px;">${log.note}</td>
+                        <td class="text-muted small text-wrap" style="min-width: 250px;">${log.note || ''}</td>
                     </tr>
                 `;
                 tbody.append(rowHtml);
@@ -929,42 +1014,79 @@
             refreshLogsTable();
         }
 
-        // Filter logs specifically when clicking "Log" on a device card
-        function filterLogsBySpot(lockCode, spotName) {
-            selectedSpotFilter = lockCode;
-            currentLogsPage = 1;
-            refreshLogsTable();
-            
-            // Scroll smoothly down to the logs table
-            $('html, body').animate({
-                scrollTop: $(".log-table").offset().top - 100
-            }, 300);
+        // Filter logs specifically when clicking "Log" on a device card -> open deviceLogsModal
+        function filterLogsBySpot(lockCode, spotName, spotId) {
+            // Update modal header info
+            $('#modal_device_name').text(`Barrier ${spotName}`);
+            $('#modal_device_lockCode').text(lockCode);
+
+            // Find current device state
+            const device = currentLotSpots.find(d => d.id === spotId);
+            const statusBadge = $('#modal_device_status');
+            if (device) {
+                if (device.lockState === 'Mở') {
+                    statusBadge.text('Đang mở (Hạ)').removeClass().addClass('badge rounded-pill bg-success text-white');
+                } else if (device.lockState === 'Đóng') {
+                    statusBadge.text('Đang đóng (Khóa)').removeClass().addClass('badge rounded-pill bg-secondary text-white');
+                } else {
+                    statusBadge.text('Lỗi kết nối').removeClass().addClass('badge rounded-pill bg-danger text-white');
+                }
+            } else {
+                statusBadge.text('-').removeClass().addClass('badge rounded-pill bg-light text-muted');
+            }
+
+            // Filter logs by lockCode and render in modal table
+            const deviceLogs = barrierLogsData.filter(l => l.lockCode === lockCode);
+            const tbody = $('#modalLogsTableBody');
+            tbody.empty();
+
+            if (deviceLogs.length === 0) {
+                tbody.html('<tr><td colspan="6" class="text-center p-4 text-muted"><i class="fa-solid fa-inbox fs-3 d-block mb-2"></i>Chưa có nhật ký điều khiển nào.</td></tr>');
+            } else {
+                deviceLogs.forEach(log => {
+                    let badgeClass = log.result === 'Thành công' ? 'log-badge-success' : 'log-badge-danger';
+                    let actionClass = log.action === 'Mở khóa' ? 'text-success' : (log.action === 'Khóa lại' ? 'text-secondary' : 'text-primary');
+                    tbody.append(`
+                        <tr>
+                            <td class="font-monospace fw-bold text-dark text-nowrap">${log.id}</td>
+                            <td class="text-muted small text-nowrap">${log.time}</td>
+                            <td class="text-nowrap"><i class="fa-solid fa-circle-user text-muted me-1"></i>${log.operatorName}</td>
+                            <td class="fw-bold text-nowrap ${actionClass}">${log.action}</td>
+                            <td class="text-nowrap"><span class="${badgeClass}">${log.result}</span></td>
+                            <td class="text-muted small">${log.note || ''}</td>
+                        </tr>
+                    `);
+                });
+            }
+
+            // Open the modal
+            const modal = new bootstrap.Modal(document.getElementById('deviceLogsModal'));
+            modal.show();
         }
 
-        // Remove the lock code log filter
+        // Remove the lock code log filter (for bottom table)
         function clearSpotLogFilter() {
             selectedSpotFilter = null;
             currentLogsPage = 1;
             refreshLogsTable();
         }
 
-        // Action: Add a new Barrier device to the selected lot
+        // Action: Add a new Barrier device to the selected spot in the database
         function addNewBarrier() {
             const errorBox = $('#addBarrier_error');
             errorBox.addClass('d-none').text('');
 
             const lotId    = parseInt($('#addBarrier_lot').val());
             const area     = $('#addBarrier_area').val();
-            const name     = $('#addBarrier_name').val();
+            const spotId   = parseInt($('#addBarrier_name').val());
             const lockCode = $('#addBarrier_lockCode').val().trim().toUpperCase();
-            const battery  = parseInt($('#addBarrier_battery').val());
 
             // Validate
             if (!area) {
                 errorBox.removeClass('d-none').text('Vui lòng chọn Khu vực.');
                 return;
             }
-            if (!name) {
+            if (!spotId) {
                 errorBox.removeClass('d-none').text('Vui lòng chọn Chỗ đỗ xe.');
                 return;
             }
@@ -977,66 +1099,101 @@
                 return;
             }
 
-            // Check duplicate lockCode across entire lot
-            const allDevices = spotsData[lotId] || [];
-            if (allDevices.find(d => d.lockCode === lockCode)) {
-                errorBox.removeClass('d-none').text('Mã khóa đã tồn tại trong bãi này. Vui lòng dùng mã khác.');
-                return;
-            }
+            const token = $('input[name="__RequestVerificationToken"]').val();
 
-            // Build new device object
-            const newDevice = {
-                id: Date.now(),
-                area: area,
-                name: name,
-                type: 'oto',
+            const $btn = $('#btnConfirmAddBarrier');
+            const originalHtml = $btn.html();
+            $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang lưu...');
+
+            $.post('/Owner/ThietBi/AddBarrier', {
+                spotId: spotId,
                 lockCode: lockCode,
-                lockState: 'Đóng',
-                battery: isNaN(battery) ? 100 : Math.min(100, Math.max(0, battery)),
-                signal: 4
-            };
+                __RequestVerificationToken: token
+            }, function(res) {
+                if (res.success) {
+                    alert(`✅ Đã lắp đặt thiết bị [${lockCode}] thành công!`);
 
-            if (!spotsData[lotId]) spotsData[lotId] = [];
-            spotsData[lotId].push(newDevice);
+                    // Close modal
+                    bootstrap.Modal.getInstance(document.getElementById('addBarrierModal')).hide();
+                    
+                    // Reset inputs
+                    $('#addBarrier_lockCode').val('');
+                    $('#addBarrier_battery').val(100);
 
-            // Audit log entry
-            const logTime = new Date().toISOString().replace('T', ' ').substring(0, 19);
-            const cmdId   = 'CMD-' + Math.floor(1000 + Math.random() * 9000);
-            barrierLogsData.unshift({
-                id: cmdId,
-                time: logTime,
-                spotName: name,
-                lockCode: lockCode,
-                operator: 'Chủ bãi xe (Web)',
-                action: 'Thêm mới',
-                result: 'Thành công',
-                note: `Đăng ký thiết bị IoT [${lockCode}] mới tại vị trí ${name} – khu ${area}.`
+                    // Switch to the correct lot if needed, then refresh grid + logs
+                    if (currentActiveLot !== lotId) {
+                        currentActiveLot = lotId;
+                        $('#lotSelect').val(lotId);
+                    }
+                    loadLotData(currentActiveLot);
+                } else {
+                    errorBox.removeClass('d-none').text(res.message);
+                }
+                $btn.prop('disabled', false).html(originalHtml);
+            }).fail(function() {
+                errorBox.removeClass('d-none').text('Có lỗi xảy ra khi thêm thiết bị.');
+                $btn.prop('disabled', false).html(originalHtml);
             });
+        }
 
-            // Switch to the correct lot if needed, then refresh grid + logs
-            if (currentActiveLot !== lotId) {
-                currentActiveLot = lotId;
-                $('#lotSelect').val(lotId);
-                populateAreaSelect();
-                populateSpotSelect();
+        // Check lot approval status and show/hide pending banner
+        function checkLotStatus() {
+            const selectedOption = $('#lotSelect option:selected');
+            const trangThai = selectedOption.data('trangthai') || 'Hoạt động';
+            
+            if (trangThai !== 'Hoạt động') {
+                // Show banner, hide main content
+                let icon = 'fa-hourglass-half';
+                let color = '#f97316';
+                let borderColor = '#fb923c';
+                let bgGradient = 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)';
+                let titleText = 'Bãi xe đang chờ duyệt';
+                let descText = 'Bãi xe này hiện chưa được Admin phê duyệt. Bạn chưa thể quản lý thiết bị Barrier ở đây.';
+                let btnClass = 'btn-outline-warning';
+
+                if (trangThai === 'Từ chối' || trangThai === 'Bị từ chối') {
+                    icon = 'fa-circle-xmark';
+                    color = '#dc2626';
+                    borderColor = '#f87171';
+                    bgGradient = 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)';
+                    titleText = 'Bãi xe đã bị từ chối';
+                    descText = 'Yêu cầu đăng ký bãi xe này đã bị Admin từ chối. Vui lòng liên hệ quản trị viên để biết thêm chi tiết.';
+                    btnClass = 'btn-outline-danger';
+                } else if (trangThai === 'Tạm ngưng' || trangThai === 'Ngưng hoạt động') {
+                    icon = 'fa-pause-circle';
+                    color = '#6b7280';
+                    borderColor = '#9ca3af';
+                    bgGradient = 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)';
+                    titleText = 'Bãi xe đang tạm ngưng';
+                    descText = 'Bãi xe này hiện đang tạm ngưng hoạt động. Bạn chưa thể sử dụng các tính năng quản lý.';
+                    btnClass = 'btn-outline-secondary';
+                }
+
+                // Update banner content dynamically
+                const bannerInner = $('#lotPendingBanner > div');
+                bannerInner.css({
+                    'background': bgGradient,
+                    'border-color': borderColor
+                });
+                bannerInner.find('div:first').css('background', `linear-gradient(135deg, ${color}, ${color}dd)`);
+                bannerInner.find('i.fa-solid').attr('class', `fa-solid ${icon} text-white`);
+                bannerInner.find('.btn').attr('class', `btn ${btnClass} fw-semibold px-4`);
+                $('#lotPendingTitle').text(titleText).css('color', color);
+                $('#lotPendingDesc').text(descText);
+                $('#lotPendingStatusText').text(trangThai).css('color', color);
+
+                $('#lotPendingBanner').removeClass('d-none');
+                $('#mainContent').addClass('d-none');
+            } else {
+                $('#lotPendingBanner').addClass('d-none');
+                $('#mainContent').removeClass('d-none');
             }
-            refreshDeviceGrid();
-            currentLogsPage = 1;
-            refreshLogsTable();
-
-            // Close modal & reset form
-            bootstrap.Modal.getInstance(document.getElementById('addBarrierModal')).hide();
-            $('#addBarrier_lot').val(1);
-            populateModalAreaSelect();
-            $('#addBarrier_lockCode').val('');
-            $('#addBarrier_battery').val(100);
-
-            alert(`✅ Đã thêm thiết bị [${lockCode}] tại ${name} – khu ${area} thành công!`);
         }
 
         // Init modal dropdowns whenever the modal opens
         document.getElementById('addBarrierModal').addEventListener('show.bs.modal', function () {
-            populateModalAreaSelect();
+            $('#addBarrier_lot').val(currentActiveLot);
+            loadModalSpots();
         });
     </script>
 }
