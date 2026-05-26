@@ -262,5 +262,83 @@ namespace WebApplication1.Areas.Owner.Controllers
             var chuBai = _context.ChuBaiXes.FirstOrDefault(c => c.IDTaiKhoan == accountId);
             return chuBai != null ? chuBai.ID : 0;
         }
+
+        [HttpGet("GetInvoiceDetails")]
+        public async Task<IActionResult> GetInvoiceDetails(int id)
+        {
+            int ownerId = GetCurrentOwnerId();
+            if (ownerId == 0) return Json(new { success = false, message = "Chưa đăng nhập." });
+
+            int chuBaiId = GetChuBaiId(ownerId);
+            if (chuBaiId == 0) return Json(new { success = false, message = "Không tìm thấy thông tin chủ bãi." });
+
+            // Load invoice with related data
+            var invoice = await _context.HoaDons
+                .Include(h => h.DatCho)
+                    .ThenInclude(d => d.ChoDauXe)
+                        .ThenInclude(cd => cd.KhuVuc)
+                            .ThenInclude(k => k.BaiXe)
+                .Include(h => h.DatCho)
+                    .ThenInclude(d => d.ChoDauXe)
+                        .ThenInclude(cd => cd.KhuVuc)
+                            .ThenInclude(k => k.LoaiXe)
+                .Include(h => h.DatCho)
+                    .ThenInclude(d => d.KhachHang)
+                .Include(h => h.ThanhToans)
+                .FirstOrDefaultAsync(h => h.ID == id);
+
+            if (invoice == null) return Json(new { success = false, message = "Không tìm thấy hóa đơn." });
+
+            // Security Check: Verify if this spot belongs to one of the owner's parking lots
+            var spot = invoice.DatCho?.ChoDauXe;
+            if (spot == null || spot.KhuVuc?.BaiXe?.IDChuBai != chuBaiId)
+            {
+                return Json(new { success = false, message = "Bạn không có quyền xem hóa đơn này." });
+            }
+
+            var payment = invoice.ThanhToans.OrderByDescending(p => p.ID).FirstOrDefault();
+            var paymentMethod = payment?.PhuongThuc ?? "VNPAY";
+
+            // Map license plate to vehicle model type name
+            string vehicleTypeName = string.Empty;
+            var bien = invoice.DatCho?.BienSoXe;
+            if (!string.IsNullOrEmpty(bien))
+            {
+                var xe = await _context.Xes
+                    .Include(x => x.LoaiXe)
+                    .FirstOrDefaultAsync(x => x.BienSoXe == bien);
+                if (xe != null)
+                {
+                    vehicleTypeName = xe.LoaiXe?.TenLoaiXe ?? string.Empty;
+                }
+            }
+            if (string.IsNullOrEmpty(vehicleTypeName))
+            {
+                vehicleTypeName = invoice.DatCho?.ChoDauXe?.KhuVuc?.LoaiXe?.TenLoaiXe ?? "Ô tô con";
+            }
+
+            return Json(new
+            {
+                success = true,
+                invoiceId = invoice.ID,
+                bookingId = invoice.IDDatCho,
+                customerName = invoice.DatCho?.KhachHang?.HoTen ?? "Khách vãng lai",
+                customerPhone = invoice.DatCho?.KhachHang?.SDT ?? "Chưa có",
+                customerEmail = invoice.DatCho?.KhachHang?.Email ?? "Chưa có",
+                lotName = spot.KhuVuc?.BaiXe?.TenBai ?? "Bãi xe",
+                spotName = spot.TenChoDau ?? "Vị trí",
+                areaName = spot.KhuVuc?.TenKhuVuc ?? "Khu",
+                licensePlate = bien ?? "Chưa rõ",
+                vehicleType = vehicleTypeName,
+                startTime = invoice.DatCho?.TgianBatDau.ToString("dd/MM/yyyy HH:mm"),
+                endTime = invoice.DatCho?.TgianKetThuc.ToString("dd/MM/yyyy HH:mm"),
+                createdTime = invoice.NgayTao.ToString("dd/MM/yyyy HH:mm"),
+                totalAmount = invoice.TongTien,
+                feeAdmin = invoice.TienChietKhauAdmin,
+                ownerAmount = invoice.TienChuBaiNhan,
+                paymentStatus = invoice.TrangThai,
+                paymentMethod = paymentMethod
+            });
+        }
     }
 }

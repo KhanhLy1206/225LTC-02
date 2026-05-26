@@ -256,6 +256,7 @@
                         <th style="width: 150px;">Số tiền</th>
                         <th style="width: 200px;">Thời gian</th>
                         <th style="width: 150px;">Trạng thái</th>
+                        <th style="width: 100px; text-align: center;">Hành động</th>
                     </tr>
                 </thead>
                 <tbody id="txnTableBody">
@@ -277,6 +278,142 @@
         </div>
     </div>
 </div>
+
+<!-- Invoice Detail Modal (Owner) -->
+<div class="modal fade" id="invoiceDetailModal" tabindex="-1" aria-labelledby="invoiceDetailModalLabel" aria-hidden="true" style="backdrop-filter: blur(5px);">
+    <div class="modal-dialog modal-dialog-centered text-dark">
+        <div class="modal-content border-0 shadow" style="border-radius: 16px; overflow: hidden; background: #ffffff;">
+            <!-- Modal Header -->
+            <div class="modal-header border-0 pb-0" style="background: #ffffff; padding: 20px 24px;">
+                <h5 class="modal-title fw-bold text-dark" id="invoiceDetailModalLabel">
+                    <i class="fa-solid fa-receipt text-primary me-2"></i>Chi Tiết Hóa Đơn
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <!-- Modal Body (The Invoice Receipt) -->
+            <div class="modal-body px-4 py-3" id="invoiceReceiptPrintArea">
+                <div class="invoice-receipt-wrapper p-3" style="border: 2px dashed #cbd5e1; border-radius: 12px; background: #fafafa; font-family: 'Inter', system-ui, sans-serif;">
+                    
+                    <!-- Brand/Header Info -->
+                    <div class="text-center mb-3 pb-3 border-bottom border-secondary border-opacity-10">
+                        <h4 class="fw-bold text-primary mb-1" style="letter-spacing: 0.5px; font-size: 1.3rem;" id="inv-lotName">BÃI ĐỖ XE</h4>
+                        <p class="text-muted small mb-0" id="inv-lotAddress">Địa chỉ bãi xe</p>
+                        <h5 class="fw-bold mt-3 mb-1 text-dark" style="font-size: 1.1rem;">BIÊN LAI ĐỖ XE</h5>
+                        <div class="small text-muted">Số: <span class="fw-semibold text-dark font-monospace" id="inv-id">#HD-0000</span></div>
+                    </div>
+
+                    <!-- Invoice Body Info -->
+                    <div class="invoice-details-grid" style="font-size: 0.88rem; line-height: 1.6;">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Khách hàng:</span>
+                            <span class="fw-semibold text-dark" id="inv-customerName">Nguyễn Văn A</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Số điện thoại:</span>
+                            <span class="text-dark font-monospace" id="inv-customerPhone">0987654321</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Email:</span>
+                            <span class="text-dark" id="inv-customerEmail">mail@example.com</span>
+                        </div>
+                        
+                        <hr class="my-2" style="border-style: dotted; color: #94a3b8;">
+                        
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Khu vực / Ô đỗ:</span>
+                            <span class="fw-bold text-dark"><span id="inv-areaName">Khu A</span> - <span id="inv-spotName">Vị trí A01</span></span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Biển số / Loại xe:</span>
+                            <span>
+                                <span class="badge bg-dark border border-secondary text-white font-monospace me-1" id="inv-licensePlate">29A-12345</span>
+                                <span class="text-muted small" id="inv-vehicleType">Ô tô con</span>
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Thời gian vào:</span>
+                            <span class="text-dark small" id="inv-startTime">26/05/2026 08:00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Thời gian ra:</span>
+                            <span class="text-dark small" id="inv-endTime">26/05/2026 12:00</span>
+                        </div>
+
+                        <hr class="my-2" style="border-style: dotted; color: #94a3b8;">
+
+                        <div class="d-flex justify-content-between mb-2" style="font-size: 0.95rem;">
+                            <span class="text-muted">Tổng cộng (VNPAY):</span>
+                            <span class="fw-bold text-dark font-monospace" id="inv-totalAmount">100,000đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2" style="font-size: 0.85rem;">
+                            <span class="text-muted">Phí dịch vụ Admin (10%):</span>
+                            <span class="text-warning fw-semibold font-monospace" id="inv-feeAdmin">10,000đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2" style="font-size: 1rem;">
+                            <span class="fw-bold text-success">Chủ bãi thực nhận:</span>
+                            <strong class="text-success font-monospace" id="inv-ownerAmount">90,000đ</strong>
+                        </div>
+
+                        <hr class="my-2" style="border-style: dotted; color: #94a3b8;">
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Trạng thái:</span>
+                            <span class="badge" id="inv-paymentStatus">Đã thanh toán</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Hình thức:</span>
+                            <span class="text-primary fw-semibold" id="inv-paymentMethod">VNPAY</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-0">
+                            <span class="text-muted">Ngày lập:</span>
+                            <span class="text-dark small" id="inv-createdTime">26/05/2026 12:05</span>
+                        </div>
+                    </div>
+
+                    <!-- Receipt Footer -->
+                    <div class="text-center mt-3 pt-3 border-top border-secondary border-opacity-10 text-muted small" style="font-size: 0.75rem;">
+                        <p class="mb-0">Cảm ơn quý khách đã sử dụng dịch vụ!</p>
+                        <p class="mb-0 font-italic">Hóa đơn điện tử tự động từ hệ thống</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal" style="border-radius: 8px;">Đóng</button>
+                <button type="button" class="btn btn-primary" onclick="printInvoiceReceipt()" style="border-radius: 8px;">
+                    <i class="fa-solid fa-print me-1"></i>In Hóa Đơn
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CSS for printing invoice -->
+<style>
+    @@media print {
+        body * {
+            visibility: hidden !important;
+        }
+        #invoiceReceiptPrintArea, #invoiceReceiptPrintArea * {
+            visibility: visible !important;
+        }
+        #invoiceReceiptPrintArea {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .invoice-receipt-wrapper {
+            border: none !important;
+            background: white !important;
+            padding: 0 !important;
+        }
+    }
+</style>
 
 @section Scripts {
     <script>
@@ -577,7 +714,7 @@
             const totalTxns = txns.length;
 
             if (totalTxns === 0) {
-                tbody.html('<tr><td colspan="7" class="text-center p-4 text-muted">Không tìm thấy giao dịch tài chính phù hợp.</td></tr>');
+                tbody.html('<tr><td colspan="8" class="text-center p-4 text-muted">Không tìm thấy giao dịch tài chính phù hợp.</td></tr>');
                 $('#paginationInfo').text('Hiển thị 0 dòng');
                 $('#txnPagination').empty();
                 return;
@@ -599,6 +736,7 @@
             // Append rows
             paginatedTxns.forEach(txn => {
                 const vehicleName = vehicleTypeNames[txn.type] || 'Ô tô con';
+                const numericId = txn.id.replace('HD-', '');
 
                 const rowHtml = `
                     <tr>
@@ -609,6 +747,11 @@
                         <td class="fw-bold text-success font-monospace">+${txn.amount}</td>
                         <td class="text-muted small">${txn.time}</td>
                         <td><span class="txn-badge-success"><i class="fa-solid fa-circle-check"></i> ${txn.status}</span></td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-primary px-2 py-1" onclick="viewInvoiceDetails(${numericId})" style="border-radius: 6px; font-size: 0.78rem;">
+                                <i class="fa-solid fa-file-invoice-dollar"></i> Chi tiết
+                            </button>
+                        </td>
                     </tr>
                 `;
                 tbody.append(rowHtml);
@@ -654,6 +797,58 @@
         function changeTxnPage(page) {
             currentTxnPage = page;
             refreshTxnTable();
+        }
+
+        // View detailed receipt/invoice in Modal popup
+        function viewInvoiceDetails(id) {
+            $.getJSON('/Owner/ThongKe/GetInvoiceDetails', { id: id })
+                .done(function(res) {
+                    if (res.success) {
+                        $('#inv-lotName').text(res.lotName.toUpperCase());
+                        $('#inv-lotAddress').text("Thành phố Hồ Chí Minh, Việt Nam"); // Standard default address
+                        $('#inv-id').text('#HD-' + res.invoiceId);
+                        $('#inv-customerName').text(res.customerName);
+                        $('#inv-customerPhone').text(res.customerPhone);
+                        $('#inv-customerEmail').text(res.customerEmail);
+                        $('#inv-areaName').text('Khu ' + res.areaName);
+                        $('#inv-spotName').text('Vị trí ' + res.spotName);
+                        $('#inv-licensePlate').text(res.licensePlate);
+                        $('#inv-vehicleType').text(res.vehicleType);
+                        $('#inv-startTime').text(res.startTime);
+                        $('#inv-endTime').text(res.endTime);
+                        $('#inv-createdTime').text(res.createdTime);
+                        $('#inv-totalAmount').text((+res.totalAmount).toLocaleString('vi-VN') + 'đ');
+                        $('#inv-feeAdmin').text((+res.feeAdmin).toLocaleString('vi-VN') + 'đ');
+                        $('#inv-ownerAmount').text((+res.ownerAmount).toLocaleString('vi-VN') + 'đ');
+                        $('#inv-paymentMethod').text(res.paymentMethod);
+                        
+                        // Status styling
+                        const statusBadge = $('#inv-paymentStatus');
+                        statusBadge.text(res.paymentStatus);
+                        statusBadge.removeClass().addClass('badge');
+                        if (res.paymentStatus === 'Đã thanh toán') {
+                            statusBadge.addClass('bg-success text-white');
+                        } else if (res.paymentStatus === 'Đã hoàn tiền') {
+                            statusBadge.addClass('bg-info text-dark');
+                        } else {
+                            statusBadge.addClass('bg-warning text-dark');
+                        }
+
+                        // Show bootstrap modal
+                        const myModal = new bootstrap.Modal(document.getElementById('invoiceDetailModal'));
+                        myModal.show();
+                    } else {
+                        alert('❌ Không thể tải hóa đơn: ' + res.message);
+                    }
+                })
+                .fail(function() {
+                    alert('❌ Lỗi kết nối hệ thống khi tải hóa đơn.');
+                });
+        }
+
+        // Print receipt
+        function printInvoiceReceipt() {
+            window.print();
         }
     </script>
 }
