@@ -8,6 +8,8 @@ using System;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR;
+using WebApplication1.Hubs;
 
 namespace WebApplication1.Areas.Customer.Controllers
 {
@@ -17,11 +19,13 @@ namespace WebApplication1.Areas.Customer.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly IHubContext<ChatHub> _hubContext;
 
-        public HomeController(AppDbContext context, IConfiguration configuration)
+        public HomeController(AppDbContext context, IConfiguration configuration, IHubContext<ChatHub> hubContext)
         {
             _context = context;
             _configuration = configuration;
+            _hubContext = hubContext;
         }
 
         private int GetCurrentAccountId()
@@ -919,6 +923,15 @@ namespace WebApplication1.Areas.Customer.Controllers
 
             _context.TinNhans.Add(message);
             await _context.SaveChangesAsync();
+
+            // Broadcast the message via SignalR to all users in this session group
+            await _hubContext.Clients.Group($"Session_{sessionId}").SendAsync("ReceiveMessage", new
+            {
+                id = message.ID,
+                senderId = message.IDTaiKhoanGui,
+                content = message.NoiDung,
+                time = message.NgayGui.ToString("HH:mm")
+            });
 
             return Json(new { success = true, messageId = message.ID, time = message.NgayGui.ToString("HH:mm") });
         }

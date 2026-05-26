@@ -154,6 +154,7 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
     <script>
         $(document).ready(function() {
             const $chatArea = $('#chatMessageArea');
@@ -178,6 +179,73 @@
                 });
             });
 
+            function escapeHtml(text) {
+                return text
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
+            // Establish SignalR connection
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/chatHub")
+                .withAutomaticReconnect()
+                .build();
+
+            // Receive message from SignalR
+            connection.on("ReceiveMessage", function(msg) {
+                if (!msg || !activeSessionId) return;
+
+                // Check if message already exists in UI
+                if ($chatArea.find(`[data-msg-id="${msg.id}"]`).length > 0) return;
+
+                const isMe = msg.senderId === userAccountId;
+                let msgHTML = '';
+
+                if (isMe) {
+                    msgHTML = `
+                        <div class="d-flex align-items-end justify-content-end gap-2 mb-3" data-msg-id="${msg.id}">
+                            <div class="bg-primary text-white rounded p-3" style="max-width: 70%; border-radius: 15px 15px 0 15px !important; box-shadow: 0 4px 10px var(--primary-glow);">
+                                <p class="mb-0 small">${escapeHtml(msg.content)}</p>
+                                <span class="text-white-50 d-block text-end mt-1" style="font-size: 0.65rem;">${msg.time}</span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    msgHTML = `
+                        <div class="d-flex align-items-end gap-2 mb-3" data-msg-id="${msg.id}">
+                            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-weight:700; font-size: 0.75rem; flex-shrink: 0;">
+                                ${partnerInitials}
+                            </div>
+                            <div class="bg-dark text-white rounded p-3" style="max-width: 70%; border-radius: 15px 15px 15px 0 !important; border: 1px solid var(--border-color);">
+                                <p class="mb-0 small">${escapeHtml(msg.content)}</p>
+                                <span class="text-muted d-block text-end mt-1" style="font-size: 0.65rem;">${msg.time}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                $chatArea.append(msgHTML);
+                $chatArea.scrollTop($chatArea[0].scrollHeight);
+
+                // Update last message in sidebar
+                $('.active-chat-contact .last-msg-snippet').text(msg.content);
+                $('.active-chat-contact .text-muted').first().text(msg.time);
+            });
+
+            // Start SignalR connection
+            connection.start().then(function() {
+                if (activeSessionId > 0) {
+                    connection.invoke("JoinSession", activeSessionId).catch(function(err) {
+                        console.error("JoinSession error: ", err.toString());
+                    });
+                }
+            }).catch(function(err) {
+                console.error("SignalR connection error: ", err.toString());
+            });
+
             // Send message
             $('#chatSubmitForm').submit(function(e) {
                 e.preventDefault();
@@ -194,21 +262,8 @@
                     },
                     success: function(res) {
                         if (res.success) {
-                            const msgHTML = `
-                                <div class="d-flex align-items-end justify-content-end gap-2 mb-3">
-                                    <div class="bg-primary text-white rounded p-3" style="max-width: 70%; border-radius: 15px 15px 0 15px !important; box-shadow: 0 4px 10px var(--primary-glow);">
-                                        <p class="mb-0 small">${escapeHtml(content)}</p>
-                                        <span class="text-white-50 d-block text-end mt-1" style="font-size: 0.65rem;">${res.time}</span>
-                                    </div>
-                                </div>
-                            `;
-                            $chatArea.append(msgHTML);
                             msgInput.val('');
-                            $chatArea.scrollTop($chatArea[0].scrollHeight);
-
-                            // Update last message in sidebar
-                            $('.active-chat-contact .last-msg-snippet').text(content);
-                            $('.active-chat-contact .text-muted').first().text(res.time);
+                            // The message will be appended via the SignalR broadcast (ReceiveMessage)
                         } else {
                             alert(res.message || "Gửi tin nhắn thất bại.");
                         }
@@ -218,65 +273,6 @@
                     }
                 });
             });
-
-            function escapeHtml(text) {
-                return text
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;")
-                    .replace(/"/g, "&quot;")
-                    .replace(/'/g, "&#039;");
-            }
-
-            // Message polling to check for owner updates
-            if (activeSessionId > 0) {
-                setInterval(function() {
-                    $.ajax({
-                        url: '/Customer/Home/GetChatMessages',
-                        type: 'GET',
-                        data: { sessionId: activeSessionId },
-                        success: function(res) {
-                            if (res.success) {
-                                const existingCount = $chatArea.find('.mb-3').length;
-                                if (res.messages.length > existingCount) {
-                                    $chatArea.empty();
-                                    res.messages.forEach(function(msg) {
-                                        if (msg.isMe) {
-                                            $chatArea.append(`
-                                                <div class="d-flex align-items-end justify-content-end gap-2 mb-3">
-                                                    <div class="bg-primary text-white rounded p-3" style="max-width: 70%; border-radius: 15px 15px 0 15px !important; box-shadow: 0 4px 10px var(--primary-glow);">
-                                                        <p class="mb-0 small">${escapeHtml(msg.content)}</p>
-                                                        <span class="text-white-50 d-block text-end mt-1" style="font-size: 0.65rem;">${msg.time}</span>
-                                                    </div>
-                                                </div>
-                                            `);
-                                        } else {
-                                            $chatArea.append(`
-                                                <div class="d-flex align-items-end gap-2 mb-3">
-                                                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-weight:700; font-size: 0.75rem; flex-shrink: 0;">
-                                                        ${partnerInitials}
-                                                    </div>
-                                                    <div class="bg-dark text-white rounded p-3" style="max-width: 70%; border-radius: 15px 15px 15px 0 !important; border: 1px solid var(--border-color);">
-                                                        <p class="mb-0 small">${escapeHtml(msg.content)}</p>
-                                                        <span class="text-muted d-block text-end mt-1" style="font-size: 0.65rem;">${msg.time}</span>
-                                                    </div>
-                                                </div>
-                                            `);
-                                        }
-                                    });
-                                    $chatArea.scrollTop($chatArea[0].scrollHeight);
-                                    
-                                    if (res.messages.length > 0) {
-                                        const last = res.messages[res.messages.length - 1];
-                                        $('.active-chat-contact .last-msg-snippet').text(last.content);
-                                        $('.active-chat-contact .text-muted').first().text(last.time);
-                                    }
-                                }
-                            }
-                        }
-                    });
-                }, 3000);
-            }
         });
     </script>
 }
