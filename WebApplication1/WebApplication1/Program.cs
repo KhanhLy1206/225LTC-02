@@ -8,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddSignalR();
 
 // Register Database Context
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -58,5 +59,7 @@ app.MapControllerRoute(
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+app.MapHub<WebApplication1.Hubs.ChatHub>("/chatHub");
 
 app.Run();

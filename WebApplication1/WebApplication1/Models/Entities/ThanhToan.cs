@@ -24,6 +24,9 @@ namespace WebApplication1.Models.Entities
 
         public DateTime NgayThanhToan { get; set; } = DateTime.Now;
 
+        [StringLength(100)]
+        public string? MaGiaoDich { get; set; }
+
         [ForeignKey("IDHoaDon")]
         public virtual HoaDon HoaDon { get; set; } = null!;
     }
