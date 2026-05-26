@@ -905,13 +905,20 @@
                 }
 
                 // Show plate instead of state if occupied
+                // Hiển thị biển số nếu đang đỗ
                 let centerContent = '';
-                if (spot.occupancyState === 'Đang đỗ' && spot.plate) {
-                    centerContent = `<span class="spot-plate">${spot.plate}</span>`;
-                } else if (spot.occupancyState === 'Đã đặt' && spot.plate) {
-                    centerContent = `<span class="spot-plate bg-light border-primary-subtle text-primary">${spot.plate}</span>`;
-                } else {
-                    centerContent = `<span class="spot-status-text">${statusText}</span>`;
+
+                if (spot.occupancyState === 'Đang đỗ') {
+                    centerContent = `
+                        <span class="spot-plate">
+                            ${spot.plate || 'Chưa có BSX'}
+                        </span>`;
+                }
+                else {
+                    centerContent = `
+                        <span class="spot-status-text">
+                            ${statusText}
+                        </span>`;
                 }
 
                 let lockIcon = '';
@@ -993,14 +1000,19 @@
             let vehicleIcon = vehicleTypeIcons[spot.type] || 'fa-car';
             
             let centerContent = '';
-            if (spot.occupancyState === 'Đang đỗ' && spot.plate) {
-                centerContent = `<span class="spot-plate">${spot.plate}</span>`;
-            } else if (spot.occupancyState === 'Đã đặt' && spot.plate) {
-                centerContent = `<span class="spot-plate bg-light border-primary-subtle text-primary">${spot.plate}</span>`;
-            } else {
-                centerContent = `<span class="spot-status-text">${statusText}</span>`;
+
+            if (spot.occupancyState === 'Đang đỗ') {
+                centerContent = `
+                    <span class="spot-plate">
+                        ${spot.plate || 'Chưa có BSX'}
+                    </span>`;
             }
-            body.html(`<i class="fa-solid ${vehicleIcon} spot-icon"></i> ${centerContent}`);
+            else {
+                centerContent = `
+                    <span class="spot-status-text">
+                        ${statusText}
+                    </span>`;
+            }
 
             // Update lock badge
             const badge = card.find('.spot-lock-badge');
