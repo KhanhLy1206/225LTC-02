@@ -230,9 +230,13 @@
                     <label class="small fw-bold text-muted text-uppercase mb-1" for="lotSelect"><i class="fa-solid fa-warehouse text-primary me-1"></i> Bãi xe:</label>
                     <select class="form-select rounded-3 border-light shadow-sm py-2.5" id="lotSelect" style="border: 1px solid #cbd5e1 !important;">
                         <option value="" disabled selected>-- Chọn bãi xe --</option>
-                        <option value="1">SPMS Cống Quỳnh - Quận 1</option>
-                        <option value="2">SPMS Sunrise City - Quận 7</option>
-                        <option value="3">SPMS Landmark Plus - Bình Thạnh (Chờ duyệt)</option>
+                        @if (ViewBag.BaiXes != null)
+                        {
+                            foreach (var lot in ViewBag.BaiXes)
+                            {
+                                <option value="@lot.ID" data-trangthai="@lot.TrangThai">@lot.TenBai @(lot.TrangThai == "Chờ duyệt" ? "(Chờ duyệt)" : "")</option>
+                            }
+                        }
                     </select>
                 </div>
             </div>
@@ -271,6 +275,7 @@
 
 <!-- Main One-Page Price Form -->
 <form id="inlinePricingForm">
+    @Html.AntiForgeryToken()
     
     <!-- Pricing Cards Grid -->
     <div class="row g-4 mb-4" id="pricingCardsContainer">
@@ -376,10 +381,16 @@
     </div>
 
     <!-- Master Controls Row -->
-    <div class="owner-table-card border-0 mb-4 p-3 bg-white">
-        <button type="submit" class="btn btn-primary-custom px-5 py-2.5 rounded-3 d-flex align-items-center gap-2">
+    <div class="owner-table-card border-0 mb-4 p-3 bg-white d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <button type="submit" id="btnSavePricing" class="btn btn-primary-custom px-5 py-2.5 rounded-3 d-flex align-items-center gap-2">
             <i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi bảng giá
         </button>
+        <div class="form-check form-switch d-flex align-items-center gap-2 m-0">
+            <input class="form-check-input fs-5 cursor-pointer m-0" type="checkbox" role="switch" id="switchStatus" checked style="cursor: pointer;">
+            <label class="form-check-label fw-bold text-dark cursor-pointer select-none" for="switchStatus" style="font-size: 0.95rem; cursor: pointer;">
+                Trạng thái áp dụng bảng giá
+            </label>
+        </div>
     </div>
 </form>
 
@@ -421,174 +432,22 @@
 
 @section Scripts {
     <script>
-        // Mock Pricing Database by Lot ID and Vehicle Type / Area
-        const pricingData = {
-            1: {
-                oto: {
-                    lotName: 'SPMS Cống Quỳnh - Q1',
-                    typeName: '🚗 Ô tô con',
-                    giaTheoGio: 20000,
-                    giaQuaDem: 80000,
-                    giaTheoThang: 1200000,
-                    giaDatCho: 30,
-                    trangThai: true
-                },
-                xebantai: {
-                    lotName: 'SPMS Cống Quỳnh - Q1',
-                    typeName: '🛻 Xe bán tải',
-                    giaTheoGio: 30000,
-                    giaQuaDem: 120000,
-                    giaTheoThang: 1800000,
-                    giaDatCho: 30,
-                    trangThai: true
-                },
-                xebuyt: {
-                    lotName: 'SPMS Cống Quỳnh - Q1',
-                    typeName: '🚌 Xe buýt',
-                    giaTheoGio: 50000,
-                    giaQuaDem: 180000,
-                    giaTheoThang: 2500000,
-                    giaDatCho: 30,
-                    trangThai: true
-                },
-                xetai: {
-                    lotName: 'SPMS Cống Quỳnh - Q1',
-                    typeName: '🚛 Xe tải',
-                    giaTheoGio: 60000,
-                    giaQuaDem: 220000,
-                    giaTheoThang: 3000000,
-                    giaDatCho: 30,
-                    trangThai: true
-                }
-            },
-            2: {
-                oto: {
-                    lotName: 'SPMS Sunrise City - Q7',
-                    typeName: '🚗 Ô tô con',
-                    giaTheoGio: 15000,
-                    giaQuaDem: 60000,
-                    giaTheoThang: 900000,
-                    giaDatCho: 30,
-                    trangThai: true
-                },
-                xebantai: {
-                    lotName: 'SPMS Sunrise City - Q7',
-                    typeName: '🛻 Xe bán tải',
-                    giaTheoGio: 25000,
-                    giaQuaDem: 100000,
-                    giaTheoThang: 1400000,
-                    giaDatCho: 30,
-                    trangThai: true
-                },
-                xebuyt: {
-                    lotName: 'SPMS Sunrise City - Q7',
-                    typeName: '🚌 Xe buýt',
-                    giaTheoGio: 40000,
-                    giaQuaDem: 150000,
-                    giaTheoThang: 2200000,
-                    giaDatCho: 30,
-                    trangThai: true
-                },
-                xetai: {
-                    lotName: 'SPMS Sunrise City - Q7',
-                    typeName: '🚛 Xe tải',
-                    giaTheoGio: 50000,
-                    giaQuaDem: 180000,
-                    giaTheoThang: 2600000,
-                    giaDatCho: 30,
-                    trangThai: true
-                }
-            },
-            3: {
-                oto: {
-                    lotName: 'SPMS Landmark Plus - Bình Thạnh',
-                    typeName: '🚗 Ô tô con',
-                    giaTheoGio: 25000,
-                    giaQuaDem: 100000,
-                    giaTheoThang: 1500000,
-                    giaDatCho: 30,
-                    trangThai: false
-                },
-                xebantai: {
-                    lotName: 'SPMS Landmark Plus - Bình Thạnh',
-                    typeName: '🛻 Xe bán tải',
-                    giaTheoGio: 35000,
-                    giaQuaDem: 140000,
-                    giaTheoThang: 2000000,
-                    giaDatCho: 30,
-                    trangThai: false
-                },
-                xebuyt: {
-                    lotName: 'SPMS Landmark Plus - Bình Thạnh',
-                    typeName: '🚌 Xe buýt',
-                    giaTheoGio: 55000,
-                    giaQuaDem: 210000,
-                    giaTheoThang: 2800000,
-                    giaDatCho: 30,
-                    trangThai: false
-                },
-                xetai: {
-                    lotName: 'SPMS Landmark Plus - Bình Thạnh',
-                    typeName: '🚛 Xe tải',
-                    giaTheoGio: 65000,
-                    giaQuaDem: 240000,
-                    giaTheoThang: 3200000,
-                    giaDatCho: 30,
-                    trangThai: false
-                }
-            }
-        };
+        // Store areas globally when fetched
+        const lotAreas = {};
+        
+        // Audit Log History database array
+        let auditLogs = [];
+
+        const rowsPerPage = 6;
+        let currentPage = 1;
 
         let currentActiveLot = null;
         let currentActiveArea = null;
         let currentActiveVehicleType = null;
 
-        const vehicleTypes = [
-            { value: 'oto', label: '🚗 Ô tô con' },
-            { value: 'xebantai', label: '🛻 Xe bán tải' },
-            { value: 'xebuyt', label: '🚌 Xe buýt' },
-            { value: 'xetai', label: '🚛 Xe tải' }
-        ];
-
-        const lotAreas = {
-            1: [
-                { value: 'A', label: 'Khu A', type: 'oto' },
-                { value: 'B', label: 'Khu B', type: 'xebantai' },
-                { value: 'C', label: 'Khu C', type: 'xebuyt' },
-                { value: 'D', label: 'Khu D', type: 'xetai' },
-                { value: 'E', label: 'Khu E', type: 'xemay' },
-                { value: 'F', label: 'Khu F', type: 'xedapdien' }
-            ],
-            2: [
-                { value: 'A', label: 'Khu A', type: 'oto' },
-                { value: 'B', label: 'Khu B', type: 'xebantai' },
-                { value: 'C', label: 'Khu C', type: 'xemay' }
-            ],
-            3: [
-                { value: 'A', label: 'Khu A (Chờ duyệt)', type: 'oto' },
-                { value: 'B', label: 'Khu B (Chờ duyệt)', type: 'xebantai' }
-            ]
-        };
-
-        // Audit Log History database array
-        const auditLogs = [
-            { lotName: 'SPMS Cống Quỳnh - Q1', areaLabel: 'Khu A', vehicleLabel: '🚗 Ô tô con', time: '15:30 - 24/05/2026', user: 'Lê Văn Chủ', giaTheoGio: 20000, giaQuaDem: 80000, giaTheoThang: 1200000, giaDatCho: 30, status: 'Đang áp dụng', statusClass: 'bg-success-light text-success' },
-            { lotName: 'SPMS Sunrise City - Q7', areaLabel: 'Khu A', vehicleLabel: '🚗 Ô tô con', time: '09:00 - 15/05/2026', user: 'Lê Văn Chủ', giaTheoGio: 15000, giaQuaDem: 60000, giaTheoThang: 900000, giaDatCho: 30, status: 'Hoạt động', statusClass: 'bg-light text-muted border' },
-            { lotName: 'SPMS Cống Quỳnh - Q1', areaLabel: 'Khu A', vehicleLabel: '🚗 Ô tô con', time: '08:00 - 01/05/2026', user: 'Lê Văn Chủ', giaTheoGio: 15000, giaQuaDem: 60000, giaTheoThang: 1000000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' },
-            { lotName: 'SPMS Cống Quỳnh - Q1', areaLabel: 'Khu B', vehicleLabel: '🛻 Xe bán tải', time: '10:15 - 28/04/2026', user: 'Lê Văn Chủ', giaTheoGio: 30000, giaQuaDem: 120000, giaTheoThang: 1800000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' },
-            { lotName: 'SPMS Sunrise City - Q7', areaLabel: 'Khu B', vehicleLabel: '🛻 Xe bán tải', time: '11:30 - 25/04/2026', user: 'Lê Văn Chủ', giaTheoGio: 25000, giaQuaDem: 100000, giaTheoThang: 1400000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' },
-            { lotName: 'SPMS Landmark Plus - Bình Thạnh', areaLabel: 'Khu A', vehicleLabel: '🚗 Ô tô con', time: '14:00 - 20/04/2026', user: 'Lê Văn Chủ', giaTheoGio: 25000, giaQuaDem: 100000, giaTheoThang: 1500000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' },
-            { lotName: 'SPMS Landmark Plus - Bình Thạnh', areaLabel: 'Khu B', vehicleLabel: '🛻 Xe bán tải', time: '16:30 - 18/04/2026', user: 'Lê Văn Chủ', giaTheoGio: 35000, giaQuaDem: 140000, giaTheoThang: 2000000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' },
-            { lotName: 'SPMS Cống Quỳnh - Q1', areaLabel: 'Khu A', vehicleLabel: '🚗 Ô tô con', time: '09:00 - 10/04/2026', user: 'Lê Văn Chủ', giaTheoGio: 12000, giaQuaDem: 50000, giaTheoThang: 800000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' },
-            { lotName: 'SPMS Sunrise City - Q7', areaLabel: 'Khu A', vehicleLabel: '🚗 Ô tô con', time: '08:30 - 05/04/2026', user: 'Lê Văn Chủ', giaTheoGio: 10000, giaQuaDem: 40000, giaTheoThang: 700000, giaDatCho: 30, status: 'Lịch sử', statusClass: 'bg-light text-muted border' }
-        ];
-
-        const rowsPerPage = 6;
-        let currentPage = 1;
-
         $(document).ready(function() {
-            // Render initial audit logs
-            renderAuditLogs();
+            // Render initial audit logs from database
+            loadAuditLogs();
 
             // Hide pricing form initially, show prompt
             $('#inlinePricingForm').hide();
@@ -602,20 +461,37 @@
                     return;
                 }
                 
+                const selectedOpt = $(this).find('option:selected');
+                const lotStatus = selectedOpt.data('trangthai');
+                if (lotStatus === 'Chờ duyệt') {
+                    alert(`Bãi xe "${selectedOpt.text().trim()}" chưa được duyệt. Bạn không thể thay đổi cấu hình giá cho bãi xe này.`);
+                }
+                
                 currentActiveLot = parseInt(lotVal);
                 currentActiveArea = null;
                 currentActiveVehicleType = null;
 
-                // Populate Area dropdown
-                const areas = lotAreas[currentActiveLot] || [];
-                const areaSelect = $('#areaSelect');
-                areaSelect.empty().append('<option value="" disabled selected>-- Chọn khu vực --</option>');
-                
-                areas.forEach(area => {
-                    areaSelect.append(`<option value="${area.value}">${area.label}</option>`);
-                });
+                // Load Areas via AJAX
+                $.ajax({
+                    url: '/Owner/Gia/GetAreas',
+                    type: 'GET',
+                    data: { lotId: currentActiveLot },
+                    success: function(areas) {
+                        const areaSelect = $('#areaSelect');
+                        areaSelect.empty().append('<option value="" disabled selected>-- Chọn khu vực --</option>');
+                        
+                        lotAreas[currentActiveLot] = areas;
+                        
+                        areas.forEach(area => {
+                            areaSelect.append(`<option value="${area.value}">${area.label}</option>`);
+                        });
 
-                areaSelect.prop('disabled', false);
+                        areaSelect.prop('disabled', false);
+                    },
+                    error: function() {
+                        alert('Có lỗi xảy ra khi tải danh sách khu vực.');
+                    }
+                });
 
                 // Reset and disable Vehicle Type dropdown
                 $('#vehicleTypeSelect').empty().append('<option value="" disabled selected>-- Chọn khu vực trước --</option>').prop('disabled', true);
@@ -627,19 +503,16 @@
 
             // Handle Area dropdown change
             $('#areaSelect').change(function() {
-                currentActiveArea = $(this).val();
+                currentActiveArea = parseInt($(this).val());
                 
-                const areaConfig = lotAreas[currentActiveLot].find(a => a.value === currentActiveArea);
+                const areas = lotAreas[currentActiveLot] || [];
+                const areaConfig = areas.find(a => a.value === currentActiveArea);
                 const typeSelect = $('#vehicleTypeSelect');
                 typeSelect.empty().append('<option value="" disabled>-- Chọn loại xe --</option>');
 
                 if (areaConfig) {
-                    // Populate all system vehicle types
-                    vehicleTypes.forEach(vt => {
-                        const selectedAttr = (vt.value === areaConfig.type) ? 'selected' : '';
-                        typeSelect.append(`<option value="${vt.value}" ${selectedAttr}>${vt.label}</option>`);
-                    });
-                    
+                    // Populate only the vehicle type configured for this area
+                    typeSelect.append(`<option value="${areaConfig.type}" selected>${areaConfig.typeName}</option>`);
                     typeSelect.prop('disabled', false);
                     currentActiveVehicleType = areaConfig.type;
 
@@ -657,7 +530,7 @@
 
             // Handle Vehicle Type dropdown change manually
             $('#vehicleTypeSelect').change(function() {
-                currentActiveVehicleType = $(this).val();
+                currentActiveVehicleType = parseInt($(this).val());
                 if (currentActiveLot && currentActiveVehicleType) {
                     loadPricing();
                 }
@@ -667,49 +540,42 @@
             $('#inlinePricingForm').submit(function(e) {
                 e.preventDefault();
 
-                const data = pricingData[currentActiveLot][currentActiveVehicleType];
-                if (data) {
-                    // Update mock pricing database directly from card inputs
-                    data.giaTheoGio = parseInt($('#inputGiaTheoGio').val()) || 0;
-                    data.giaQuaDem = parseInt($('#inputGiaQuaDem').val()) || 0;
-                    data.giaTheoThang = parseInt($('#inputGiaTheoThang').val()) || 0;
-                    data.giaDatCho = parseInt($('#inputGiaDatCho').val()) || 0;
-                    data.trangThai = $('#switchStatus').is(':checked');
+                const giaTheoGio = parseFloat($('#inputGiaTheoGio').val()) || 0;
+                const giaQuaDem = parseFloat($('#inputGiaQuaDem').val()) || 0;
+                const giaTheoThang = parseFloat($('#inputGiaTheoThang').val()) || 0;
+                const giaDatCho = parseFloat($('#inputGiaDatCho').val()) || 0;
+                const trangThai = $('#switchStatus').is(':checked');
+                const token = $('input[name="__RequestVerificationToken"]').val();
 
-                    // Prepend a log item into Audit Log table
-                    const now = new Date();
-                    const formattedTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} - ${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
-                    
-                    const areaConfig = lotAreas[currentActiveLot].find(a => a.value === currentActiveArea);
-                    const areaLabel = areaConfig ? areaConfig.label : '';
+                $.ajax({
+                    url: '/Owner/Gia/SavePricing',
+                    type: 'POST',
+                    data: {
+                        lotId: currentActiveLot,
+                        loaiXeId: currentActiveVehicleType,
+                        giaTheoGio: giaTheoGio,
+                        giaQuaDem: giaQuaDem,
+                        giaTheoThang: giaTheoThang,
+                        giaDatCho: giaDatCho,
+                        trangThai: trangThai,
+                        __RequestVerificationToken: token
+                    },
+                    success: function(res) {
+                        if (res.success) {
+                            // Re-load UI cards to enforce clean visual state
+                            loadPricing();
+                            // Reload audit logs from DB
+                            loadAuditLogs();
 
-                    const vehicleConfig = vehicleTypes.find(v => v.value === currentActiveVehicleType);
-                    const vehicleLabel = vehicleConfig ? vehicleConfig.label : '';
-
-                    // Push to prepended list
-                    auditLogs.unshift({
-                        lotName: data.lotName,
-                        areaLabel: areaLabel,
-                        vehicleLabel: vehicleLabel,
-                        time: formattedTime,
-                        user: 'Lê Văn Chủ',
-                        giaTheoGio: data.giaTheoGio,
-                        giaQuaDem: data.giaQuaDem,
-                        giaTheoThang: data.giaTheoThang,
-                        giaDatCho: data.giaDatCho,
-                        status: 'Vừa cập nhật',
-                        statusClass: 'bg-success-light text-success'
-                    });
-
-                    // Reset to first page
-                    currentPage = 1;
-                    renderAuditLogs();
-
-                    // Re-load UI cards to enforce clean visual state
-                    loadPricing();
-
-                    alert(`Đã áp dụng đơn giá mới thành công cho ${vehicleLabel} tại bãi ${data.lotName}!`);
-                }
+                            const vehicleLabel = $('#vehicleTypeSelect option:selected').text();
+                            const lotName = $('#lotSelect option:selected').text();
+                            alert(`Đã áp dụng và lưu bảng giá mới thành công cho ${vehicleLabel} tại bãi ${lotName}!`);
+                        }
+                    },
+                    error: function() {
+                        alert('Không thể lưu bảng giá. Vui lòng kiểm tra lại thông tin.');
+                    }
+                });
             });
 
             // Dynamic change opacity visual indicator for switch status changes on the fly
@@ -728,6 +594,33 @@
             });
         });
 
+        // Load audit logs from DB
+        function loadAuditLogs() {
+            $.ajax({
+                url: '/Owner/Gia/GetPricingLogs',
+                type: 'GET',
+                success: function(data) {
+                    auditLogs = data.map(item => ({
+                        lotName: item.lotName,
+                        vehicleLabel: item.vehicleLabel,
+                        time: 'Đang áp dụng',
+                        user: 'Chủ bãi',
+                        giaTheoGio: item.giaTheoGio,
+                        giaQuaDem: item.giaQuaDem,
+                        giaTheoThang: item.giaTheoThang,
+                        giaDatCho: item.giaDatCho,
+                        status: item.trangThai ? 'Sẵn sàng' : 'Tạm ngưng',
+                        statusClass: item.trangThai ? 'bg-success-light text-success' : 'bg-danger-light text-danger'
+                    }));
+                    currentPage = 1;
+                    renderAuditLogs();
+                },
+                error: function() {
+                    console.error('Không thể tải nhật ký bảng giá.');
+                }
+            });
+        }
+
         // Dynamic rendering of audit logs table with client-side pagination
         function renderAuditLogs() {
             const tbody = $('#historyTableBody');
@@ -738,8 +631,8 @@
             const paginatedItems = auditLogs.slice(startIndex, endIndex);
 
             if (paginatedItems.length === 0) {
-                tbody.html('<tr><td colspan="9" class="text-center text-muted py-4">Chưa có lịch sử điều chỉnh</td></tr>');
-                $('#paginationInfo').text('Hiển thị 0 - 0 trong tổng số 0 nhật ký');
+                tbody.html('<tr><td colspan="9" class="text-center text-muted py-4">Chưa có cấu hình giá nào được tạo.</td></tr>');
+                $('#paginationInfo').text('Hiển thị 0 - 0 trong tổng số 0 cấu hình');
                 $('#paginationControls').empty();
                 return;
             }
@@ -748,7 +641,7 @@
                 const row = `
                     <tr style="animation: tableRowFadeIn 0.4s ease-out;">
                         <td><strong>${log.lotName}</strong></td>
-                        <td><span class="badge bg-light text-primary border">${log.areaLabel} - ${log.vehicleLabel}</span></td>
+                        <td><span class="badge bg-light text-primary border">${log.vehicleLabel}</span></td>
                         <td class="text-muted">${log.time}</td>
                         <td>${log.user}</td>
                         <td><span class="badge bg-light text-dark border history-badge">${log.giaTheoGio.toLocaleString()}đ</span></td>
@@ -765,7 +658,7 @@
             const totalRecords = auditLogs.length;
             const currentStart = startIndex + 1;
             const currentEnd = Math.min(endIndex, totalRecords);
-            $('#paginationInfo').text(`Hiển thị ${currentStart} - ${currentEnd} trong tổng số ${totalRecords} nhật ký`);
+            $('#paginationInfo').text(`Hiển thị ${currentStart} - ${currentEnd} trong tổng số ${totalRecords} cấu hình`);
 
             renderPaginationControls();
         }
@@ -830,28 +723,60 @@
 
         // Load pricing database values directly into input fields
         function loadPricing() {
-            const data = pricingData[currentActiveLot][currentActiveVehicleType];
-            if (!data) return;
+            if (!currentActiveLot || !currentActiveVehicleType) return;
 
-            // Load values to inputs embedded inside the cards
-            $('#inputGiaTheoGio').val(data.giaTheoGio);
-            $('#inputGiaQuaDem').val(data.giaQuaDem);
-            $('#inputGiaTheoThang').val(data.giaTheoThang);
-            $('#inputGiaDatCho').val(data.giaDatCho);
-            $('#switchStatus').prop('checked', data.trangThai);
+            $.ajax({
+                url: '/Owner/Gia/GetPricing',
+                type: 'GET',
+                data: { lotId: currentActiveLot, loaiXeId: currentActiveVehicleType },
+                success: function(data) {
+                    // Load values to inputs embedded inside the cards
+                    $('#inputGiaTheoGio').val(data.giaTheoGio);
+                    $('#inputGiaQuaDem').val(data.giaQuaDem);
+                    $('#inputGiaTheoThang').val(data.giaTheoThang);
+                    $('#inputGiaDatCho').val(data.giaDatCho);
+                    $('#switchStatus').prop('checked', data.trangThai);
 
-            // Set state badges
-            updateStatusBadge($('#status-day'), data.trangThai);
-            updateStatusBadge($('#status-night'), data.trangThai);
-            updateStatusBadge($('#status-monthly'), data.trangThai);
-            updateStatusBadge($('#status-booking'), data.trangThai);
+                    // Set state badges
+                    updateStatusBadge($('#status-day'), data.trangThai);
+                    updateStatusBadge($('#status-night'), data.trangThai);
+                    updateStatusBadge($('#status-monthly'), data.trangThai);
+                    updateStatusBadge($('#status-booking'), data.trangThai);
 
-            // Handle inactive state appearance visually
-            if (!data.trangThai) {
-                $('#pricingCardsContainer').css('opacity', '0.7');
-            } else {
-                $('#pricingCardsContainer').css('opacity', '1');
-            }
+                    // Handle inactive state appearance visually
+                    if (!data.trangThai) {
+                        $('#pricingCardsContainer').css('opacity', '0.7');
+                    } else {
+                        $('#pricingCardsContainer').css('opacity', '1');
+                    }
+
+                    // Check lot approval status and disable controls if pending
+                    const lotStatus = $('#lotSelect option:selected').data('trangthai');
+                    const isPending = (lotStatus === 'Chờ duyệt');
+
+                    $('#inputGiaTheoGio').prop('disabled', isPending);
+                    $('#inputGiaQuaDem').prop('disabled', isPending);
+                    $('#inputGiaTheoThang').prop('disabled', isPending);
+                    $('#inputGiaDatCho').prop('disabled', isPending);
+                    $('#switchStatus').prop('disabled', isPending);
+
+                    const saveBtn = $('#btnSavePricing');
+                    if (isPending) {
+                        saveBtn.prop('disabled', true)
+                               .html('<i class="fa-solid fa-ban"></i> Bãi xe chưa được duyệt - Không thể cập nhật')
+                               .removeClass('btn-primary-custom')
+                               .addClass('btn-secondary');
+                    } else {
+                        saveBtn.prop('disabled', false)
+                               .html('<i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi bảng giá')
+                               .removeClass('btn-secondary')
+                               .addClass('btn-primary-custom');
+                    }
+                },
+                error: function() {
+                    alert('Có lỗi xảy ra khi tải cấu hình giá.');
+                }
+            });
         }
 
         // Toggle pricing active status indicators

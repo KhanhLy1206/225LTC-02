@@ -153,6 +153,24 @@ namespace WebApplication1.Areas.Owner.Controllers
             return Json(new { success = true, newOccupancyState = spot.TrangThaiO, newLockState = spot.TrangThaiKhoa });
         }
 
+        private string GetLotNameInitials(string lotName)
+        {
+            if (string.IsNullOrWhiteSpace(lotName)) return "XX";
+            var words = lotName.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length == 0) return "XX";
+            if (words.Length == 1)
+            {
+                var word = words[0];
+                return word.Length >= 2 ? word.Substring(0, 2).ToUpper() : word.ToUpper() + "X";
+            }
+            var lastWord = words[words.Length - 1];
+            var secondLastWord = words[words.Length - 2];
+            char firstChar = string.IsNullOrEmpty(secondLastWord) ? 'X' : secondLastWord[0];
+            char secondChar = string.IsNullOrEmpty(lastWord) ? 'X' : lastWord[0];
+            string initials = $"{firstChar}{secondChar}".ToUpper();
+            return initials.Replace("Đ", "D");
+        }
+
         [HttpPost("AddArea")]
         public async Task<IActionResult> AddArea(AddAreaViewModel model)
         {
@@ -173,12 +191,22 @@ namespace WebApplication1.Areas.Owner.Controllers
                 return Json(new { success = false, message = $"Bãi xe đang ở trạng thái '{baiXe.TrangThai}'. Chỉ có thể thêm khu vực khi bãi xe đang hoạt động." });
             }
 
-            // Check if area already exists for this lot
-            var exists = await _context.KhuVucs.AnyAsync(k => k.IDBaiXe == model.LotId && k.TenKhuVuc.ToLower() == model.AreaName.ToLower());
-            if (exists)
+            // Check if the new spots would exceed the parking lot's total capacity
+            var currentSpotsCount = await _context.ChoDauXes
+                .CountAsync(c => c.KhuVuc!.IDBaiXe == model.LotId);
+            if (currentSpotsCount + model.SpotCount > baiXe.SucChua)
             {
-                return Json(new { success = false, message = $"Khu vực {model.AreaName} đã tồn tại trong bãi xe." });
+                return Json(new { 
+                    success = false, 
+                    message = $"Không thể thêm chỗ đỗ. Tổng số chỗ đỗ hiện tại ({currentSpotsCount}) cộng thêm số chỗ đỗ mới ({model.SpotCount}) sẽ vượt quá sức chứa tối đa của bãi xe ({baiXe.SucChua} chỗ)." 
+                });
             }
+
+            // Check if area already exists for this lot
+            var existingKhuVuc = await _context.KhuVucs
+                .Include(k => k.ChoDauXes)
+                .Include(k => k.LoaiXe)
+                .FirstOrDefaultAsync(k => k.IDBaiXe == model.LotId && k.TenKhuVuc.ToLower() == model.AreaName.ToLower());
 
             // Find appropriate LoaiXe
             string loaiXeName = model.VehicleType switch
@@ -198,30 +226,58 @@ namespace WebApplication1.Areas.Owner.Controllers
                 return Json(new { success = false, message = "Không tìm thấy loại xe hợp lệ trong CSDL." });
             }
 
-            // Create KhuVuc
-            var newKhuVuc = new KhuVuc
+            KhuVuc targetKhuVuc;
+            int startNumber = 1;
+
+            if (existingKhuVuc != null)
             {
-                IDBaiXe = model.LotId,
-                IDLoaiXe = loaiXe.ID,
-                TenKhuVuc = model.AreaName,
-                SucChua = model.SpotCount
-            };
-            _context.KhuVucs.Add(newKhuVuc);
+                // Verify vehicle type matches
+                if (existingKhuVuc.IDLoaiXe != loaiXe.ID)
+                {
+                    return Json(new { 
+                        success = false, 
+                        message = $"Khu vực '{model.AreaName}' đã tồn tại nhưng dành cho loại xe khác ({existingKhuVuc.LoaiXe?.TenLoaiXe ?? "Khác"}). Vui lòng đặt tên khu vực khác." 
+                    });
+                }
+
+                // If it matches, we append spots to the existing area
+                targetKhuVuc = existingKhuVuc;
+                int currentSpotCount = existingKhuVuc.ChoDauXes.Count;
+                startNumber = currentSpotCount + 1;
+                
+                // Update capacity
+                targetKhuVuc.SucChua += model.SpotCount;
+                _context.KhuVucs.Update(targetKhuVuc);
+            }
+            else
+            {
+                // Create new KhuVuc
+                targetKhuVuc = new KhuVuc
+                {
+                    IDBaiXe = model.LotId,
+                    IDLoaiXe = loaiXe.ID,
+                    TenKhuVuc = model.AreaName,
+                    SucChua = model.SpotCount
+                };
+                _context.KhuVucs.Add(targetKhuVuc);
+            }
+
             await _context.SaveChangesAsync();
 
             // Create ChoDauXe records
-            string lotPrefix = model.LotId == 1 ? "QT" : (model.LotId == 2 ? "SR" : "LM");
+            string lotPrefix = GetLotNameInitials(baiXe.TenBai);
             string size = "5x2.5m";
             if (model.VehicleType == "xebantai") size = "5.5x2.6m";
             else if (model.VehicleType == "xebuyt") size = "12x3.0m";
             else if (model.VehicleType == "xetai") size = "8x2.8m";
 
-            for (int i = 1; i <= model.SpotCount; i++)
+            int endNumber = startNumber + model.SpotCount - 1;
+            for (int i = startNumber; i <= endNumber; i++)
             {
                 string spotNum = i < 10 ? $"0{i}" : $"{i}";
                 var newSpot = new ChoDauXe
                 {
-                    IDKhuVuc = newKhuVuc.ID,
+                    IDKhuVuc = targetKhuVuc.ID,
                     TenChoDau = $"{model.AreaName}-{spotNum}",
                     KichThuoc = size,
                     MaSoKhoa = $"LOCK-{lotPrefix}-{model.AreaName}{spotNum}",

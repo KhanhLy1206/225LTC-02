@@ -180,6 +180,39 @@
     .barrier-ctrl-btn {
         transition: all 0.2s ease;
     }
+
+    /* Add Spot Card Styling */
+    .spot-card.add-spot-card {
+        border: 2px dashed var(--owner-primary) !important;
+        background-color: rgba(79, 70, 229, 0.02) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        min-height: 150px !important;
+        transition: all 0.25s ease !important;
+    }
+
+    .spot-card.add-spot-card:hover {
+        background-color: rgba(79, 70, 229, 0.08) !important;
+        border-color: var(--owner-primary) !important;
+        transform: translateY(-4px) !important;
+        box-shadow: var(--owner-shadow) !important;
+    }
+
+    .add-spot-icon {
+        font-size: 2rem;
+        color: var(--owner-primary);
+    }
+
+    .add-spot-text {
+        font-size: 0.85rem;
+        font-weight: 750;
+        color: var(--owner-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
 </style>
 
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
@@ -419,7 +452,7 @@
                     <div class="mb-3">
                         <label for="addAreaNameInput" class="form-label fw-semibold text-dark">Tên khu vực (Ký hiệu)</label>
                         <input type="text" class="form-control rounded-3" id="addAreaNameInput" placeholder="Ví dụ: C, D, E..." required maxlength="5" pattern="^[a-zA-Z0-9]+$" title="Vui lòng chỉ nhập chữ và số">
-                        <div class="form-text">Nhập ký hiệu ngắn gọn của khu vực. Hệ thống sẽ tự động ghép tên ô (Ví dụ: C-01, C-02...)</div>
+                        <div class="form-text">Nhập ký hiệu khu vực. Nếu khu vực đã tồn tại với cùng loại xe, hệ thống sẽ tự động thêm nối tiếp các chỗ đỗ mới (Ví dụ: E-11, E-12...).</div>
                     </div>
 
                     <!-- Vehicle Type -->
@@ -490,6 +523,12 @@
 
         // Initial setup on document ready
         $(document).ready(function() {
+            const savedLot = localStorage.getItem('owner_active_lot');
+            if (savedLot && $('#lotSelect option[value="' + savedLot + '"]').length > 0) {
+                $('#lotSelect').val(savedLot);
+                currentActiveLot = parseInt(savedLot);
+            }
+
             renderAreaFilters();
             renderSpots();
             updateStats();
@@ -517,6 +556,7 @@
             // Handle lot change
             $('#lotSelect').change(function() {
                 currentActiveLot = parseInt($(this).val());
+                localStorage.setItem('owner_active_lot', currentActiveLot);
                 areaFilter = 'all';
                 searchQuery = '';
                 $('#spotSearchInput').val('');
@@ -644,6 +684,22 @@
                 }
             });
 
+            // Auto-select active lot when Add Area modal is shown, and reset inputs if opened by generic button
+            $('#addAreaModal').on('show.bs.modal', function(e) {
+                const activeLot = $('#lotSelect').val();
+                if (activeLot) {
+                    $('#addAreaLotSelect').val(activeLot);
+                }
+
+                const button = $(e.relatedTarget);
+                if (button.attr('id') === 'btnAddArea') {
+                    $('#addAreaNameInput').val('').prop('readonly', false);
+                    $('#addAreaVehicleType').prop('disabled', false);
+                    $('#addAreaSpotCount').val('');
+                    $('#addAreaModalLabel').html('<i class="fa-solid fa-square-plus text-primary me-2"></i> Thêm khu vực đỗ xe mới');
+                }
+            });
+
             // Handle Add Area Form Submit with AJAX
             $('#addAreaForm').submit(function(e) {
                 e.preventDefault();
@@ -676,14 +732,17 @@
                         SpotCount: spotCount
                     },
                     success: function(response) {
-                        btn.prop('disabled', false).html('<i class="fa-solid fa-floppy-disk me-1"></i>Tạo khu vực');
+                        btn.prop('disabled', false).html('<i class="fa-solid fa-check me-1"></i> Xác nhận thêm');
                         if (response.success) {
-                            alert(`Đã thêm khu vực ${areaName} mới với ${spotCount} chỗ đỗ thành công!`);
+                            alert(`Đã thêm/cập nhật khu vực ${areaName} với ${spotCount} chỗ đỗ thành công!`);
                             $('#addAreaModal').modal('hide');
                             
                             // Reset form fields
                             $('#addAreaNameInput').val('');
                             $('#addAreaSpotCount').val('');
+                            
+                            // Save lot to localStorage to ensure reload stays on this lot
+                            localStorage.setItem('owner_active_lot', lotId);
                             
                             // Reload page to reflect database-generated ID and details
                             location.reload();
@@ -842,6 +901,19 @@
                 `;
                 container.append(cardHtml);
             });
+
+            // Append the "+ Thêm chỗ" card at the end of the spots grid if a specific area is filtered
+            if (areaFilter !== 'all') {
+                const addCardHtml = `
+                    <div class="spot-card add-spot-card" onclick="openAddSpotToArea('${areaFilter}')">
+                        <div class="d-flex flex-column align-items-center justify-content-center h-100 w-100 py-3 text-center">
+                            <i class="fa-solid fa-circle-plus add-spot-icon mb-2"></i>
+                            <span class="add-spot-text">Thêm chỗ đỗ</span>
+                        </div>
+                    </div>
+                `;
+                container.append(addCardHtml);
+            }
         }
 
         // Single spot card DOM update to prevent redraw
@@ -961,6 +1033,32 @@
                 statusEl.html('<i class="fa-solid fa-circle-exclamation text-warning me-1"></i> Lỗi kết nối / Kẹt khóa (⚠️)');
                 toggleBtn.text('Thử mở khóa').removeClass('btn-outline-danger').addClass('btn-outline-primary');
             }
+        }
+
+        // Open Add Spot Modal with prefilled parameters for a specific area
+        function openAddSpotToArea(areaName) {
+            // Find one spot in this area to determine its vehicle type
+            const list = spotsData[currentActiveLot] || [];
+            const spotInArea = list.find(s => s.area === areaName);
+            
+            // Map spot type to vehicle type select value
+            let vehicleType = 'oto';
+            if (spotInArea) {
+                vehicleType = spotInArea.type;
+            }
+
+            // Set modal values
+            $('#addAreaLotSelect').val(currentActiveLot);
+            $('#addAreaNameInput').val(areaName).prop('readonly', true);
+            // Disable vehicle type input to prevent changing it since it is an existing area
+            $('#addAreaVehicleType').val(vehicleType).prop('disabled', true);
+            $('#addAreaSpotCount').val('');
+            
+            // Change modal title to reflect adding spots
+            $('#addAreaModalLabel').html(`<i class="fa-solid fa-circle-plus text-primary me-2"></i> Thêm chỗ đỗ vào Khu ${areaName}`);
+            
+            // Show the modal
+            $('#addAreaModal').modal('show');
         }
     </script>
 }
