@@ -12,8 +12,22 @@
     <!-- Custom Owner Stylesheet -->
     <link rel="stylesheet" href="~/css/owner-style.css" asp-append-version="true" />
 </head>
+@inject WebApplication1.Models.DataContext.AppDbContext _context
+@using Microsoft.EntityFrameworkCore
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+
+    // Fetch dynamic owner info
+    var userIdClaim = User.FindFirst("UserId") ?? User.FindFirst("AccountId") ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+    int accountId = 0;
+    if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int id))
+    {
+        accountId = id;
+    }
+
+    var chuBai = _context.ChuBaiXes.Include(c => c.TaiKhoan).FirstOrDefault(c => c.IDTaiKhoan == accountId);
+    var ownerName = chuBai?.TenChuBai ?? "Lê Văn Chủ";
+    var avatarUrl = chuBai?.TaiKhoan?.AnhDaiDien ?? "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100";
 }
 <body class="owner-body">
     <div class="owner-wrapper">
@@ -94,13 +108,13 @@
                     </button>
 
                     <!-- Profile Info -->
-                    <div class="owner-user-profile">
-                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100" class="owner-avatar" alt="Avatar" />
+                    <a href="/Owner/Profile" class="owner-user-profile text-decoration-none">
+                        <img src="@avatarUrl" class="owner-avatar" alt="Avatar" />
                         <div class="owner-user-info d-none d-md-flex">
-                            <span class="owner-user-name">Lê Văn Chủ</span>
+                            <span class="owner-user-name">@ownerName</span>
                             <span class="owner-user-role">Chủ Bãi Đối Tác</span>
                         </div>
-                    </div>
+                    </a>
                 </div>
             </header>
 
