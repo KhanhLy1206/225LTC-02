@@ -11,6 +11,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <!-- Custom Owner Stylesheet -->
     <link rel="stylesheet" href="~/css/owner-style.css" asp-append-version="true" />
+    <style>
+        .owner-notification-btn::after {
+            display: none !important;
+        }
+        .cursor-pointer {
+            cursor: pointer !important;
+        }
+    </style>
 </head>
 @inject WebApplication1.Models.DataContext.AppDbContext _context
 @using Microsoft.EntityFrameworkCore
@@ -101,11 +109,22 @@
                 </div>
 
                 <div class="owner-topbar-actions">
-                    <!-- Notification Bell -->
-                    <button class="owner-notification-btn">
-                        <i class="fa-regular fa-bell"></i>
-                        <span class="badge-dot"></span>
-                    </button>
+                    <!-- Notification Dropdown -->
+                    <div class="dropdown">
+                        <button class="owner-notification-btn dropdown-toggle border-0" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="background: none;">
+                            <i class="fa-regular fa-bell"></i>
+                            <span class="badge bg-danger rounded-pill d-none" id="notificationBadge" style="position: absolute; top: -2px; right: -2px; font-size: 0.62rem; padding: 0.25em 0.5em;">0</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 py-2 mt-2" aria-labelledby="notificationDropdown" id="notificationDropdownList" style="width: 350px; border-radius: 12px; max-height: 400px; overflow-y: auto; font-size: 0.88rem;">
+                            <li class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+                                <span class="fw-bold text-dark"><i class="fa-solid fa-bell text-primary me-1"></i>Thông báo duyệt bãi</span>
+                                <button class="btn btn-sm btn-link text-primary p-0 text-decoration-none" onclick="markAllNotificationsAsRead(); event.stopPropagation();" style="font-size: 0.75rem;">Đã đọc tất cả</button>
+                            </li>
+                            <div id="notificationListItems">
+                                <li class="text-center py-3 text-muted">Đang tải thông báo...</li>
+                            </div>
+                        </ul>
+                    </div>
 
                     <!-- Profile Info -->
                     <a href="/Owner/Profile" class="owner-user-profile text-decoration-none">
@@ -191,6 +210,203 @@
 
             // Expose globally so chat view can use it
             window.updateSidebarChatBadge = updateSidebarChatBadge;
+        });
+    </script>
+
+    <!-- Notification Details Modal -->
+    <div class="modal fade" id="notificationDetailModal" tabindex="-1" aria-labelledby="notificationDetailModalLabel" aria-hidden="true" style="backdrop-filter: blur(5px);">
+        <div class="modal-dialog modal-dialog-centered text-dark">
+            <div class="modal-content border-0 shadow" style="border-radius: 16px; overflow: hidden; background: #ffffff;">
+                <div class="modal-header border-0 pb-0" style="padding: 20px 24px;">
+                    <h5 class="modal-title fw-bold text-dark" id="notificationDetailModalLabel">
+                        <i class="fa-solid fa-bell text-primary me-2"></i>Chi Tiết Phản Hồi Duyệt Bãi
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-4 py-3">
+                    <div class="p-3 bg-light rounded-3" style="font-family: 'Plus Jakarta Sans', sans-serif;">
+                        <h6 class="fw-bold text-dark mb-1" id="notif-lotName">Tên bãi đỗ</h6>
+                        <p class="text-muted small mb-3" id="notif-lotAddress">Địa chỉ bãi xe</p>
+                        
+                        <div class="row g-2 mb-3 small text-dark">
+                            <div class="col-6">
+                                <span class="text-muted d-block" style="font-size: 0.75rem;">Ngày gửi hồ sơ:</span>
+                                <strong id="notif-sendDate">27/05/2026</strong>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted d-block" style="font-size: 0.75rem;">Sức chứa / Diện tích:</span>
+                                <strong><span id="notif-capacity">50</span> chỗ | <span id="notif-area">500</span> m²</strong>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <span class="text-muted small d-block mb-1" style="font-size: 0.75rem;">Trạng thái phê duyệt:</span>
+                            <span class="badge px-3 py-1.5" id="notif-status">Hoạt động</span>
+                        </div>
+
+                        <hr class="my-3 opacity-50">
+
+                        <div>
+                            <span class="text-muted small d-block mb-1 fw-semibold" style="font-size: 0.75rem;">Ý kiến phản hồi từ Admin:</span>
+                            <div class="p-3 bg-white rounded-3 border text-dark" id="notif-feedback" style="font-size: 0.9rem; min-height: 60px;">
+                                Nội dung phản hồi...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                    <button type="button" class="btn btn-primary w-100 py-2" data-bs-dismiss="modal" style="border-radius: 8px;">Đã hiểu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Approval Notification JavaScript -->
+    <script>
+        $(document).ready(function() {
+            let loadedNotifications = [];
+
+            // Load notifications from server
+            function loadNotifications() {
+                $.getJSON('/Owner/BaiXe/GetNotifications')
+                    .done(function(resp) {
+                        if (resp.success && Array.isArray(resp.data)) {
+                            loadedNotifications = resp.data;
+                            renderNotifications();
+                        }
+                    })
+                    .fail(function() {
+                        console.error("Failed to load notifications.");
+                    });
+            }
+
+            // Render notifications list inside dropdown
+            function renderNotifications() {
+                const listContainer = $('#notificationListItems');
+                listContainer.empty();
+
+                if (loadedNotifications.length === 0) {
+                    listContainer.html('<li class="text-center py-4 text-muted"><i class="fa-solid fa-bell-slash mb-2 d-block fs-5 opacity-50"></i>Không có thông báo mới</li>');
+                    $('#notificationBadge').addClass('d-none');
+                    return;
+                }
+
+                let readList = JSON.parse(localStorage.getItem('read_notifications') || '[]');
+                let unreadCount = 0;
+
+                loadedNotifications.forEach(function(item) {
+                    const key = `notif_${item.id}_${item.trangThai}`;
+                    const isRead = readList.includes(key);
+
+                    if (!isRead) {
+                        unreadCount++;
+                    }
+
+                    // Format badge and text based on status
+                    let statusText = 'ĐÃ DUYỆT';
+                    let statusClass = 'text-success bg-success-light';
+                    let icon = 'fa-circle-check text-success';
+                    
+                    if (item.trangThai === 'Từ chối') {
+                        statusText = 'BỊ TỪ CHỐI';
+                        statusClass = 'text-danger bg-danger-light';
+                        icon = 'fa-circle-xmark text-danger';
+                    }
+
+                    const itemHtml = `
+                        <li class="notification-item px-3 py-2.5 border-bottom cursor-pointer ${isRead ? '' : 'bg-light fw-bold'}" 
+                            onclick="showNotificationDetail(${item.id})" 
+                            style="transition: var(--owner-transition); list-style: none;"
+                            onmouseover="this.style.backgroundColor='#f8fafc'" 
+                            onmouseout="this.style.backgroundColor='${isRead ? 'transparent' : '#f8f9fa'}'">
+                            <div class="d-flex align-items-start gap-2">
+                                <div class="fs-5 mt-0.5"><i class="fa-solid ${icon}"></i></div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="badge ${statusClass} rounded-pill" style="font-size: 0.65rem;">${statusText}</span>
+                                        <small class="text-muted font-monospace" style="font-size: 0.7rem;">${item.ngayGui}</small>
+                                    </div>
+                                    <div class="text-dark mb-1 text-wrap" style="font-size: 0.85rem; line-height: 1.3;">
+                                        Yêu cầu đăng ký bãi xe <span class="text-primary">${item.tenBai}</span> đã nhận phản hồi từ hệ thống.
+                                    </div>
+                                    <div class="text-muted text-truncate" style="font-size: 0.75rem;">
+                                        ${item.ghiChu || ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                    `;
+                    listContainer.append(itemHtml);
+                });
+
+                // Toggle bell badge count
+                if (unreadCount > 0) {
+                    $('#notificationBadge').text(unreadCount).removeClass('d-none');
+                } else {
+                    $('#notificationBadge').addClass('d-none');
+                }
+            }
+
+            // Show details in Modal and mark as read
+            window.showNotificationDetail = function(id) {
+                const item = loadedNotifications.find(x => x.id === id);
+                if (!item) return;
+
+                // Populate modal
+                $('#notif-lotName').text(item.tenBai);
+                $('#notif-lotAddress').text(item.diaChi);
+                $('#notif-sendDate').text(item.ngayGui);
+                $('#notif-capacity').text(item.sucChua);
+                $('#notif-area').text(Math.round(item.dienTich));
+
+                const statusEl = $('#notif-status');
+                statusEl.text(item.trangThai === 'Hoạt động' ? 'Đã duyệt (Hoạt động)' : 'Từ chối duyệt');
+                statusEl.removeClass().addClass('badge px-3 py-1.5');
+                if (item.trangThai === 'Hoạt động') {
+                    statusEl.addClass('bg-success text-white');
+                } else {
+                    statusEl.addClass('bg-danger text-white');
+                }
+
+                $('#notif-feedback').text(item.ghiChu || 'Không có ý kiến phản hồi cụ thể.');
+
+                // Mark as read in localStorage
+                const key = `notif_${item.id}_${item.trangThai}`;
+                let readList = JSON.parse(localStorage.getItem('read_notifications') || '[]');
+                if (!readList.includes(key)) {
+                    readList.push(key);
+                    localStorage.setItem('read_notifications', JSON.stringify(readList));
+                }
+
+                // Refresh UI
+                renderNotifications();
+
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('notificationDetailModal'));
+                modal.show();
+            };
+
+            // Mark all notifications as read
+            window.markAllNotificationsAsRead = function() {
+                let readList = JSON.parse(localStorage.getItem('read_notifications') || '[]');
+                
+                loadedNotifications.forEach(function(item) {
+                    const key = `notif_${item.id}_${item.trangThai}`;
+                    if (!readList.includes(key)) {
+                        readList.push(key);
+                    }
+                });
+
+                localStorage.setItem('read_notifications', JSON.stringify(readList));
+                renderNotifications();
+                alert('✅ Đã đánh dấu tất cả thông báo là đã đọc!');
+            };
+
+            // Initial load
+            loadNotifications();
+
+            // Refresh notifications every 60s
+            setInterval(loadNotifications, 60000);
         });
     </script>
     @await RenderSectionAsync("Scripts", required: false)

@@ -224,5 +224,36 @@ namespace WebApplication1.Areas.Owner.Controllers
                 .ToListAsync();
             return Json(wards);
         }
+
+        [HttpGet("GetNotifications")]
+        public async Task<IActionResult> GetNotifications()
+        {
+            int ownerId = GetCurrentOwnerId();
+            if (ownerId == 0) return Json(new { success = false, message = "Chưa đăng nhập." });
+
+            int chuBaiId = GetChuBaiId(ownerId);
+            if (chuBaiId == 0) return Json(new { success = false, message = "Không tìm thấy thông tin chủ bãi." });
+
+            var notifications = await _context.BaiXes
+                .Include(b => b.XaPhuong).ThenInclude(x => x!.QuanHuyen).ThenInclude(q => q!.TinhThanh)
+                .Where(b => b.IDChuBai == chuBaiId && b.TrangThai != "Chờ duyệt")
+                .OrderByDescending(b => b.NgayGui)
+                .ToListAsync();
+
+            var data = notifications.Select(b => new {
+                id = b.ID,
+                tenBai = b.TenBai,
+                trangThai = b.TrangThai,
+                ghiChu = string.IsNullOrEmpty(b.GhiChu) 
+                    ? (b.TrangThai == "Hoạt động" ? "Hồ sơ hợp lệ. Bãi đỗ xe của bạn đã được Admin phê duyệt thành công và đã đi vào hoạt động trên hệ thống." : "")
+                    : b.GhiChu,
+                ngayGui = b.NgayGui.ToString("dd/MM/yyyy HH:mm"),
+                diaChi = b.DiaChiChiTiet + (b.XaPhuong != null ? ", " + b.XaPhuong.TenXa + ", " + b.XaPhuong.QuanHuyen.TenHuyen + ", " + b.XaPhuong.QuanHuyen.TinhThanh.TenTinh : ""),
+                sucChua = b.SucChua,
+                dienTich = b.DienTich
+            }).ToList();
+
+            return Json(new { success = true, data = data });
+        }
     }
 }
