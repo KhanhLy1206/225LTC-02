@@ -27,6 +27,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 // Register Account Service for DI
 builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddSingleton<OtpService>();
 
 // Đăng ký dịch vụ cho từng Actor (tránh xung đột merge code trong Program.cs)
 builder.Services.AddAdminServices();

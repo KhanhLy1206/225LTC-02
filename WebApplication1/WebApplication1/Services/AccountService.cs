@@ -59,29 +59,25 @@ namespace WebApplication1.Services
 
         public async Task<TaiKhoan?> ValidateLoginAsync(string usernameOrEmail, string password)
         {
-            // Retrieve account matching either Username or Customer Email
+            var input = usernameOrEmail.ToLower().Trim();
+
             var taiKhoan = await _context.TaiKhoans
                 .Include(t => t.VaiTro)
                 .Include(t => t.KhachHang)
                 .Include(t => t.ChuBaiXe)
                 .Include(t => t.Admin)
-                .FirstOrDefaultAsync(t => 
-                    (t.TenDangNhap.ToLower() == usernameOrEmail.ToLower() ||
-                     (t.KhachHang != null && t.KhachHang.Email != null && t.KhachHang.Email.ToLower() == usernameOrEmail.ToLower()) ||
-                     (t.ChuBaiXe != null && t.ChuBaiXe.Email != null && t.ChuBaiXe.Email.ToLower() == usernameOrEmail.ToLower())) &&
-                    t.TrangThai);
+                .FirstOrDefaultAsync(t =>
+                    t.TrangThai &&
+                    (t.TenDangNhap.ToLower() == input ||
+                     (t.KhachHang != null && t.KhachHang.Email != null && t.KhachHang.Email.ToLower() == input) ||
+                     (t.ChuBaiXe  != null && t.ChuBaiXe.Email  != null && t.ChuBaiXe.Email.ToLower()  == input)));
 
-            if (taiKhoan == null)
-            {
-                return null;
-            }
+            if (taiKhoan == null) return null;
 
-            // Compare passwords (supports both plain text for pre-existing SQL seed data and SHA256 hashes for new registrants)
-            string hashedPassword = HashPassword(password);
-            if (taiKhoan.MatKhau != password && taiKhoan.MatKhau != hashedPassword)
-            {
+            // So sánh mật khẩu: hỗ trợ cả plain text (seed data) và SHA256 (đăng ký mới)
+            var hashed = HashPassword(password);
+            if (taiKhoan.MatKhau != password && taiKhoan.MatKhau != hashed)
                 return null;
-            }
 
             return taiKhoan;
         }
