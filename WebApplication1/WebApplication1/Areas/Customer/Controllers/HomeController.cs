@@ -128,36 +128,46 @@ namespace WebApplication1.Areas.Customer.Controllers
         [HttpPost]
         public async Task<IActionResult> ControlBarrier(int bookingId, string action)
         {
-            var customer = GetCurrentCustomer();
-            if (customer == null) return Json(new { success = false, message = "Không tìm thấy khách hàng." });
-
-            var booking = await _context.DatChos
-                .Include(dc => dc.ChoDauXe)
-                .FirstOrDefaultAsync(dc => dc.ID == bookingId && dc.IDKhachHang == customer.ID);
-
-            if (booking == null || booking.ChoDauXe == null)
+            try
             {
-                return Json(new { success = false, message = "Không tìm thấy đơn đặt chỗ." });
+                var customer = GetCurrentCustomer();
+                if (customer == null) return Json(new { success = false, message = "Không tìm thấy khách hàng." });
+
+                var booking = await _context.DatChos
+                    .Include(dc => dc.ChoDauXe)
+                    .FirstOrDefaultAsync(dc => dc.ID == bookingId && dc.IDKhachHang == customer.ID);
+
+                if (booking == null || booking.ChoDauXe == null)
+                {
+                    return Json(new { success = false, message = "Không tìm thấy đơn đặt chỗ." });
+                }
+
+                string resultStatus = action == "Open" ? "Mở" : "Đóng";
+                booking.ChoDauXe.TrangThaiKhoa = resultStatus;
+                
+                // Log control barrier
+                var log = new LogDieuKhienBarrier
+                {
+                    IDDatCho = booking.ID,
+                    IDChoDau = booking.IDChoDau,
+                    IDTaiKhoan = customer.IDTaiKhoan,
+                    ThoiGianLệnh = DateTime.Now,
+                    HanhDong = action == "Open" ? "Mở khóa" : "Khóa lại",
+                    KetQua = "Thành công",
+                    GhiChu = $"Khách hàng điều khiển IoT Barrier {booking.ChoDauXe.MaSoKhoa}"
+                };
+
+                _context.Add(log);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, currentStatus = resultStatus });
             }
-
-            string resultStatus = action == "Open" ? "Mở" : "Đóng";
-            booking.ChoDauXe.TrangThaiKhoa = resultStatus;
-            
-            // Log control barrier
-            var log = new LogDieuKhienBarrier
+            catch (Exception ex)
             {
-                IDDatCho = booking.ID,
-                IDTaiKhoan = GetCurrentAccountId(),
-                ThoiGianLệnh = DateTime.Now,
-                HanhDong = action == "Open" ? "Mở khóa" : "Khóa lại",
-                KetQua = "Thành công",
-                GhiChu = $"Khách hàng điều khiển IoT Barrier {booking.ChoDauXe.MaSoKhoa}"
-            };
-
-            _context.Add(log);
-            await _context.SaveChangesAsync();
-
-            return Json(new { success = true, currentStatus = resultStatus });
+                Console.Error.WriteLine("=== CUSTOMER CONTROL BARRIER ERROR ===");
+                Console.Error.WriteLine(ex.ToString());
+                return Json(new { success = false, message = ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "") });
+            }
         }
 
         // POST: /Customer/Home/SubmitReview
