@@ -203,11 +203,26 @@ namespace WebApplication1.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DuyetDon(int id)
         {
-            var baiXe = await _db.BaiXes.FindAsync(id);
+            var baiXe = await _db.BaiXes
+                .Include(b => b.ChuBaiXe)
+                .FirstOrDefaultAsync(b => b.ID == id);
+
             if (baiXe != null && baiXe.TrangThai == "Chờ duyệt")
             {
                 baiXe.TrangThai = "Hoạt động";
                 baiXe.GhiChu = null;
+
+                if (baiXe.ChuBaiXe != null)
+                    _db.ThongBaos.Add(new ThongBao
+                    {
+                        IDTaiKhoan   = baiXe.ChuBaiXe.IDTaiKhoan,
+                        TieuDe       = "✅ Bãi xe đã được duyệt",
+                        NoiDung      = $"Bãi xe \"{baiXe.TenBai}\" của bạn đã được Admin phê duyệt và hiện đang hoạt động trên hệ thống.",
+                        LoaiThongBao = "DuyetBai",
+                        DuongDan     = "/Owner/BaiXe",
+                        NgayTao      = DateTime.Now
+                    });
+
                 await _db.SaveChangesAsync();
                 TempData["Success"] = $"Đã duyệt bãi \"{baiXe.TenBai}\" thành công.";
             }
@@ -219,11 +234,27 @@ namespace WebApplication1.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> TuChoiDon(int id, string ghiChu)
         {
-            var baiXe = await _db.BaiXes.FindAsync(id);
+            var baiXe = await _db.BaiXes
+                .Include(b => b.ChuBaiXe)
+                .FirstOrDefaultAsync(b => b.ID == id);
+
             if (baiXe != null && baiXe.TrangThai == "Chờ duyệt")
             {
                 baiXe.TrangThai = "Từ chối";
                 baiXe.GhiChu = ghiChu;
+
+                if (baiXe.ChuBaiXe != null)
+                    _db.ThongBaos.Add(new ThongBao
+                    {
+                        IDTaiKhoan   = baiXe.ChuBaiXe.IDTaiKhoan,
+                        TieuDe       = "❌ Đơn đăng ký bãi xe bị từ chối",
+                        NoiDung      = $"Đơn đăng ký bãi xe \"{baiXe.TenBai}\" đã bị từ chối."
+                                     + (string.IsNullOrWhiteSpace(ghiChu) ? "" : $" Lý do: {ghiChu}"),
+                        LoaiThongBao = "TuChoiBai",
+                        DuongDan     = "/Owner/BaiXe",
+                        NgayTao      = DateTime.Now
+                    });
+
                 await _db.SaveChangesAsync();
                 TempData["Success"] = $"Đã từ chối đơn đăng ký bãi \"{baiXe.TenBai}\".";
             }
@@ -235,11 +266,37 @@ namespace WebApplication1.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DoiTrangThai(int id, string trangThai, string? lyDo)
         {
-            var bai = await _db.BaiXes.FindAsync(id);
+            var bai = await _db.BaiXes
+                .Include(b => b.ChuBaiXe)
+                .FirstOrDefaultAsync(b => b.ID == id);
+
             if (bai != null)
             {
                 var trangThaiCu = bai.TrangThai;
                 bai.TrangThai = trangThai;
+
+                if (bai.ChuBaiXe != null)
+                {
+                    var (icon, loai) = trangThai switch
+                    {
+                        "Hoạt động" => ("✅", "MoBai"),
+                        "Tạm đóng"  => ("⏸️", "TamDongBai"),
+                        "Bảo trì"   => ("🔧", "BaoTriBai"),
+                        _           => ("ℹ️", "DoiTrangThai")
+                    };
+
+                    _db.ThongBaos.Add(new ThongBao
+                    {
+                        IDTaiKhoan   = bai.ChuBaiXe.IDTaiKhoan,
+                        TieuDe       = $"{icon} Trạng thái bãi xe thay đổi: {trangThai}",
+                        NoiDung      = $"Admin đã đổi trạng thái bãi xe \"{bai.TenBai}\" từ \"{trangThaiCu}\" sang \"{trangThai}\"."
+                                     + (string.IsNullOrWhiteSpace(lyDo) ? "" : $" Lý do: {lyDo}"),
+                        LoaiThongBao = loai,
+                        DuongDan     = "/Owner/BaiXe",
+                        NgayTao      = DateTime.Now
+                    });
+                }
+
                 await _db.SaveChangesAsync();
                 TempData["Success"] = $"Đã đổi trạng thái bãi \"{bai.TenBai}\" từ {trangThaiCu} → {trangThai}.";
             }
@@ -251,19 +308,48 @@ namespace WebApplication1.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> KhoaBai(int id, string lyDo, string? returnTab)
         {
-            var bai = await _db.BaiXes.FindAsync(id);
+            var bai = await _db.BaiXes
+                .Include(b => b.ChuBaiXe)
+                .FirstOrDefaultAsync(b => b.ID == id);
+
             if (bai != null)
             {
                 if (bai.TrangThai == "Hoạt động")
                 {
                     bai.TrangThai = "Tạm đóng";
+
+                    if (bai.ChuBaiXe != null)
+                        _db.ThongBaos.Add(new ThongBao
+                        {
+                            IDTaiKhoan   = bai.ChuBaiXe.IDTaiKhoan,
+                            TieuDe       = "🔒 Bãi xe của bạn đã bị khóa",
+                            NoiDung      = $"Bãi xe \"{bai.TenBai}\" đã bị Admin tạm khóa."
+                                         + (string.IsNullOrWhiteSpace(lyDo) ? "" : $" Lý do: {lyDo}"),
+                            LoaiThongBao = "KhoaBai",
+                            DuongDan     = "/Owner/BaiXe",
+                            NgayTao      = DateTime.Now
+                        });
+
                     TempData["Success"] = $"Đã khóa bãi \"{bai.TenBai}\". Lý do: {lyDo}";
                 }
                 else
                 {
                     bai.TrangThai = "Hoạt động";
+
+                    if (bai.ChuBaiXe != null)
+                        _db.ThongBaos.Add(new ThongBao
+                        {
+                            IDTaiKhoan   = bai.ChuBaiXe.IDTaiKhoan,
+                            TieuDe       = "🔓 Bãi xe của bạn đã được mở khóa",
+                            NoiDung      = $"Bãi xe \"{bai.TenBai}\" đã được Admin mở khóa và hoạt động trở lại.",
+                            LoaiThongBao = "MoKhoaBai",
+                            DuongDan     = "/Owner/BaiXe",
+                            NgayTao      = DateTime.Now
+                        });
+
                     TempData["Success"] = $"Đã mở khóa bãi \"{bai.TenBai}\" thành công.";
                 }
+
                 await _db.SaveChangesAsync();
             }
             return RedirectToAction(nameof(Index), new { tab = returnTab ?? "hoatdong" });

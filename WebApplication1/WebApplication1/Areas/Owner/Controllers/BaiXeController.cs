@@ -232,28 +232,79 @@ namespace WebApplication1.Areas.Owner.Controllers
             if (ownerId == 0) return Json(new { success = false, message = "Chưa đăng nhập." });
 
             int chuBaiId = GetChuBaiId(ownerId);
-            if (chuBaiId == 0) return Json(new { success = false, message = "Không tìm thấy thông tin chủ bãi." });
 
-            var notifications = await _context.BaiXes
-                .Include(b => b.XaPhuong).ThenInclude(x => x!.QuanHuyen).ThenInclude(q => q!.TinhThanh)
-                .Where(b => b.IDChuBai == chuBaiId && b.TrangThai != "Chờ duyệt")
-                .OrderByDescending(b => b.NgayGui)
+            // Lấy tất cả thông báo liên quan đến bãi xe của chủ này
+            var notifications = await _context.ThongBaos
+                .Where(t => t.IDTaiKhoan == ownerId)
+                .OrderByDescending(t => t.NgayTao)
+                .Take(30)
                 .ToListAsync();
 
-            var data = notifications.Select(b => new {
-                id = b.ID,
-                tenBai = b.TenBai,
-                trangThai = b.TrangThai,
-                ghiChu = string.IsNullOrEmpty(b.GhiChu) 
-                    ? (b.TrangThai == "Hoạt động" ? "Hồ sơ hợp lệ. Bãi đỗ xe của bạn đã được Admin phê duyệt thành công và đã đi vào hoạt động trên hệ thống." : "")
-                    : b.GhiChu,
-                ngayGui = b.NgayGui.ToString("dd/MM/yyyy HH:mm"),
-                diaChi = b.DiaChiChiTiet + (b.XaPhuong != null ? ", " + b.XaPhuong.TenXa + ", " + b.XaPhuong.QuanHuyen.TenHuyen + ", " + b.XaPhuong.QuanHuyen.TinhThanh.TenTinh : ""),
-                sucChua = b.SucChua,
-                dienTich = b.DienTich
+            // Lấy danh sách bãi xe của chủ để map thông tin chi tiết
+            var baiXeList = await _context.BaiXes
+                .Include(b => b.XaPhuong).ThenInclude(x => x!.QuanHuyen).ThenInclude(q => q!.TinhThanh)
+                .Where(b => b.IDChuBai == chuBaiId)
+                .ToListAsync();
+
+            var data = notifications.Select(t => {
+                // Tìm bãi xe khớp theo tên trong nội dung thông báo
+                var bai = baiXeList.FirstOrDefault(b => t.NoiDung.Contains(b.TenBai));
+                return new {
+                    id           = t.ID,
+                    tieuDe       = t.TieuDe,
+                    tenBai       = bai?.TenBai ?? "—",
+                    trangThai    = t.LoaiThongBao switch {
+                        "DuyetBai"   => "Hoạt động",
+                        "TuChoiBai"  => "Từ chối",
+                        "KhoaBai"    => "Tạm đóng",
+                        "MoKhoaBai"  => "Hoạt động",
+                        "TamDongBai" => "Tạm đóng",
+                        "BaoTriBai"  => "Bảo trì",
+                        _            => "—"
+                    },
+                    loaiThongBao = t.LoaiThongBao,
+                    ghiChu       = t.NoiDung,
+                    ngayGui      = t.NgayTao.ToString("dd/MM/yyyy HH:mm"),
+                    diaChi       = bai == null ? "" :
+                                   bai.DiaChiChiTiet
+                                   + (bai.XaPhuong != null
+                                       ? ", " + bai.XaPhuong.TenXa
+                                       + ", " + bai.XaPhuong.QuanHuyen!.TenHuyen
+                                       + ", " + bai.XaPhuong.QuanHuyen.TinhThanh!.TenTinh
+                                       : ""),
+                    sucChua      = bai?.SucChua ?? 0,
+                    dienTich     = bai?.DienTich ?? 0,
+                    daDoc        = t.DaDoc,
+                    duongDan     = t.DuongDan
+                };
             }).ToList();
 
             return Json(new { success = true, data = data });
+        }
+
+        [HttpPost("MarkNotificationRead")]
+        public async Task<IActionResult> MarkNotificationRead(int id)
+        {
+            int ownerId = GetCurrentOwnerId();
+            var tb = await _context.ThongBaos.FirstOrDefaultAsync(t => t.ID == id && t.IDTaiKhoan == ownerId);
+            if (tb != null)
+            {
+                tb.DaDoc = true;
+                await _context.SaveChangesAsync();
+            }
+            return Json(new { success = true });
+        }
+
+        [HttpPost("MarkAllNotificationsRead")]
+        public async Task<IActionResult> MarkAllNotificationsRead()
+        {
+            int ownerId = GetCurrentOwnerId();
+            var unread = await _context.ThongBaos
+                .Where(t => t.IDTaiKhoan == ownerId && !t.DaDoc)
+                .ToListAsync();
+            unread.ForEach(t => t.DaDoc = true);
+            await _context.SaveChangesAsync();
+            return Json(new { success = true });
         }
     }
 }

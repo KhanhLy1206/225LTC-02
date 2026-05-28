@@ -33,6 +33,7 @@ namespace WebApplication1.Models.DataContext
         public DbSet<PhienChat> PhienChats { get; set; } = null!;
         public DbSet<TinNhan> TinNhans { get; set; } = null!;
         public DbSet<KhieuNai> KhieuNais { get; set; } = null!;
+        public DbSet<ThongBao> ThongBaos { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -225,6 +226,12 @@ namespace WebApplication1.Models.DataContext
             modelBuilder.Entity<KhieuNai>()
                 .HasOne(k => k.Admin).WithMany(a => a.KhieuNais)
                 .HasForeignKey(k => k.IDAdminXuLy);
+
+            // ── ThongBao ───────────────────────────────────────────────────
+            modelBuilder.Entity<ThongBao>().ToTable("ThongBao");
+            modelBuilder.Entity<ThongBao>()
+                .HasOne(t => t.TaiKhoan).WithMany()
+                .HasForeignKey(t => t.IDTaiKhoan);
         }
     }
 }

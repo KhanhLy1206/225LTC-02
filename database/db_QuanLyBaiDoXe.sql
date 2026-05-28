@@ -803,3 +803,26 @@ INSERT INTO KhieuNai (IDKhachHang, IDBaiXe, IDDatCho, TieuDe, NoiDung, NgayGui, 
     N'Đã xác minh ngân hàng đối tác bị duplicate lệnh giao dịch. Đã lập lệnh hoàn trả 50.000 VNĐ cho khách ngày 21/05/2026.'
 );
 GO
+
+
+-- ============================================================
+-- ThongBao (Notification for parking lot owners)
+-- ============================================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'ThongBao')
+BEGIN
+    CREATE TABLE ThongBao (
+        ID              INT             NOT NULL IDENTITY(1,1),
+        IDTaiKhoan      INT             NOT NULL,
+        TieuDe          NVARCHAR(200)   NOT NULL,
+        NoiDung         NVARCHAR(MAX)   NOT NULL,
+        LoaiThongBao    NVARCHAR(50)    NULL,
+        IDBaiXe         INT             NULL,
+        DaDoc           BIT             NOT NULL DEFAULT 0,
+        NgayTao         DATETIME        NOT NULL DEFAULT GETDATE(),
+
+        CONSTRAINT PK_ThongBao          PRIMARY KEY (ID),
+        CONSTRAINT FK_ThongBao_TaiKhoan FOREIGN KEY (IDTaiKhoan) REFERENCES TaiKhoan(ID),
+        CONSTRAINT FK_ThongBao_BaiXe    FOREIGN KEY (IDBaiXe)    REFERENCES BaiXe(ID) ON DELETE SET NULL
+    );
+END
+GO
