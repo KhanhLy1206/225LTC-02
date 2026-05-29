@@ -228,58 +228,71 @@ namespace WebApplication1.Areas.Owner.Controllers
         [HttpGet("GetNotifications")]
         public async Task<IActionResult> GetNotifications()
         {
-            int ownerId = GetCurrentOwnerId();
-            if (ownerId == 0) return Json(new { success = false, message = "Chưa đăng nhập." });
+            try
+            {
+                int ownerId = GetCurrentOwnerId();
+                if (ownerId == 0) return Json(new { success = false, message = "Chưa đăng nhập." });
 
-            int chuBaiId = GetChuBaiId(ownerId);
+                int chuBaiId = GetChuBaiId(ownerId);
 
-            // Lấy tất cả thông báo liên quan đến bãi xe của chủ này
-            var notifications = await _context.ThongBaos
-                .Where(t => t.IDTaiKhoan == ownerId)
-                .OrderByDescending(t => t.NgayTao)
-                .Take(30)
-                .ToListAsync();
+                // Đồng bộ cấu trúc Database: thêm cột DuongDan vào bảng ThongBao nếu chưa có
+                try
+                {
+                    await _context.Database.ExecuteSqlRawAsync("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('ThongBao') AND name = 'DuongDan') ALTER TABLE ThongBao ADD DuongDan NVARCHAR(500) NULL;");
+                }
+                catch (Exception) { }
 
-            // Lấy danh sách bãi xe của chủ để map thông tin chi tiết
-            var baiXeList = await _context.BaiXes
-                .Include(b => b.XaPhuong).ThenInclude(x => x!.QuanHuyen).ThenInclude(q => q!.TinhThanh)
-                .Where(b => b.IDChuBai == chuBaiId)
-                .ToListAsync();
+                // Lấy tất cả thông báo liên quan đến bãi xe của chủ này
+                var notifications = await _context.ThongBaos
+                    .Where(t => t.IDTaiKhoan == ownerId)
+                    .OrderByDescending(t => t.NgayTao)
+                    .Take(30)
+                    .ToListAsync();
 
-            var data = notifications.Select(t => {
-                // Tìm bãi xe khớp theo tên trong nội dung thông báo
-                var bai = baiXeList.FirstOrDefault(b => t.NoiDung.Contains(b.TenBai));
-                return new {
-                    id           = t.ID,
-                    tieuDe       = t.TieuDe,
-                    tenBai       = bai?.TenBai ?? "—",
-                    trangThai    = t.LoaiThongBao switch {
-                        "DuyetBai"   => "Hoạt động",
-                        "TuChoiBai"  => "Từ chối",
-                        "KhoaBai"    => "Tạm đóng",
-                        "MoKhoaBai"  => "Hoạt động",
-                        "TamDongBai" => "Tạm đóng",
-                        "BaoTriBai"  => "Bảo trì",
-                        _            => "—"
-                    },
-                    loaiThongBao = t.LoaiThongBao,
-                    ghiChu       = t.NoiDung,
-                    ngayGui      = t.NgayTao.ToString("dd/MM/yyyy HH:mm"),
-                    diaChi       = bai == null ? "" :
-                                   bai.DiaChiChiTiet
-                                   + (bai.XaPhuong != null
-                                       ? ", " + bai.XaPhuong.TenXa
-                                       + ", " + bai.XaPhuong.QuanHuyen!.TenHuyen
-                                       + ", " + bai.XaPhuong.QuanHuyen.TinhThanh!.TenTinh
-                                       : ""),
-                    sucChua      = bai?.SucChua ?? 0,
-                    dienTich     = bai?.DienTich ?? 0,
-                    daDoc        = t.DaDoc,
-                    duongDan     = t.DuongDan
-                };
-            }).ToList();
+                // Lấy danh sách bãi xe của chủ để map thông tin chi tiết
+                var baiXeList = await _context.BaiXes
+                    .Include(b => b.XaPhuong).ThenInclude(x => x!.QuanHuyen).ThenInclude(q => q!.TinhThanh)
+                    .Where(b => b.IDChuBai == chuBaiId)
+                    .ToListAsync();
 
-            return Json(new { success = true, data = data });
+                var data = notifications.Select(t => {
+                    // Tìm bãi xe khớp theo tên trong nội dung thông báo
+                    var bai = baiXeList.FirstOrDefault(b => t.NoiDung != null && b.TenBai != null && t.NoiDung.Contains(b.TenBai));
+                    return new {
+                        id           = t.ID,
+                        tieuDe       = t.TieuDe,
+                        tenBai       = bai?.TenBai ?? "—",
+                        trangThai    = (t.LoaiThongBao ?? "") switch {
+                            "DuyetBai"   => "Hoạt động",
+                            "TuChoiBai"  => "Từ chối",
+                            "KhoaBai"    => "Tạm đóng",
+                            "MoKhoaBai"  => "Hoạt động",
+                            "TamDongBai" => "Tạm đóng",
+                            "BaoTriBai"  => "Bảo trì",
+                            _            => "—"
+                        },
+                        loaiThongBao = t.LoaiThongBao,
+                        ghiChu       = t.NoiDung,
+                        ngayGui      = t.NgayTao.ToString("dd/MM/yyyy HH:mm"),
+                        diaChi       = bai == null ? "" :
+                                       bai.DiaChiChiTiet
+                                       + (bai.XaPhuong != null ? ", " + bai.XaPhuong.TenXa : "")
+                                       + (bai.XaPhuong?.QuanHuyen != null ? ", " + bai.XaPhuong.QuanHuyen.TenHuyen : "")
+                                       + (bai.XaPhuong?.QuanHuyen?.TinhThanh != null ? ", " + bai.XaPhuong.QuanHuyen.TinhThanh.TenTinh : ""),
+                        sucChua      = bai?.SucChua ?? 0,
+                        dienTich     = bai?.DienTich ?? 0,
+                        daDoc        = t.DaDoc,
+                        duongDan     = t.DuongDan
+                    };
+                }).ToList();
+
+                return Json(new { success = true, data = data });
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[ERROR] GetNotifications failed: {ex.Message}");
+                return Json(new { success = false, message = ex.Message });
+            }
         }
 
         [HttpPost("MarkNotificationRead")]
