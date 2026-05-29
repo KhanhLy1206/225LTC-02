@@ -118,6 +118,17 @@ namespace WebApplication1.Controllers
             return View(model);
         }
 
+        // GET: /Account/RegisterOwner
+        [HttpGet]
+        public IActionResult RegisterOwner()
+        {
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                return RedirectUserBasedOnRole();
+            }
+            return View();
+        }
+
         // GET: /Account/Logout
         [HttpGet]
         public async Task<IActionResult> Logout()

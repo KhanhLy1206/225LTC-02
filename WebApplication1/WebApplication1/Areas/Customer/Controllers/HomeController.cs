@@ -478,14 +478,13 @@ namespace WebApplication1.Areas.Customer.Controllers
                 }
                 vnpay.AddRequestData("vnp_IpAddr", ipAddress);
                 vnpay.AddRequestData("vnp_Locale", "vn");
-                
                 // Normalize OrderInfo to safe plain English characters to avoid signature mismatch
                 string orderInfo = $"Thanh toan dat cho do xe {spot.TenChoDau} tai bai {lot.ID}";
                 vnpay.AddRequestData("vnp_OrderInfo", orderInfo);
                 vnpay.AddRequestData("vnp_OrderType", "other");
                 vnpay.AddRequestData("vnp_ReturnUrl", returnUrl);
-                vnpay.AddRequestData("vnp_TxnRef", payment.ID.ToString()); // Use Payment ID as VNPAY reference
-
+                vnpay.AddRequestData("vnp_TxnRef", $"{payment.ID}_{DateTime.Now.ToString("yyyyMMddHHmmss")}"); // Use Payment ID with unique timestamp suffix to avoid VNPAY Sandbox reference collision
+                
                 string paymentUrl = vnpay.CreateRequestUrl(baseUrl, hashSecret);
 
                 System.Console.WriteLine("======================== DEBUG VNPAY REQUEST ========================");
@@ -532,7 +531,20 @@ namespace WebApplication1.Areas.Customer.Controllers
 
             // Extract essential parameters
             string txnRefVal = vnpay.GetResponseData("vnp_TxnRef");
-            if (string.IsNullOrEmpty(txnRefVal) || !int.TryParse(txnRefVal, out int paymentId))
+            int paymentId = 0;
+            if (!string.IsNullOrEmpty(txnRefVal))
+            {
+                if (txnRefVal.Contains("_"))
+                {
+                    int.TryParse(txnRefVal.Split('_')[0], out paymentId);
+                }
+                else
+                {
+                    int.TryParse(txnRefVal, out paymentId);
+                }
+            }
+
+            if (paymentId == 0)
             {
                 TempData["ErrorMessage"] = "Mã tham chiếu thanh toán không hợp lệ.";
                 return RedirectToAction("Bookings");

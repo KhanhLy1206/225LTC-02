@@ -385,6 +385,22 @@ html, body {
   display: block;
 }
 
+/* Custom Checkbox Styling */
+.form-check-input {
+  cursor: pointer;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  transition: var(--transition-fast);
+}
+.form-check-input:checked {
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+}
+.form-check-input:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 0.25rem var(--primary-glow) !important;
+}
+
 /* Dashboard Layout Custom Styles */
 .dashboard-wrapper {
   display: flex;
