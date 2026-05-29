@@ -261,6 +261,58 @@
         </div>
     </div>
 
+    <!-- Modal Phản Hồi Đề Xuất Hoa Hồng -->
+    <div class="modal fade" id="modalPhanHoiHoaHong" tabindex="-1" style="backdrop-filter:blur(5px)">
+        <div class="modal-dialog modal-dialog-centered text-dark">
+            <div class="modal-content border-0 shadow" style="border-radius:16px;overflow:hidden">
+                <div class="modal-header border-0 pb-0" style="padding:20px 24px">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="width:44px;height:44px;border-radius:12px;background:#ede9fe;color:#7c3aed;display:flex;align-items:center;justify-content:center;font-size:1.2rem">
+                            <i class="fa-solid fa-percent"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title mb-0 fw-bold">Đề Xuất Thay Đổi Hoa Hồng</h5>
+                            <small class="text-muted">Từ Admin hệ thống</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body px-4 py-3">
+                    <div class="p-3 rounded-3 mb-3" style="background:#f8fafc;border:1.5px solid #e5e7eb">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted" style="font-size:.8rem">Tỷ lệ hiện tại</span>
+                            <span class="fw-bold text-dark" id="phanHoi_TyLeCu">—</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted" style="font-size:.8rem">Tỷ lệ đề xuất mới</span>
+                            <span class="fw-bold text-primary fs-5" id="phanHoi_TyLeMoi">—</span>
+                        </div>
+                        <hr class="my-2 opacity-25" />
+                        <p class="mb-0 text-dark" style="font-size:.88rem" id="phanHoi_NoiDung"></p>
+                    </div>
+                    <div id="phanHoi_TuChoiBox" style="display:none">
+                        <label class="form-label fw-semibold" style="font-size:.88rem">
+                            Lý do từ chối <span class="text-danger">*</span>
+                        </label>
+                        <textarea id="phanHoi_LyDo" class="form-control" rows="3"
+                                  placeholder="Nhập lý do bạn không đồng ý với tỷ lệ này..."
+                                  style="border-radius:10px;font-size:.88rem"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 px-4 pb-4 gap-2">
+                    <button type="button" class="btn btn-outline-danger flex-fill py-2"
+                            id="btnTuChoiHoaHong" style="border-radius:10px">
+                        <i class="fa-solid fa-xmark me-1"></i>Từ Chối
+                    </button>
+                    <button type="button" class="btn btn-success flex-fill py-2"
+                            id="btnChapNhanHoaHong" style="border-radius:10px">
+                        <i class="fa-solid fa-check me-1"></i>Chấp Nhận
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Admin Approval Notification JavaScript -->
     <script>
         $(document).ready(function() {
@@ -328,6 +380,16 @@
                             icon = 'fa-rotate text-info';
                             statusClass = 'text-info bg-info bg-opacity-10';
                             break;
+                        case 'DeXuatHoaHong':
+                            icon = 'fa-percent text-purple';
+                            statusClass = 'text-purple bg-purple bg-opacity-10';
+                            statusText = 'Đề xuất hoa hồng';
+                            break;
+                        case 'HoaHongApDung':
+                            icon = 'fa-circle-check text-success';
+                            statusClass = 'text-success bg-success bg-opacity-10';
+                            statusText = 'Hoa hồng đã áp dụng';
+                            break;
                     }
 
                     const itemHtml = `
@@ -368,6 +430,34 @@
                 const item = loadedNotifications.find(x => x.id === id);
                 if (!item) return;
 
+                // ── Đề xuất hoa hồng → mở modal phản hồi riêng ──────────────
+                if (item.loaiThongBao === 'DeXuatHoaHong') {
+                    $.getJSON('/Owner/BaiXe/GetDeXuatHoaHong')
+                        .done(function(resp) {
+                            const deXuat = resp.data?.find(x => x.id === id);
+                            if (!deXuat) {
+                                // Đã phản hồi rồi, chỉ hiện modal thông thường
+                                moModalThongThuong(item);
+                                return;
+                            }
+                            currentDeXuatId = id;
+                            dangTuChoi = false;
+                            document.getElementById('phanHoi_TyLeCu').textContent = deXuat.tyLeCu + '%';
+                            document.getElementById('phanHoi_TyLeMoi').textContent = deXuat.tyLeMoi + '%';
+                            document.getElementById('phanHoi_NoiDung').textContent = deXuat.noiDung;
+                            document.getElementById('phanHoi_TuChoiBox').style.display = 'none';
+                            document.getElementById('phanHoi_LyDo').value = '';
+                            document.getElementById('btnTuChoiHoaHong').innerHTML = '<i class="fa-solid fa-xmark me-1"></i>Từ Chối';
+                            document.getElementById('btnChapNhanHoaHong').disabled = false;
+                            new bootstrap.Modal(document.getElementById('modalPhanHoiHoaHong')).show();
+                        });
+                    return;
+                }
+
+                moModalThongThuong(item);
+            };
+
+            function moModalThongThuong(item) {
                 // Populate modal
                 $('#notif-lotName').text(item.tieuDe || item.tenBai);
                 $('#notif-lotAddress').text(item.diaChi || '—');
@@ -378,7 +468,7 @@
                 const statusEl = $('#notif-status');
                 statusEl.text(item.trangThai || '—');
                 statusEl.removeClass().addClass('badge px-3 py-1');
-                const successTypes = ['DuyetBai', 'MoKhoaBai'];
+                const successTypes = ['DuyetBai', 'MoKhoaBai', 'HoaHongApDung'];
                 const dangerTypes  = ['TuChoiBai', 'KhoaBai'];
                 if (successTypes.includes(item.loaiThongBao)) {
                     statusEl.addClass('bg-success text-white');
@@ -388,11 +478,12 @@
                     statusEl.addClass('bg-warning text-dark');
                 }
 
-                $('#notif-feedback').text(item.ghiChu || 'Không có nội dung chi tiết.');
+                // Lọc bỏ phần metadata |TyLeMoi=... khỏi nội dung hiển thị
+                const noiDungHienThi = (item.ghiChu || '').split('|')[0].trim();
+                $('#notif-feedback').text(noiDungHienThi || 'Không có nội dung chi tiết.');
 
-                // Đánh dấu đã đọc trên server
                 if (!item.daDoc) {
-                    $.post('/Owner/BaiXe/MarkNotificationRead', { id: id })
+                    $.post('/Owner/BaiXe/MarkNotificationRead', { id: item.id })
                         .done(function() {
                             item.daDoc = true;
                             renderNotifications();
@@ -401,7 +492,57 @@
 
                 const modal = new bootstrap.Modal(document.getElementById('notificationDetailModal'));
                 modal.show();
-            };
+            }
+
+            // ── Phản hồi hoa hồng ────────────────────────────────────────────
+            let currentDeXuatId = null;
+            let dangTuChoi = false;
+
+            document.getElementById('btnTuChoiHoaHong').addEventListener('click', function() {
+                if (!dangTuChoi) {
+                    dangTuChoi = true;
+                    document.getElementById('phanHoi_TuChoiBox').style.display = 'block';
+                    this.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i>Gửi Từ Chối';
+                    document.getElementById('btnChapNhanHoaHong').disabled = true;
+                } else {
+                    const lyDo = document.getElementById('phanHoi_LyDo').value.trim();
+                    if (!lyDo) {
+                        document.getElementById('phanHoi_LyDo').focus();
+                        document.getElementById('phanHoi_LyDo').style.borderColor = '#dc2626';
+                        return;
+                    }
+                    guiPhanHoi(false, lyDo);
+                }
+            });
+
+            document.getElementById('btnChapNhanHoaHong').addEventListener('click', function() {
+                guiPhanHoi(true, '');
+            });
+
+            function guiPhanHoi(chapNhan, lyDo) {
+                if (!currentDeXuatId) return;
+                $.post('/Owner/BaiXe/PhanHoiHoaHong', {
+                    idThongBao: currentDeXuatId,
+                    chapNhan: chapNhan,
+                    lyDo: lyDo,
+                    __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val()
+                }).done(function(resp) {
+                    bootstrap.Modal.getInstance(document.getElementById('modalPhanHoiHoaHong'))?.hide();
+                    if (resp.success) {
+                        loadNotifications();
+                        showToast(chapNhan ? 'Đã chấp nhận đề xuất hoa hồng.' : 'Đã gửi phản hồi từ chối.', chapNhan ? 'success' : 'warning');
+                    }
+                });
+            }
+
+            function showToast(msg, type) {
+                const colors = { success: '#16a34a', warning: '#ca8a04', danger: '#dc2626' };
+                const toast = document.createElement('div');
+                toast.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:9999;background:${colors[type]||'#374151'};color:#fff;padding:12px 20px;border-radius:12px;font-size:.88rem;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.2);transition:opacity .3s`;
+                toast.textContent = msg;
+                document.body.appendChild(toast);
+                setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+            }
 
             // Mark all notifications as read
             window.markAllNotificationsAsRead = function() {
