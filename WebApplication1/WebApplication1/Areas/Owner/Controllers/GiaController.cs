@@ -57,7 +57,7 @@ namespace WebApplication1.Areas.Owner.Controllers
             int chuBaiId = GetChuBaiId(ownerId);
 
             var baiXes = await _context.BaiXes
-                .Where(b => b.IDChuBai == chuBaiId)
+                .Where(b => b.IDChuBai == chuBaiId && b.TrangThai != "Từ chối")
                 .Select(b => new { b.ID, b.TenBai, b.TrangThai })
                 .ToListAsync();
 

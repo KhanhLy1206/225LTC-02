@@ -40,7 +40,7 @@ namespace WebApplication1.Areas.Owner.Controllers
             await _context.AutoReleaseExpiredBookingsAsync();
 
             var baiXes = await _context.BaiXes
-                .Where(b => b.IDChuBai == chuBaiId)
+                .Where(b => b.IDChuBai == chuBaiId && b.TrangThai != "Từ chối")
                 .ToListAsync();
 
             ViewBag.BaiXes = baiXes;
@@ -68,7 +68,10 @@ namespace WebApplication1.Areas.Owner.Controllers
                 return Forbid();
             }
 
-            var baiXeIds = chuBai.BaiXes.Select(b => b.ID).ToList();
+            var baiXeIds = chuBai.BaiXes
+                .Where(b => b.TrangThai != "Từ chối")
+                .Select(b => b.ID)
+                .ToList();
             if (baiXeId.HasValue)
             {
                 if (!baiXeIds.Contains(baiXeId.Value)) return Forbid();
