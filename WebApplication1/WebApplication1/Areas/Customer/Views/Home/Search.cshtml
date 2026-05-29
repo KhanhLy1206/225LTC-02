@@ -260,11 +260,44 @@
                                 }
                             </div>
 
+                            <!-- Rental Type Selection -->
+                            <div class="mb-3">
+                                <label class="auth-label">Hình Thức Thuê</label>
+                                <select class="form-select bg-dark text-white border-secondary" id="modalRentalType" required style="border-radius:10px;">
+                                    <option value="hour">Theo giờ</option>
+                                    <option value="overnight">Qua đêm</option>
+                                    <option value="month">Theo tháng (30 ngày)</option>
+                                </select>
+                            </div>
+
                             <!-- Selected Spot Info -->
                             <div class="mb-3">
                                 <label class="auth-label">Vị Trí Đã Chọn</label>
                                 <div class="p-2 bg-dark rounded border border-info text-info text-center fw-bold font-monospace" id="selectedSpotDisplay" style="font-size: 1.1rem;">
                                     -- Chưa Chọn Vị Trí --
+                                </div>
+                            </div>
+
+                            <!-- Detailed pricing applied to slot -->
+                            <div class="mb-3 d-none" id="pricingDetailsBox">
+                                <label class="auth-label">Bảng Giá Áp Dụng Cho Vị Trí</label>
+                                <div class="p-3 bg-dark rounded border border-secondary border-opacity-25" style="font-size: 0.9rem;">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="text-muted small"><i class="fa-solid fa-clock text-primary me-1"></i> Giá theo giờ:</span>
+                                        <span class="fw-bold text-white" id="detailGiaTheoGio">0đ</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="text-muted small"><i class="fa-solid fa-moon text-warning me-1"></i> Giá qua đêm:</span>
+                                        <span class="fw-bold text-white" id="detailGiaQuaDem">0đ</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="text-muted small"><i class="fa-solid fa-calendar-days text-success me-1"></i> Giá theo tháng:</span>
+                                        <span class="fw-bold text-white" id="detailGiaTheoThang">0đ</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted small"><i class="fa-solid fa-percent text-info me-1"></i> Tỷ lệ đặt cọc:</span>
+                                        <span class="fw-bold text-white" id="detailGiaDatCho">0%</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -282,7 +315,7 @@
                             <!-- Payment Pricing calculation display -->
                             <div class="bg-dark rounded p-3 mb-4 border border-secondary border-opacity-10">
                                 <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-muted small">Đơn giá:</span>
+                                    <span class="text-muted small">Đơn giá áp dụng:</span>
                                     <span class="fw-semibold text-white small" id="calcPricePerHour">0đ/giờ</span>
                                 </div>
                                 <div class="d-flex justify-content-between mb-2">
@@ -291,7 +324,7 @@
                                 </div>
                                 <hr class="border-secondary opacity-25 my-2" />
                                 <div class="d-flex justify-content-between">
-                                    <strong class="text-white">Tổng cộng:</strong>
+                                    <strong class="text-white">Tổng tiền cần thanh toán:</strong>
                                     <strong class="text-secondary fs-5" id="calcTotalPayment">0đ</strong>
                                 </div>
                             </div>
@@ -342,6 +375,7 @@
             let activeLotMotoPrice = 0;
             let currentAreasData = [];
             let selectedAreaId = null;
+            let currentPricing = null;
 
             // Set default date times helper
             function setDefaultDateTimes() {
@@ -384,7 +418,62 @@
                 loadVisualLotDetails();
             });
 
-            $('#modalStartTime, #modalEndTime').on('input change', function() {
+            // Adjust end time dynamically if rental type changes
+            $('#modalRentalType').change(function() {
+                const type = $(this).val();
+                if (type === 'month') {
+                    const startVal = $('#modalStartTime').val();
+                    if (startVal) {
+                        const startDate = new Date(startVal);
+                        const endDate = new Date(startDate.getTime() + (30 * 24 * 60 * 60 * 1000));
+                        let offset = endDate.getTimezoneOffset() * 60000;
+                        let endLocal = new Date(endDate.getTime() - offset);
+                        $('#modalEndTime').val(endLocal.toISOString().slice(0, 16));
+                    }
+                    $('#modalEndTime').attr('readonly', true).css('opacity', '0.7');
+                } else if (type === 'overnight') {
+                    const startVal = $('#modalStartTime').val();
+                    if (startVal) {
+                        const startDate = new Date(startVal);
+                        const endDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + 1, 8, 0, 0);
+                        let offset = endDate.getTimezoneOffset() * 60000;
+                        let endLocal = new Date(endDate.getTime() - offset);
+                        $('#modalEndTime').val(endLocal.toISOString().slice(0, 16));
+                    }
+                    $('#modalEndTime').removeAttr('readonly').css('opacity', '1');
+                } else {
+                    $('#modalEndTime').removeAttr('readonly').css('opacity', '1');
+                }
+                recalculatePrice();
+            });
+
+            // Adjust end time if start time changes under monthly/overnight mode
+            $('#modalStartTime').on('input change', function() {
+                const type = $('#modalRentalType').val();
+                if (type === 'month') {
+                    const startVal = $(this).val();
+                    if (startVal) {
+                        const startDate = new Date(startVal);
+                        const endDate = new Date(startDate.getTime() + (30 * 24 * 60 * 60 * 1000));
+                        let offset = endDate.getTimezoneOffset() * 60000;
+                        let endLocal = new Date(endDate.getTime() - offset);
+                        $('#modalEndTime').val(endLocal.toISOString().slice(0, 16));
+                    }
+                } else if (type === 'overnight') {
+                    const startVal = $(this).val();
+                    if (startVal) {
+                        const startDate = new Date(startVal);
+                        const endDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + 1, 8, 0, 0);
+                        let offset = endDate.getTimezoneOffset() * 60000;
+                        let endLocal = new Date(endDate.getTime() - offset);
+                        $('#modalEndTime').val(endLocal.toISOString().slice(0, 16));
+                    }
+                }
+                recalculatePrice();
+                loadVisualLotDetails();
+            });
+
+            $('#modalEndTime').on('input change', function() {
                 recalculatePrice();
                 loadVisualLotDetails();
             });
@@ -409,6 +498,8 @@
                     }, function(response) {
                         if (response.success && response.areas.length > 0) {
                             currentAreasData = response.areas;
+                            currentPricing = response.pricing; // Store active pricing
+
                             $areaContainer.empty();
                             
                             response.areas.forEach(function(area, idx) {
@@ -422,6 +513,17 @@
                                 `);
                             });
 
+                            // Display pricing details
+                            if (response.pricing) {
+                                $('#detailGiaTheoGio').text(response.pricing.giaTheoGio.toLocaleString('vi-VN') + "đ/giờ");
+                                $('#detailGiaQuaDem').text(response.pricing.giaQuaDem.toLocaleString('vi-VN') + "đ/đêm");
+                                $('#detailGiaTheoThang').text(response.pricing.giaTheoThang.toLocaleString('vi-VN') + "đ/tháng");
+                                $('#detailGiaDatCho').text(response.pricing.giaDatCho + "%");
+                                $('#pricingDetailsBox').removeClass('d-none');
+                            } else {
+                                $('#pricingDetailsBox').addClass('d-none');
+                            }
+
                             // Render spots for selected Area
                             renderVisualSpots();
                             recalculatePrice();
@@ -429,6 +531,8 @@
                             $areaContainer.html('<span class="small text-danger">Bãi xe không hỗ trợ loại phương tiện này!</span>');
                             $spotGrid.html('<div class="text-center w-100 py-3 text-danger">Không tìm thấy vị trí phù hợp.</div>');
                             currentAreasData = [];
+                            currentPricing = null;
+                            $('#pricingDetailsBox').addClass('d-none');
                             recalculatePrice();
                         }
                     });
@@ -513,16 +617,17 @@
                 
                 if (!$selectedOpt.length || !$selectedOpt.val()) {
                     $('#calcPricePerHour').text("Chưa chọn xe");
+                    $('#calcDuration').text("0 giờ");
                     $('#calcTotalPayment').text("0đ");
                     $('#btnConfirmBooking').attr('disabled', true);
                     return;
                 }
 
-                const selectedVehicleType = $selectedOpt.data('type');
                 const startTimeVal = $('#modalStartTime').val();
                 const endTimeVal = $('#modalEndTime').val();
 
                 if (!startTimeVal || !endTimeVal) {
+                    $('#calcPricePerHour').text("0đ/giờ");
                     $('#calcDuration').text("0 giờ");
                     $('#calcTotalPayment').text("0đ");
                     $('#btnConfirmBooking').attr('disabled', true);
@@ -535,25 +640,12 @@
                 const diffMs = endDt - startDt;
                 const duration = diffMs / (1000 * 60 * 60); // duration in hours
 
-                let rate = (selectedVehicleType === 'car') ? activeLotCarPrice : activeLotMotoPrice;
-
-                if (rate === 0) {
-                    $('#calcPricePerHour').text("Không hỗ trợ");
-                    $('#calcTotalPayment').text("0đ");
-                    $('#btnConfirmBooking').attr('disabled', true);
-                    return;
-                }
-
-                $('#calcPricePerHour').text(rate.toLocaleString('vi-VN') + "đ/giờ");
-
                 if (duration <= 0) {
                     $('#calcDuration').text("Thời gian không hợp lệ");
                     $('#calcTotalPayment').text("0đ");
                     $('#btnConfirmBooking').attr('disabled', true);
                     return;
                 }
-
-                const total = Math.ceil(rate * duration);
 
                 // Format duration nicely (e.g. 2 ngày 5 giờ or 3.5 giờ)
                 let durationText = "";
@@ -566,7 +658,19 @@
                 }
 
                 $('#calcDuration').text(durationText);
-                $('#calcTotalPayment').text(total.toLocaleString('vi-VN') + "đ");
+
+                if (!currentPricing) {
+                    $('#calcPricePerHour').text("Không tìm thấy bảng giá");
+                    $('#calcTotalPayment').text("0đ");
+                    $('#btnConfirmBooking').attr('disabled', true);
+                    return;
+                }
+
+                const hourlyRate = currentPricing.giaTheoGio;
+                const totalRent = Math.ceil(hourlyRate * duration);
+
+                $('#calcPricePerHour').text(hourlyRate.toLocaleString('vi-VN') + "đ/giờ");
+                $('#calcTotalPayment').text(totalRent.toLocaleString('vi-VN') + "đ");
 
                 // Enable confirm button only if spot selected and dates are valid
                 if (spotId && duration > 0) {
@@ -582,6 +686,7 @@
                 const bienSoXe = $('#modalSelectVehicle').val();
                 const startTime = $('#modalStartTime').val();
                 const endTime = $('#modalEndTime').val();
+                const rentalType = $('#modalRentalType').val();
                 const totalText = $('#calcTotalPayment').text();
 
                 if (!spotId) {
@@ -601,7 +706,8 @@
                         spotId: spotId,
                         bienSoXe: bienSoXe,
                         startTime: startTime,
-                        endTime: endTime
+                        endTime: endTime,
+                        rentalType: rentalType
                     },
                     success: function(response) {
                         if (response.success) {

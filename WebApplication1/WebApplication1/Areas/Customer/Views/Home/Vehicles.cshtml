@@ -38,7 +38,7 @@
                     <div class="glass-card position-relative @(isDefault ? "border-primary" : "")">
                         @if (isDefault)
                         {
-                            <span class="badge bg-primary position-absolute top-0 end-0 m-3 btn-default-badge">MẶC ĐỊNH MỞ BARIE</span>
+                            <span class="badge bg-primary position-absolute top-0 end-0 m-3 btn-default-badge">MẶC ĐỊNH</span>
                         }
                         <div class="d-flex align-items-center gap-4">
                             <div class="rounded-circle bg-dark border border-secondary d-flex align-items-center justify-content-center" style="width: 70px; height: 70px; font-size: 2.2rem; color: @colorTheme;">
@@ -185,7 +185,7 @@
                 
                 const $card = $(this).closest('.glass-card');
                 $card.addClass('border-primary');
-                $card.append('<span class="badge bg-primary position-absolute top-0 end-0 m-3 btn-default-badge">MẶC ĐỊNH MỞ BARIE</span>');
+                $card.append('<span class="badge bg-primary position-absolute top-0 end-0 m-3 btn-default-badge">MẶC ĐỊNH</span>');
                 
                 // Add button back to the old default
                 $('.vehicle-card-item').each(function() {
@@ -199,7 +199,7 @@
                 });
                 
                 $(this).remove();
-                alert('Đã thiết lập xe này làm phương tiện mở khóa mặc định!');
+                alert('Đã thiết lập xe này làm phương tiện mặc định!');
             });
 
             // Xóa xe khỏi danh sách
