@@ -145,6 +145,7 @@ namespace WebApplication1.Areas.Owner.Controllers
             await _hubContext.Clients.Group($"Session_{sessionId}").SendAsync("ReceiveMessage", new
             {
                 id = message.ID,
+                sessionId = sessionId,
                 senderId = message.IDTaiKhoanGui,
                 content = message.NoiDung,
                 time = message.NgayGui.ToString("HH:mm")
