@@ -204,6 +204,12 @@
                 <i class="fa-solid fa-chart-line"></i> Doanh Thu
             </a>
         </div>
+        <div class="nav-item-admin">
+            <a href="/Admin/HoaHong" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "HoaHong" ? "active" : "")">
+                <i class="fa-solid fa-percent"></i> Hoa Hồng
+                <span class="badge-menu badge bg-danger d-none" id="badgePhanHoiHoaHong"></span>
+            </a>
+        </div>
 
         <div class="menu-label">Hệ Thống</div>
         <div class="nav-item-admin">
@@ -230,6 +236,27 @@
 
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Badge đếm phản hồi hoa hồng chưa đọc
+(function pollPhanHoiBadge() {
+    function update() {
+        fetch('/Admin/HoaHong/SoPhanHoiChuaDoc')
+            .then(r => r.json())
+            .then(data => {
+                const badge = document.getElementById('badgePhanHoiHoaHong');
+                if (!badge) return;
+                if (data.count > 0) {
+                    badge.textContent = data.count;
+                    badge.classList.remove('d-none');
+                } else {
+                    badge.classList.add('d-none');
+                }
+            }).catch(() => {});
+    }
+    update();
+    setInterval(update, 30000); // cập nhật mỗi 30 giây
+})();
+</script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

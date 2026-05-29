@@ -201,8 +201,11 @@ namespace WebApplication1.Areas.Admin.Controllers
         // ── DUYỆT ĐƠN ────────────────────────────────────────────────────────
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DuyetDon(int id)
+        public async Task<IActionResult> DuyetDon(int id, decimal phanTramChietKhau = 10m)
         {
+            if (phanTramChietKhau < 0 || phanTramChietKhau > 100)
+                phanTramChietKhau = 10m;
+
             var baiXe = await _db.BaiXes
                 .Include(b => b.ChuBaiXe)
                 .FirstOrDefaultAsync(b => b.ID == id);
@@ -210,6 +213,7 @@ namespace WebApplication1.Areas.Admin.Controllers
             if (baiXe != null && baiXe.TrangThai == "Chờ duyệt")
             {
                 baiXe.TrangThai = "Hoạt động";
+                baiXe.PhanTramChietKhau = phanTramChietKhau;
                 baiXe.GhiChu = null;
 
                 if (baiXe.ChuBaiXe != null)
@@ -217,14 +221,14 @@ namespace WebApplication1.Areas.Admin.Controllers
                     {
                         IDTaiKhoan   = baiXe.ChuBaiXe.IDTaiKhoan,
                         TieuDe       = "✅ Bãi xe đã được duyệt",
-                        NoiDung      = $"Bãi xe \"{baiXe.TenBai}\" của bạn đã được Admin phê duyệt và hiện đang hoạt động trên hệ thống.",
+                        NoiDung      = $"Bãi xe \"{baiXe.TenBai}\" của bạn đã được Admin phê duyệt và hiện đang hoạt động trên hệ thống. Tỷ lệ hoa hồng áp dụng: {phanTramChietKhau}%.",
                         LoaiThongBao = "DuyetBai",
                         DuongDan     = "/Owner/BaiXe",
                         NgayTao      = DateTime.Now
                     });
 
                 await _db.SaveChangesAsync();
-                TempData["Success"] = $"Đã duyệt bãi \"{baiXe.TenBai}\" thành công.";
+                TempData["Success"] = $"Đã duyệt bãi \"{baiXe.TenBai}\" với tỷ lệ hoa hồng {phanTramChietKhau}%.";
             }
             return RedirectToAction(nameof(Index), new { tab = "choduyet" });
         }

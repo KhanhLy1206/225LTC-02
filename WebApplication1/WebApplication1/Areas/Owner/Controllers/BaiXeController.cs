@@ -319,5 +319,134 @@ namespace WebApplication1.Areas.Owner.Controllers
             await _context.SaveChangesAsync();
             return Json(new { success = true });
         }
+
+        // ── PHẢN HỒI ĐỀ XUẤT HOA HỒNG (Owner → Admin) ──────────────────────
+        [HttpPost("PhanHoiHoaHong")]
+        public async Task<IActionResult> PhanHoiHoaHong(int idThongBao, bool chapNhan, string? lyDo)
+        {
+            int ownerId = GetCurrentOwnerId();
+            if (ownerId == 0) return Json(new { success = false, message = "Chưa đăng nhập." });
+
+            // Tìm thông báo đề xuất gốc
+            var tbDeXuat = await _context.ThongBaos
+                .FirstOrDefaultAsync(t => t.ID == idThongBao && t.IDTaiKhoan == ownerId
+                                       && t.LoaiThongBao == "DeXuatHoaHong");
+
+            if (tbDeXuat == null)
+                return Json(new { success = false, message = "Không tìm thấy đề xuất." });
+
+            // Đánh dấu đã đọc thông báo gốc
+            tbDeXuat.DaDoc = true;
+
+            // Parse IDBai và TyLeMoi từ NoiDung (định dạng: ..."|TyLeMoi=12|TyLeCu=10|IDBai=5")
+            int idBai = 0;
+            decimal tyLeMoi = 0;
+            decimal tyLeCu = 0;
+            var noiDung = tbDeXuat.NoiDung ?? "";
+            foreach (var part in noiDung.Split('|'))
+            {
+                if (part.StartsWith("TyLeMoi="))
+                    decimal.TryParse(part.Replace("TyLeMoi=", ""),
+                        System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out tyLeMoi);
+                if (part.StartsWith("TyLeCu="))
+                    decimal.TryParse(part.Replace("TyLeCu=", ""),
+                        System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture, out tyLeCu);
+                if (part.StartsWith("IDBai="))
+                    int.TryParse(part.Replace("IDBai=", ""), out idBai);
+            }
+
+            // Lấy tài khoản Admin để gửi thông báo ngược lại
+            var adminTk = await _context.Admins
+                .Include(a => a.TaiKhoan)
+                .FirstOrDefaultAsync();
+
+            var bai = await _context.BaiXes
+                .Include(b => b.ChuBaiXe)
+                .FirstOrDefaultAsync(b => b.ID == idBai);
+
+            var tenBai = bai?.TenBai ?? $"Bãi #{idBai}";
+            var tenChu = bai?.ChuBaiXe?.TenChuBai ?? "Chủ bãi";
+
+            if (adminTk != null)
+            {
+                var loai = chapNhan ? "PhanHoiHoaHong_ChapNhan" : "PhanHoiHoaHong_TuChoi";
+                var icon = chapNhan ? "✅" : "❌";
+                var trangThaiText = chapNhan ? "Chấp nhận" : "Từ chối";
+
+                _context.ThongBaos.Add(new ThongBao
+                {
+                    IDTaiKhoan   = adminTk.IDTaiKhoan,
+                    TieuDe       = $"{icon} {tenChu} {trangThaiText.ToLower()} đề xuất hoa hồng {tyLeMoi}% — {tenBai}",
+                    NoiDung      = chapNhan
+                        ? $"Chủ bãi \"{tenChu}\" đã chấp nhận tỷ lệ hoa hồng mới {tyLeMoi}% cho bãi xe \"{tenBai}\"."
+                        : $"Chủ bãi \"{tenChu}\" từ chối tỷ lệ hoa hồng {tyLeMoi}% cho bãi xe \"{tenBai}\"."
+                          + (string.IsNullOrWhiteSpace(lyDo) ? "" : $"\nLý do: {lyDo}"),
+                    LoaiThongBao = loai,
+                    // Truyền thông tin để Admin áp dụng khi đọc
+                    DuongDan     = $"/Admin/HoaHong?bai={idBai}&tylemoi={tyLeMoi.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
+                    NgayTao      = DateTime.Now
+                });
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Json(new
+            {
+                success = true,
+                message = chapNhan
+                    ? "Đã chấp nhận đề xuất. Admin sẽ được thông báo."
+                    : "Đã gửi phản hồi từ chối đến Admin."
+            });
+        }
+
+        // ── API: lấy danh sách đề xuất hoa hồng chưa phản hồi ───────────────
+        [HttpGet("GetDeXuatHoaHong")]
+        public async Task<IActionResult> GetDeXuatHoaHong()
+        {
+            int ownerId = GetCurrentOwnerId();
+            if (ownerId == 0) return Json(new { success = false });
+
+            var deXuats = await _context.ThongBaos
+                .Where(t => t.IDTaiKhoan == ownerId
+                         && t.LoaiThongBao == "DeXuatHoaHong"
+                         && !t.DaDoc)
+                .OrderByDescending(t => t.NgayTao)
+                .ToListAsync();
+
+            var data = deXuats.Select(t =>
+            {
+                decimal tyLeMoi = 0, tyLeCu = 0;
+                int idBai = 0;
+                foreach (var part in (t.NoiDung ?? "").Split('|'))
+                {
+                    if (part.StartsWith("TyLeMoi="))
+                        decimal.TryParse(part.Replace("TyLeMoi=", ""),
+                            System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture, out tyLeMoi);
+                    if (part.StartsWith("TyLeCu="))
+                        decimal.TryParse(part.Replace("TyLeCu=", ""),
+                            System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture, out tyLeCu);
+                    if (part.StartsWith("IDBai="))
+                        int.TryParse(part.Replace("IDBai=", ""), out idBai);
+                }
+                // Lấy nội dung hiển thị (bỏ phần metadata sau dấu |)
+                var noiDungHienThi = (t.NoiDung ?? "").Split('|')[0].Trim();
+                return new
+                {
+                    id           = t.ID,
+                    tieuDe       = t.TieuDe,
+                    noiDung      = noiDungHienThi,
+                    tyLeMoi,
+                    tyLeCu,
+                    idBai,
+                    ngayTao      = t.NgayTao.ToString("dd/MM/yyyy HH:mm")
+                };
+            }).ToList();
+
+            return Json(new { success = true, data, count = data.Count });
+        }
     }
 }
