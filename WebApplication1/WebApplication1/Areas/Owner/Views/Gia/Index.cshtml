@@ -306,7 +306,7 @@
 
 <div class="d-flex flex-column mb-4">
     <h1 class="owner-page-title">Cấu hình bảng giá</h1>
-    <p class="owner-page-subtitle">Chọn bãi đỗ xe, khu vực và loại xe để bắt đầu điều chỉnh đơn giá.</p>
+    <p class="owner-page-subtitle">Chọn bãi đỗ xe và loại xe để bắt đầu điều chỉnh đơn giá.</p>
 </div>
 
 <!-- Prerequisite Selection Card -->
@@ -314,7 +314,7 @@
     <div class="card-body p-4">
         <div class="row align-items-center g-3">
             <!-- Bãi xe selection -->
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-6">
                 <div class="d-flex flex-column gap-1">
                     <label class="small fw-bold text-muted text-uppercase mb-1" for="lotSelect"><i class="fa-solid fa-warehouse text-primary me-1"></i> Bãi xe:</label>
                     <select class="form-select rounded-3 border-light shadow-sm py-2.5" id="lotSelect" style="border: 1px solid #cbd5e1 !important;">
@@ -331,21 +331,12 @@
                     </select>
                 </div>
             </div>
-            <!-- Khu vực selection -->
-            <div class="col-12 col-md-4">
-                <div class="d-flex flex-column gap-1">
-                    <label class="small fw-bold text-muted text-uppercase mb-1" for="areaSelect"><i class="fa-solid fa-layer-group text-primary me-1"></i> Khu vực:</label>
-                    <select class="form-select rounded-3 border-light shadow-sm py-2.5" id="areaSelect" disabled style="border: 1px solid #cbd5e1 !important;">
-                        <option value="" disabled selected>-- Chọn bãi xe trước --</option>
-                    </select>
-                </div>
-            </div>
             <!-- Loại xe selection -->
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-6">
                 <div class="d-flex flex-column gap-1">
                     <label class="small fw-bold text-muted text-uppercase mb-1" for="vehicleTypeSelect"><i class="fa-solid fa-car text-primary me-1"></i> Loại xe:</label>
                     <select class="form-select rounded-3 border-light shadow-sm py-2.5" id="vehicleTypeSelect" disabled style="border: 1px solid #cbd5e1 !important;">
-                        <option value="" disabled selected>-- Chọn khu vực trước --</option>
+                        <option value="" disabled selected>-- Chọn bãi xe trước --</option>
                     </select>
                 </div>
             </div>
@@ -398,7 +389,7 @@
             <i class="fa-solid fa-square-parking"></i>
         </div>
         <h4 class="fw-bold text-dark mb-2">Yêu cầu chọn thông tin bãi đỗ</h4>
-        <p class="text-muted mx-auto mb-0" style="max-width: 480px; font-size: 0.95rem;">Bạn cần chọn bãi đỗ xe, khu vực và loại xe tương ứng trước khi có thể cập nhật hoặc xem giá tiền của các vị trí đỗ.</p>
+        <p class="text-muted mx-auto mb-0" style="max-width: 480px; font-size: 0.95rem;">Bạn cần chọn bãi đỗ xe và loại xe tương ứng trước khi có thể cập nhật hoặc xem bảng giá.</p>
     </div>
 </div>
 
@@ -563,9 +554,6 @@
 
 @section Scripts {
     <script>
-        // Store areas globally when fetched
-        const lotAreas = {};
-        
         // Audit Log History database array
         let auditLogs = [];
 
@@ -573,7 +561,6 @@
         let currentPage = 1;
 
         let currentActiveLot = null;
-        let currentActiveArea = null;
         let currentActiveVehicleType = null;
 
         function checkLotStatus() {
@@ -609,54 +596,36 @@
                 checkLotStatus();
                 
                 currentActiveLot = parseInt(lotVal);
-                currentActiveArea = null;
                 currentActiveVehicleType = null;
 
-                // Load Areas via AJAX
+                // Load Vehicle Types directly via AJAX
                 $.ajax({
-                    url: '/Owner/Gia/GetAreas',
+                    url: '/Owner/Gia/GetLoaiXes',
                     type: 'GET',
-                    data: { lotId: currentActiveLot },
-                    success: function(areas) {
-                        const areaSelect = $('#areaSelect');
-                        areaSelect.empty().append('<option value="" disabled selected>-- Chọn khu vực --</option>');
+                    success: function(types) {
+                        const typeSelect = $('#vehicleTypeSelect');
+                        typeSelect.empty().append('<option value="" disabled selected>-- Chọn loại xe --</option>');
                         
-                        lotAreas[currentActiveLot] = areas;
-                        
-                        areas.forEach(area => {
-                            areaSelect.append(`<option value="${area.value}">${area.label}</option>`);
+                        types.forEach(type => {
+                            typeSelect.append(`<option value="${type.value}">${type.label}</option>`);
                         });
 
-                        areaSelect.prop('disabled', false);
+                        typeSelect.prop('disabled', false);
                     },
                     error: function() {
-                        alert('Có lỗi xảy ra khi tải danh sách khu vực.');
+                        alert('Có lỗi xảy ra khi tải danh sách loại xe.');
                     }
                 });
-
-                // Reset and disable Vehicle Type dropdown
-                $('#vehicleTypeSelect').empty().append('<option value="" disabled selected>-- Chọn khu vực trước --</option>').prop('disabled', true);
 
                 // Hide form, show prompt
                 $('#inlinePricingForm').hide();
                 $('#selectPromptCard').show();
             });
 
-            // Handle Area dropdown change
-            $('#areaSelect').change(function() {
-                currentActiveArea = parseInt($(this).val());
-                
-                const areas = lotAreas[currentActiveLot] || [];
-                const areaConfig = areas.find(a => a.value === currentActiveArea);
-                const typeSelect = $('#vehicleTypeSelect');
-                typeSelect.empty().append('<option value="" disabled>-- Chọn loại xe --</option>');
-
-                if (areaConfig) {
-                    // Populate only the vehicle type configured for this area
-                    typeSelect.append(`<option value="${areaConfig.type}" selected>${areaConfig.typeName}</option>`);
-                    typeSelect.prop('disabled', false);
-                    currentActiveVehicleType = areaConfig.type;
-
+            // Handle Vehicle Type dropdown change
+            $('#vehicleTypeSelect').change(function() {
+                currentActiveVehicleType = parseInt($(this).val());
+                if (currentActiveLot && currentActiveVehicleType) {
                     // Load pricing and reveal form
                     loadPricing();
                     $('#selectPromptCard').hide();
@@ -665,15 +634,8 @@
                         $('#inlinePricingForm').removeClass('animated-fade-in');
                     }, 450);
                 } else {
-                    resetSelection();
-                }
-            });
-
-            // Handle Vehicle Type dropdown change manually
-            $('#vehicleTypeSelect').change(function() {
-                currentActiveVehicleType = parseInt($(this).val());
-                if (currentActiveLot && currentActiveVehicleType) {
-                    loadPricing();
+                    $('#inlinePricingForm').hide();
+                    $('#selectPromptCard').show();
                 }
             });
 
@@ -854,10 +816,8 @@
 
         function resetSelection() {
             currentActiveLot = null;
-            currentActiveArea = null;
             currentActiveVehicleType = null;
-            $('#areaSelect').empty().append('<option value="" disabled selected>-- Chọn bãi xe trước --</option>').prop('disabled', true);
-            $('#vehicleTypeSelect').empty().append('<option value="" disabled selected>-- Chọn khu vực trước --</option>').prop('disabled', true);
+            $('#vehicleTypeSelect').empty().append('<option value="" disabled selected>-- Chọn bãi xe trước --</option>').prop('disabled', true);
             $('#inlinePricingForm').hide();
             $('#selectPromptCard').show();
         }

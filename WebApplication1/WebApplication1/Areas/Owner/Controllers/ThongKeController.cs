@@ -8,6 +8,8 @@ using WebApplication1.Models.Entities;
 using System.Threading.Tasks;
 using System;
 using System.Security.Claims;
+using WebApplication1.Extensions;
+
 
 namespace WebApplication1.Areas.Owner.Controllers
 {
@@ -33,6 +35,10 @@ namespace WebApplication1.Areas.Owner.Controllers
             }
 
             int chuBaiId = GetChuBaiId(ownerAccountId);
+
+            // Auto-release expired bookings first
+            await _context.AutoReleaseExpiredBookingsAsync();
+
             var baiXes = await _context.BaiXes
                 .Where(b => b.IDChuBai == chuBaiId)
                 .ToListAsync();
@@ -49,6 +55,9 @@ namespace WebApplication1.Areas.Owner.Controllers
             {
                 return Unauthorized();
             }
+
+            // Auto-release expired bookings first
+            await _context.AutoReleaseExpiredBookingsAsync();
 
             var chuBai = await _context.ChuBaiXes
                 .Include(c => c.BaiXes)
