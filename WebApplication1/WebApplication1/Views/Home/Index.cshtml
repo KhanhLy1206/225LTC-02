@@ -1,0 +1,431 @@
+@{
+    ViewData["Title"] = "Trang Chủ - Hệ Thống Đặt Chỗ Đỗ Xe Thông Minh";
+}
+
+<!-- Section 1: Hero Banner & Search Simulator -->
+<section class="bg-gradient-hero py-5 position-relative">
+    <div class="container py-4">
+        <div class="row align-items-center g-5">
+            <!-- Left Column: Hero Text and Search -->
+            <div class="col-lg-7 animate-fade-in-up">
+                <span class="badge bg-primary px-3 py-2 rounded-pill mb-3 text-uppercase fw-semibold tracking-wider">
+                    <i class="fa-solid fa-bolt me-1 text-warning"></i> Công Nghệ Đỗ Xe Tự Động IoT
+                </span>
+                <h1 class="display-4 fw-extrabold mb-3 lh-sm">
+                    Tìm Kiếm & Đặt Chỗ <br />
+                    <span class="text-gradient">Đỗ Xe Thông Minh</span>
+                </h1>
+                <p class="fs-5 text-muted mb-4">
+                    Đặt trước chỗ đỗ xe trực tuyến, thanh toán bảo mật và tự nắm quyền điều khiển mở/đóng Barie tại bãi đỗ bằng một chạm trên điện thoại. Không lo hết chỗ, không cần nhân viên trực bãi.
+                </p>
+
+                <!-- Search Bar Simulator -->
+                <div class="glass-card p-4 shadow-lg mb-4">
+                    <h5 class="mb-3 text-gradient"><i class="fa-solid fa-magnifying-glass me-2"></i>Tìm Bãi Xe Trống</h5>
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <select class="form-select bg-dark text-white border-secondary py-2" id="provinceSelect">
+                                <option value="" selected>Tỉnh / Thành</option>
+                                <option value="HCM">TP. Hồ Chí Minh</option>
+                                <option value="HN">TP. Hà Nội</option>
+                                <option value="DN">TP. Đà Nẵng</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select bg-dark text-white border-secondary py-2" id="districtSelect" disabled>
+                                <option value="" selected>Quận / Huyện</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select bg-dark text-white border-secondary py-2" id="wardSelect" disabled>
+                                <option value="" selected>Xã / Phường</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-primary-custom w-100 py-2" id="btnSearchSim">
+                                Tìm Kiếm <i class="fa-solid fa-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-4 text-muted small">
+                    <div><i class="fa-solid fa-circle-check text-secondary me-1"></i> Đặt trước 30 giây</div>
+                    <div><i class="fa-solid fa-circle-check text-secondary me-1"></i> Thanh toán VNPAY</div>
+                    <div><i class="fa-solid fa-circle-check text-secondary me-1"></i> Tự động hóa 100%</div>
+                </div>
+            </div>
+
+            <!-- Right Column: Interactive Quick Card -->
+            <div class="col-lg-5 text-center d-none d-lg-block animate-float">
+                <div class="glass-card border-primary p-4 shadow-2xl mx-auto position-relative" style="max-width: 380px;">
+                    <div class="position-absolute top-0 start-50 translate-middle badge bg-secondary px-3 py-2 rounded-pill shadow">
+                        BÃI XE QUANG TRUNG - A-03
+                    </div>
+                    
+                    <div class="my-4">
+                        <i class="fa-solid fa-car-rear text-primary display-2 my-3"></i>
+                    </div>
+
+                    <h5 class="fw-bold">Chỗ Đỗ: Ô tô con</h5>
+                    <div class="d-flex justify-content-between align-items-center bg-dark rounded p-3 my-3">
+                        <div class="text-start">
+                            <span class="text-muted d-block small">Mã Barie</span>
+                            <strong class="font-monospace text-secondary">BAR-9923</strong>
+                        </div>
+                        <div class="text-end">
+                            <span class="text-muted d-block small">Trạng thái khóa</span>
+                            <span class="badge bg-danger" id="heroLockBadge">ĐANG KHÓA</span>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary-custom w-100 py-3 mb-2" id="heroBtnOpen">
+                        <i class="fa-solid fa-lock-open me-2"></i>Mở khóa Barie thử nghiệm
+                    </button>
+                    <small class="text-muted block">Nhấn nút để mở khóa barie chỗ đỗ mẫu</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: Numbers/Stats Counters -->
+<section class="py-5 bg-dark-bg-secondary border-top border-bottom border-secondary border-opacity-10">
+    <div class="container">
+        <div class="row g-4 text-center">
+            <div class="col-6 col-md-3">
+                <h3 class="display-5 fw-extrabold text-gradient">150+</h3>
+                <span class="text-muted small text-uppercase">Bãi Đỗ Toàn Quốc</span>
+            </div>
+            <div class="col-6 col-md-3">
+                <h3 class="display-5 fw-extrabold text-gradient">10K+</h3>
+                <span class="text-muted small text-uppercase">Lượt Đỗ Thành Công</span>
+            </div>
+            <div class="col-6 col-md-3">
+                <h3 class="display-5 fw-extrabold text-gradient">99.9%</h3>
+                <span class="text-muted small text-uppercase">Tỷ lệ Mở Khóa Online</span>
+            </div>
+            <div class="col-6 col-md-3">
+                <h3 class="display-5 fw-extrabold text-gradient">24/7</h3>
+                <span class="text-muted small text-uppercase">Vận Hành Tự Động</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: Core Features -->
+<section id="features" class="py-5">
+    <div class="container py-4">
+        <div class="text-center mb-5 max-w-2xl mx-auto">
+            <h2 class="fw-bold mb-3">Tính Năng <span class="text-gradient">Vượt Trội</span></h2>
+            <p class="text-muted">Hệ thống của chúng tôi tích hợp các công nghệ IoT tiên tiến giúp nâng tầm trải nghiệm đỗ xe của bạn.</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="glass-card h-100">
+                    <div class="fs-1 text-primary mb-3"><i class="fa-solid fa-map-location-dot"></i></div>
+                    <h5 class="fw-bold">Tìm Kiếm Cực Nhanh</h5>
+                    <p class="text-muted small mb-0">Tìm bãi đỗ còn trống chính xác theo Tỉnh - Huyện - Xã giúp bạn tiết kiệm thời gian di chuyển tìm bãi.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="glass-card h-100">
+                    <div class="fs-1 text-secondary mb-3"><i class="fa-solid fa-key"></i></div>
+                    <h5 class="fw-bold">Tự Điều Khiển Barie</h5>
+                    <p class="text-muted small mb-0">Nhận quyền kiểm soát khóa cơ học thông minh của chỗ đỗ trực tiếp trên ứng dụng ngay khi tới giờ đặt chỗ.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="glass-card h-100">
+                    <div class="fs-1 text-warning mb-3"><i class="fa-solid fa-credit-card"></i></div>
+                    <h5 class="fw-bold">Thanh Toán Linh Hoạt</h5>
+                    <p class="text-muted small mb-0">Tích hợp cổng thanh toán trực tuyến VNPAY. Thực hiện đặt cọc và thanh toán linh hoạt chỉ trong vài thao tác.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="glass-card h-100">
+                    <div class="fs-1 text-danger mb-3"><i class="fa-solid fa-shield-halved"></i></div>
+                    <h5 class="fw-bold">Độc Quyền Vị Trí</h5>
+                    <p class="text-muted small mb-0">Chỗ đỗ của bạn được bảo vệ bởi khóa Barie cơ khí vật lý. Người lạ không thể đỗ xe đè lên vị trí bạn đã đặt.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 4: How It Works -->
+<section id="how-it-works" class="py-5 bg-dark-bg-secondary">
+    <div class="container py-4">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold mb-3">Quy Trình <span class="text-gradient">Đơn Giản</span></h2>
+            <p class="text-muted">Đỗ xe dễ dàng với 3 bước được số hóa tự động hóa hoàn toàn.</p>
+        </div>
+
+        <div class="row timeline-steps g-4 mt-2">
+            <div class="col-md-4 timeline-step-item text-center">
+                <div class="timeline-icon-wrap">
+                    <i class="fa-solid fa-search"></i>
+                </div>
+                <h5 class="fw-bold mt-3">1. Lọc bãi & Đặt chỗ</h5>
+                <p class="text-muted small px-lg-4">Tìm vị trí đỗ phù hợp, chọn khung giờ vào/ra dự kiến và tiến hành thanh toán giữ chỗ trực tuyến.</p>
+            </div>
+            <div class="col-md-4 timeline-step-item text-center">
+                <div class="timeline-icon-wrap">
+                    <i class="fa-solid fa-lock-open"></i>
+                </div>
+                <h5 class="fw-bold mt-3">2. Đến bãi & Mở Barie</h5>
+                <p class="text-muted small px-lg-4">Đến đúng vị trí chỗ đỗ của mình, mở trang web trên điện thoại và nhấn nút "Mở Khóa" để hạ barie đỗ xe vào.</p>
+            </div>
+            <div class="col-md-4 timeline-step-item text-center">
+                <div class="timeline-icon-wrap">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <h5 class="fw-bold mt-3">3. Khóa lại & Kết thúc</h5>
+                <p class="text-muted small px-lg-4">Sau khi đỗ hoặc khi lấy xe rời đi, nhấn "Khóa lại" để đưa barie về vị trí ban đầu và hoàn thành đơn đỗ xe.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 5: Real-time Smart Device/Barrier Simulator Demo -->
+<section id="device-demo" class="py-5">
+    <div class="container py-4">
+        <div class="row g-5 align-items-center">
+            <!-- Left: Device Graphic Interface -->
+            <div class="col-lg-6">
+                <h2 class="fw-bold mb-3">Trải Nghiệm Trực Tuyến <br /><span class="text-gradient">Hệ Thống Khóa IoT</span></h2>
+                <p class="text-muted mb-4">
+                    Nhập vai là khách hàng đã đặt chỗ đỗ xe tại **Vị trí A-03**. Bạn đã đến bãi đỗ xe và đang đứng trước Barie bảo vệ chỗ đỗ. Hãy bấm nút điều khiển bên phải để trải nghiệm tốc độ phản hồi của hệ thống.
+                </p>
+                <div class="glass-card">
+                    <h6 class="text-uppercase text-secondary fw-semibold small mb-3">Hình ảnh mô phỏng tại bãi đỗ:</h6>
+                    <div class="spot-demo my-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="badge bg-dark border border-secondary text-secondary">CHỖ ĐỖ XE: A-03</span>
+                            <span class="badge bg-secondary" id="deviceStatusText">Trạng thái: KHÓA/ĐÓNG</span>
+                        </div>
+                        
+                        <!-- Visual representation of Barrier -->
+                        <div class="my-5 py-3 position-relative" style="height: 100px;">
+                            <!-- The vehicle -->
+                            <i class="fa-solid fa-car text-muted position-absolute start-50 top-50 translate-middle-y fs-1 opacity-25" style="transition: transform 0.5s;"></i>
+                            <!-- The barrier line -->
+                            <div class="barrier-visual" id="barrierLine"></div>
+                        </div>
+
+                        <div class="text-muted small">
+                            <i class="fa-solid fa-wifi text-success animate-pulse"></i> Thiết bị: <span class="font-monospace text-secondary">BAR-9923</span> | Tín hiệu: Tốt (99ms)
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Interactive Control Panel & Logs -->
+            <div class="col-lg-6">
+                <div class="glass-card">
+                    <h4 class="fw-bold mb-3 text-gradient"><i class="fa-solid fa-sliders me-2"></i>Bảng Điều Khiển</h4>
+                    
+                    <div class="d-flex gap-3 my-4">
+                        <button class="btn btn-success w-50 py-3" id="btnUnlockDevice">
+                            <i class="fa-solid fa-unlock-keyhole me-2"></i>MỞ BẠT / HẠ BARIE
+                        </button>
+                        <button class="btn btn-danger w-50 py-3" id="btnLockDevice" disabled>
+                            <i class="fa-solid fa-lock me-2"></i>KHOÁ / DỰNG BARIE
+                        </button>
+                    </div>
+
+                    <h6 class="text-muted mb-2">Lịch Sử Điều Khiển Hệ Thống (Mô Phỏng):</h6>
+                    <div class="bg-dark rounded p-3 font-monospace text-success small" style="height: 180px; overflow-y: auto;" id="consoleLogs">
+                        <div class="text-muted">[21:20:00] Khởi động bảng điều khiển mô phỏng...</div>
+                        <div class="text-muted">[21:20:01] Kết nối thành công tới máy chủ thiết bị BAR-9923.</div>
+                        <div>[21:20:02] Sẵn sàng điều khiển. Vui lòng nhấn nút Mở Barie.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 6: Partner Banner -->
+<section class="py-5 bg-dark-bg-secondary">
+    <div class="container py-4">
+        <div class="glass-card p-5 text-center shadow-lg position-relative overflow-hidden">
+            <div class="position-relative z-index-2">
+                <h2 class="fw-bold mb-3">Bạn Sở Hữu Bãi Đỗ Xe Rảnh Rỗi?</h2>
+                <p class="text-muted max-w-2xl mx-auto mb-4">
+                    Gia nhập mạng lưới của SmartParking để số hóa bãi đỗ của bạn, tiếp cận hàng ngàn tài xế mỗi ngày và tối ưu hóa doanh thu mà không mất chi phí thuê nhân viên quản lý bãi đỗ xe.
+                </p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="/Account/RegisterOwner" class="btn btn-primary-custom px-4 py-3">Đăng Ký Đối Tác Ngay</a>
+                    <a href="#how-it-works" class="btn btn-secondary-custom px-4 py-3">Tìm Hiểu Quy Trình</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // --- 1. Xử lý logic lọc địa giới hành chính mô phỏng ---
+            const districts = {
+                "HCM": [
+                    { id: "Q1", name: "Quận 1" },
+                    { id: "Q12", name: "Quận 12" },
+                    { id: "BT", name: "Bình Thạnh" }
+                ],
+                "HN": [
+                    { id: "CG", name: "Cầu Giấy" },
+                    { id: "HK", name: "Hoàn Kiếm" },
+                    { id: "HD", name: "Hà Đông" }
+                ],
+                "DN": [
+                    { id: "HC", name: "Hải Châu" },
+                    { id: "LC", name: "Liên Chiểu" },
+                    { id: "ST", name: "Sơn Trà" }
+                ]
+            };
+
+            const wards = {
+                "Q12": [
+                    { id: "QT", name: "Phường Đông Hưng Thuận" },
+                    { id: "TX", name: "Phường Thạnh Xuân" }
+                ],
+                "Q1": [
+                    { id: "BD", name: "Phường Bến Thành" },
+                    { id: "DK", name: "Phường Đa Kao" }
+                ],
+                "BT": [
+                    { id: "P25", name: "Phường 25" }
+                ]
+            };
+
+            $('#provinceSelect').change(function() {
+                const val = $(this).val();
+                const $dist = $('#districtSelect');
+                const $ward = $('#wardSelect');
+
+                $dist.empty().append('<option value="">Quận / Huyện</option>');
+                $ward.empty().append('<option value="">Xã / Phường</option>').attr('disabled', true);
+
+                if (val && districts[val]) {
+                    districts[val].forEach(function(item) {
+                        $dist.append(`<option value="${item.id}">${item.name}</option>`);
+                    });
+                    $dist.removeAttr('disabled');
+                } else {
+                    $dist.attr('disabled', true);
+                }
+            });
+
+            $('#districtSelect').change(function() {
+                const val = $(this).val();
+                const $ward = $('#wardSelect');
+
+                $ward.empty().append('<option value="">Xã / Phường</option>');
+
+                if (val && wards[val]) {
+                    wards[val].forEach(function(item) {
+                        $ward.append(`<option value="${item.id}">${item.name}</option>`);
+                    });
+                    $ward.removeAttr('disabled');
+                } else {
+                    $ward.attr('disabled', true);
+                }
+            });
+
+            $('#btnSearchSim').click(function() {
+                const p = $('#provinceSelect option:selected').text();
+                const d = $('#districtSelect option:selected').text();
+                const w = $('#wardSelect option:selected').text();
+
+                if (!$('#provinceSelect').val()) {
+                    alert('Vui lòng chọn Tỉnh / Thành trước!');
+                    return;
+                }
+                
+                let msg = `Hệ thống tìm kiếm (mô phỏng):\nTìm bãi đỗ xe tại: ${p}`;
+                if ($('#districtSelect').val()) msg += ` -> ${d}`;
+                if ($('#wardSelect').val()) msg += ` -> ${w}`;
+                
+                alert(msg + '\n\nChức năng tìm kiếm thực tế sẽ được lập trình viên Khách hàng phát triển kết nối cơ sở dữ liệu!');
+            });
+
+
+            // --- 2. Xử lý Simulator điều khiển Barie khóa thông minh ---
+            function getFormattedTime() {
+                const now = new Date();
+                return now.toTimeString().split(' ')[0];
+            }
+
+            function addLog(text, isAlert = false) {
+                const colorClass = isAlert ? 'text-warning' : 'text-success';
+                const logHTML = `<div>[${getFormattedTime()}] <span class="${colorClass}">${text}</span></div>`;
+                const $console = $('#consoleLogs');
+                $console.append(logHTML);
+                $console.scrollTop($console[0].scrollHeight);
+            }
+
+            // Giao diện Hero Card
+            $('#heroBtnOpen').click(function() {
+                const $badge = $('#heroLockBadge');
+                if ($badge.text() === "ĐANG KHÓA") {
+                    $badge.text("ĐANG MỞ").removeClass('bg-danger').addClass('bg-success');
+                    $(this).html('<i class="fa-solid fa-lock me-2"></i>Đóng khóa Barie thử nghiệm');
+                    alert("Yêu cầu mở barie của bạn đã được gửi. Barie đang hạ xuống!");
+                } else {
+                    $badge.text("ĐANG KHÓA").removeClass('bg-success').addClass('bg-danger');
+                    $(this).html('<i class="fa-solid fa-lock-open me-2"></i>Mở khóa Barie thử nghiệm');
+                }
+            });
+
+            // Giao diện Panel chính bên dưới
+            $('#btnUnlockDevice').click(function() {
+                const $btnUnlock = $(this);
+                const $btnLock = $('#btnLockDevice');
+                const $barrierLine = $('#barrierLine');
+                const $deviceStatusText = $('#deviceStatusText');
+
+                $btnUnlock.attr('disabled', true);
+                addLog("Khách hàng gửi lệnh: [MỞ KHÓA BARIE]", true);
+                addLog("Máy chủ nhận lệnh điều khiển. Đang định tuyến tới thiết bị BAR-9923...");
+
+                setTimeout(function() {
+                    addLog("Đang xác thực thông tin đặt chỗ: Khách hàng khớp với lịch đỗ chỗ đỗ A-03...");
+                }, 600);
+
+                setTimeout(function() {
+                    addLog("Xác thực thành công. Truyền tín hiệu điện tử IoT mở barie...");
+                    $barrierLine.addClass('opened');
+                    $deviceStatusText.text("Trạng thái: ĐANG MỞ/MỞ KHÓA").removeClass('bg-danger').addClass('bg-success');
+                    $('.spot-demo i').css('transform', 'scale(1.1) translateX(10px)');
+                }, 1300);
+
+                setTimeout(function() {
+                    addLog("Thiết bị BAR-9923 phản hồi: Barie đã hạ hoàn toàn. Chỗ đỗ sẵn sàng!", false);
+                    $btnLock.removeAttr('disabled');
+                }, 2200);
+            });
+
+            $('#btnLockDevice').click(function() {
+                const $btnLock = $(this);
+                const $btnUnlock = $('#btnUnlockDevice');
+                const $barrierLine = $('#barrierLine');
+                const $deviceStatusText = $('#deviceStatusText');
+
+                $btnLock.attr('disabled', true);
+                addLog("Khách hàng gửi lệnh: [KHOÁ BARIE / DỰNG BARIE]", true);
+                addLog("Máy chủ gửi tín hiệu IoT đóng barie cho thiết bị BAR-9923...");
+
+                setTimeout(function() {
+                    $barrierLine.removeClass('opened');
+                    $deviceStatusText.text("Trạng thái: KHÓA/ĐÓNG").removeClass('bg-success').addClass('bg-danger');
+                    $('.spot-demo i').css('transform', 'scale(1) translateX(0px)');
+                    addLog("Thiết bị BAR-9923 phản hồi: Khóa barie đã dựng hoàn toàn. Trạng thái: An toàn!");
+                    $btnUnlock.removeAttr('disabled');
+                }, 1200);
+            });
+        });
+    </script>
+}

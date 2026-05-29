@@ -1,0 +1,163 @@
+@{
+    var fullName = User.FindFirst("FullName")?.Value ?? User.Identity?.Name ?? "Khách Hàng";
+    var initials = !string.IsNullOrEmpty(fullName) ? (fullName.Length >= 2 ? fullName.Substring(0, 2).ToUpper() : fullName.ToUpper()) : "KH";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - SmartParking</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/WebApplication1.styles.css" asp-append-version="true" />
+</head>
+<body class="bg-light text-dark">
+
+    <div class="dashboard-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar-custom" id="sidebarContainer">
+            <!-- Sidebar Header -->
+            <div class="sidebar-header d-flex justify-content-between align-items-center">
+                <a class="navbar-brand text-dark fw-extrabold d-flex align-items-center gap-2" href="/">
+                    <i class="fa-solid fa-square-parking text-secondary"></i>
+                    <span>SmartParking</span>
+                </a>
+                <button class="btn btn-outline-secondary d-lg-none" id="closeSidebarBtn">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- User Info Panel -->
+            <div class="sidebar-user">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center font-bold" style="width: 45px; height: 45px; font-weight: 700; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%) !important;">
+                        @initials
+                    </div>
+                    <div>
+                        <span class="text-dark fw-semibold d-block">@fullName</span>
+                        <span class="badge bg-secondary-glow text-secondary small" style="font-size: 0.75rem; background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.25);">Khách Hàng</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Sidebar Menu Links -->
+            <ul class="sidebar-menu">
+                <li class="sidebar-menu-item">
+                    <a href="/Customer/Home/Index" class="sidebar-menu-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <span>Bảng Điều Khiển</span>
+                    </a>
+                </li>
+                <li class="sidebar-menu-item">
+                    <a href="/Customer/Home/Search" class="sidebar-menu-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Search" ? "active" : "")">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <span>Tìm & Đặt Bãi Xe</span>
+                    </a>
+                </li>
+                <li class="sidebar-menu-item">
+                    <a href="/Customer/Home/Bookings" class="sidebar-menu-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Bookings" ? "active" : "")">
+                        <i class="fa-solid fa-calendar-check"></i>
+                        <span>Đơn Đặt Chỗ</span>
+                    </a>
+                </li>
+                <li class="sidebar-menu-item">
+                    <a href="/Customer/Home/Vehicles" class="sidebar-menu-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Vehicles" ? "active" : "")">
+                        <i class="fa-solid fa-car"></i>
+                        <span>Quản Lý Xe</span>
+                    </a>
+                </li>
+                <li class="sidebar-menu-item">
+                    <a href="/Customer/Home/Chat" class="sidebar-menu-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Chat" ? "active" : "")">
+                        <i class="fa-solid fa-comments"></i>
+                        <span>Chat Với Chủ Bãi</span>
+                    </a>
+                </li>
+                <li class="sidebar-menu-item">
+                    <a href="/Customer/Home/Complaints" class="sidebar-menu-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Complaints" ? "active" : "")">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span>Khiếu Nại & Hỗ Trợ</span>
+                    </a>
+                </li>
+                <li class="sidebar-menu-item">
+                    <a href="/Customer/Home/Profile" class="sidebar-menu-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Profile" ? "active" : "")">
+                        <i class="fa-solid fa-user-gear"></i>
+                        <span>Tài Khoản Của Tôi</span>
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Sidebar Footer -->
+            <div class="p-3 border-top border-secondary border-opacity-10 mt-auto">
+                <a href="/Account/Logout" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2 py-2" style="border-radius:10px;">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Đăng Xuất</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <div class="main-content-custom">
+            <!-- Top Navbar for Notifications, Menu toggling on mobile -->
+            <div class="top-navbar-dashboard">
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn btn-secondary-custom d-lg-none" id="toggleSidebarBtn">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <h5 class="mb-0 text-dark fw-bold d-none d-md-block">Xin chào quay trở lại, @(fullName)!</h5>
+                </div>
+                
+                <div class="d-flex align-items-center gap-3">
+                    <!-- Notifications -->
+                    <div class="dropdown">
+                        <button class="btn btn-secondary-custom position-relative" type="button" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa-solid fa-bell"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end bg-light border-secondary p-2 text-dark shadow-2xl" aria-labelledby="notifDropdown" style="width: 280px; font-size: 0.85rem; border: 1px solid var(--border-color); backdrop-filter: var(--glass-blur);">
+                            <li><h6 class="dropdown-header text-secondary text-uppercase fw-bold">Thông báo mới</h6></li>
+                            <li><hr class="dropdown-divider border-secondary opacity-25"></li>
+                            <li><span class="dropdown-item text-dark rounded p-2 d-block text-wrap" style="background:transparent;"><i class="fa-solid fa-circle-info text-info me-1"></i> Chỗ đỗ **A-03** của bạn đã sẵn sàng sử dụng.</span></li>
+                            <li><span class="dropdown-item text-dark rounded p-2 d-block text-wrap" style="background:transparent;"><i class="fa-solid fa-circle-check text-success me-1"></i> Đã thanh toán thành công 50,000 VND.</span></li>
+                        </ul>
+                    </div>
+
+                    <!-- Quick home page link -->
+                    <a href="/" class="btn btn-secondary-custom d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-house"></i>
+                        <span class="d-none d-sm-inline">Trang Chủ</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Page Body Render -->
+            @RenderBody()
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Toggle sidebar on mobile
+            $('#toggleSidebarBtn').click(function() {
+                $('#sidebarContainer').addClass('show');
+            });
+            $('#closeSidebarBtn').click(function() {
+                $('#sidebarContainer').removeClass('show');
+            });
+
+            // Close sidebar when clicking outside on mobile
+            $(document).click(function(event) {
+                if (!$(event.target).closest('#sidebarContainer, #toggleSidebarBtn').length) {
+                    $('#sidebarContainer').removeClass('show');
+                }
+            });
+        });
+    </script>
+    
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

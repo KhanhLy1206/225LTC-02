@@ -1,0 +1,1166 @@
+@{
+    ViewData["Title"] = "Sơ đồ bãi đỗ";
+}
+
+<!-- Custom Styles for Interactive Spot Grid -->
+<style>
+    .spot-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 16px;
+    }
+
+    .spot-card {
+        background-color: var(--owner-card-bg);
+        border: 1px solid var(--owner-border);
+        border-radius: 12px;
+        padding: 16px;
+        position: relative;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 150px;
+        box-shadow: var(--owner-shadow-sm);
+    }
+
+    .spot-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--owner-shadow);
+        border-color: var(--owner-primary);
+    }
+
+    /* Spot States Styling */
+    .spot-card.state-trong {
+        border-left: 5px solid var(--owner-success);
+    }
+    .spot-card.state-trong .spot-icon {
+        color: var(--owner-success);
+    }
+    .spot-card.state-trong .spot-status-text {
+        color: var(--owner-success);
+        background-color: var(--owner-success-light);
+    }
+
+    .spot-card.state-dangdo {
+        border-left: 5px solid var(--owner-warning);
+    }
+    .spot-card.state-dangdo .spot-icon {
+        color: var(--owner-warning);
+    }
+    .spot-card.state-dangdo .spot-status-text {
+        color: var(--owner-warning);
+        background-color: var(--owner-warning-light);
+    }
+
+    .spot-card.state-dadat {
+        border-left: 5px solid var(--owner-primary);
+    }
+    .spot-card.state-dadat .spot-icon {
+        color: var(--owner-primary);
+    }
+    .spot-card.state-dadat .spot-status-text {
+        color: var(--owner-primary);
+        background-color: var(--owner-primary-light);
+    }
+
+    .spot-card.state-baotri {
+        border-left: 5px solid var(--owner-danger);
+        background-color: #fafafa;
+    }
+    .spot-card.state-baotri .spot-icon {
+        color: var(--owner-danger);
+    }
+    .spot-card.state-baotri .spot-status-text {
+        color: var(--owner-danger);
+        background-color: var(--owner-danger-light);
+    }
+
+    .spot-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .spot-name {
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: var(--owner-text-main);
+    }
+
+    .spot-lock-badge {
+        font-size: 0.85rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
+    .spot-body {
+        text-align: center;
+        margin-bottom: 12px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .spot-icon {
+        font-size: 2rem;
+        margin-bottom: 6px;
+        transition: transform 0.2s ease;
+    }
+
+    .spot-card:hover .spot-icon {
+        transform: scale(1.15);
+    }
+
+    .spot-plate {
+        font-family: 'Plus Jakarta Sans', monospace;
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: var(--owner-text-main);
+        background-color: #f1f5f9;
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px dashed #cbd5e1;
+    }
+
+    .spot-status-text {
+        font-size: 0.72rem;
+        font-weight: 800;
+        padding: 4px 8px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Interactive area filter buttons */
+    .filter-btn {
+        border-radius: 30px;
+        padding: 6px 18px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        transition: var(--owner-transition);
+        border: 1px solid var(--owner-border);
+        background-color: #ffffff;
+        color: var(--owner-text-muted);
+    }
+
+    .filter-btn:hover {
+        background-color: #f1f5f9;
+        color: var(--owner-text-main);
+    }
+
+    .filter-btn.active {
+        background-color: var(--owner-primary);
+        border-color: var(--owner-primary);
+        color: #ffffff;
+        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
+    }
+
+    /* Modal Styling */
+    .modal-detail-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: var(--owner-text-muted);
+        letter-spacing: 0.5px;
+        margin-bottom: 2px;
+    }
+
+    .modal-detail-val {
+        font-size: 0.95rem;
+        font-weight: 650;
+        color: var(--owner-text-main);
+        margin-bottom: 12px;
+    }
+
+    .barrier-ctrl-btn {
+        transition: all 0.2s ease;
+    }
+
+    /* Add Spot Card Styling */
+    .spot-card.add-spot-card {
+        border: 2px dashed var(--owner-primary) !important;
+        background-color: rgba(79, 70, 229, 0.02) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        min-height: 150px !important;
+        transition: all 0.25s ease !important;
+    }
+
+    .spot-card.add-spot-card:hover {
+        background-color: rgba(79, 70, 229, 0.08) !important;
+        border-color: var(--owner-primary) !important;
+        transform: translateY(-4px) !important;
+        box-shadow: var(--owner-shadow) !important;
+    }
+
+    .add-spot-icon {
+        font-size: 2rem;
+        color: var(--owner-primary);
+    }
+
+    .add-spot-text {
+        font-size: 0.85rem;
+        font-weight: 750;
+        color: var(--owner-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+</style>
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <h1 class="owner-page-title">Sơ đồ bãi đỗ xe</h1>
+        <p class="owner-page-subtitle">Giám sát vị trí đỗ, trạng thái khóa thông minh và xử lý khẩn cấp.</p>
+    </div>
+    <!-- Actions Group -->
+    <div class="d-flex gap-2 align-items-center">
+        <!-- Lot Selection -->
+        <div style="min-width: 250px;">
+            <select class="form-select rounded-3 border-light shadow-sm py-2" id="lotSelect">
+                @if (ViewBag.BaiXes != null)
+                {
+                    var baiXes = (List<WebApplication1.Models.Entities.BaiXe>)ViewBag.BaiXes;
+                    for (int i = 0; i < baiXes.Count; i++)
+                    {
+                        var lot = baiXes[i];
+                        if (i == 0)
+                        {
+                            <option value="@lot.ID" data-trangthai="@lot.TrangThai" selected>@lot.TenBai</option>
+                        }
+                        else
+                        {
+                            <option value="@lot.ID" data-trangthai="@lot.TrangThai">@lot.TenBai</option>
+                        }
+                    }
+                }
+                else
+                {
+                    <option value="" disabled selected>-- Không có bãi xe --</option>
+                }
+            </select>
+        </div>
+        <!-- Add Area Button -->
+        <button id="btnAddArea" class="btn btn-primary rounded-3 py-2 px-3 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#addAreaModal">
+            <i class="fa-solid fa-plus me-1"></i> Thêm khu vực
+        </button>
+    </div>
+</div>
+
+<!-- KPI Stats Summary Row -->
+<div class="row g-4 mb-4">
+    <!-- Spot Count -->
+    <div class="col-xl-3 col-md-6">
+        <div class="owner-kpi-card py-3 px-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1 text-muted text-uppercase small font-weight-bold">Tổng chỗ đỗ</h6>
+                    <div class="owner-kpi-value text-dark" id="stat-total" style="font-size: 1.5rem;">50 chỗ</div>
+                </div>
+                <div class="owner-kpi-icon-box primary" style="width: 40px; height: 40px; font-size: 1.1rem;">
+                    <i class="fa-solid fa-square-parking"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Available -->
+    <div class="col-xl-3 col-md-6">
+        <div class="owner-kpi-card py-3 px-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1 text-muted text-uppercase small font-weight-bold">Chỗ trống</h6>
+                    <div class="owner-kpi-value text-success" id="stat-trong" style="font-size: 1.5rem;">18 chỗ</div>
+                </div>
+                <div class="owner-kpi-icon-box success" style="width: 40px; height: 40px; font-size: 1.1rem;">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Occupied & Reserved -->
+    <div class="col-xl-3 col-md-6">
+        <div class="owner-kpi-card py-3 px-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1 text-muted text-uppercase small font-weight-bold">Đang đỗ / Đã đặt</h6>
+                    <div class="owner-kpi-value text-warning" id="stat-doing" style="font-size: 1.5rem;">22 / 8 chỗ</div>
+                </div>
+                <div class="owner-kpi-icon-box warning" style="width: 40px; height: 40px; font-size: 1.1rem;">
+                    <i class="fa-solid fa-car-side"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Maintenance -->
+    <div class="col-xl-3 col-md-6">
+        <div class="owner-kpi-card py-3 px-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1 text-muted text-uppercase small font-weight-bold">Bảo trì / Lỗi khóa</h6>
+                    <div class="owner-kpi-value text-danger" id="stat-baotri" style="font-size: 1.5rem;">2 chỗ</div>
+                </div>
+                <div class="owner-kpi-icon-box danger" style="width: 40px; height: 40px; font-size: 1.1rem; background-color: var(--owner-danger-light); color: var(--owner-danger);">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Banner: Bãi xe chưa được duyệt -->
+<div id="lotPendingBanner" class="d-none mb-4">
+    <div style="
+        background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+        border: 2px solid #fb923c;
+        border-radius: 20px;
+        padding: 48px 32px;
+        text-align: center;
+    ">
+        <div style="
+            width: 80px; height: 80px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 24px rgba(249,115,22,0.3);
+        ">
+            <i class="fa-solid fa-hourglass-half text-white" style="font-size: 2rem;"></i>
+        </div>
+        <h4 id="lotPendingTitle" class="fw-bold mb-2" style="color: #c2410c; font-size: 1.4rem;">Bãi xe đang chờ duyệt</h4>
+        <p id="lotPendingDesc" class="text-muted mb-4" style="max-width: 480px; margin: 0 auto;">
+            Bãi xe này hiện chưa được Admin phê duyệt. Bạn chưa thể xem sơ đồ bãi đỗ ở đây.
+        </p>
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+            <a href="/Owner/BaiXe" class="btn btn-outline-warning fw-semibold px-4">
+                <i class="fa-solid fa-arrow-left me-2"></i> Xem danh sách bãi xe
+            </a>
+        </div>
+        <div class="mt-4 p-3 rounded-3" style="background: rgba(249,115,22,0.08); display: inline-block;">
+            <small class="text-muted"><i class="fa-solid fa-circle-info me-1 text-warning"></i>
+                Trạng thái hiện tại: <strong id="lotPendingStatusText" class="text-warning">Chờ duyệt</strong>
+            </small>
+        </div>
+    </div>
+</div>
+
+<!-- Nội dung chính Sơ đồ -->
+<div id="mainContent">
+<!-- Filters & Search Toolbar -->
+<div class="owner-table-card border-0 mb-4">
+    <div class="p-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <!-- Area Filter Tabs -->
+        <div class="d-flex flex-wrap gap-2" id="areaFilterContainer">
+            <!-- Dynamically populated by JS -->
+        </div>
+        
+        <!-- Search Input -->
+        <div class="owner-search m-0" style="max-width: 350px;">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" class="owner-search-input" id="spotSearchInput" placeholder="Tìm tên chỗ đỗ hoặc biển số xe..." />
+        </div>
+    </div>
+</div>
+
+<!-- Interactive Spot Grid Section -->
+<div class="owner-table-card border-0 p-4">
+    <div class="spot-grid" id="spotGridContainer">
+        <!-- Dynamic spots generated by JS -->
+    </div>
+</div>
+
+<!-- Spot Detail Modal -->
+<div class="modal fade" id="spotDetailModal" tabindex="-1" aria-labelledby="spotDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header px-4 py-3 border-bottom border-light">
+                <h5 class="modal-title fw-bold text-dark" id="spotDetailModalLabel">
+                    <i class="fa-solid fa-circle-info text-primary me-2"></i> Chi tiết chỗ đỗ: <span id="modalSpotName">A-01</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row">
+                    <!-- Spot Properties -->
+                    <div class="col-6">
+                        <div class="modal-detail-label">Khu vực</div>
+                        <div class="modal-detail-val" id="modalArea">Khu A - Ô tô</div>
+                        
+                        <div class="modal-detail-label">Kích thước</div>
+                        <div class="modal-detail-val" id="modalSize">5 x 2.5 m</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="modal-detail-label">Mã số khóa</div>
+                        <div class="modal-detail-val font-monospace text-primary" id="modalLockCode">LOCK-QT-A01</div>
+                        
+                        <div class="modal-detail-label">Trạng thái ô đỗ</div>
+                        <div class="modal-detail-val" id="modalSpotState">Trống</div>
+                    </div>
+
+                    <hr class="my-3 opacity-25">
+
+                    <!-- Customer / Rental Details -->
+                    <div class="col-12" id="modalRentalInfo">
+                        <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-circle-user text-muted me-2"></i> Thông tin đặt chỗ</h6>
+                        <div class="row bg-light rounded-3 p-3 mb-3 border">
+                            <div class="col-6 mb-2">
+                                <div class="modal-detail-label">Khách hàng</div>
+                                <div class="modal-detail-val mb-0" id="modalCustomerName">Nguyễn Văn A</div>
+                            </div>
+                            <div class="col-6 mb-2">
+                                <div class="modal-detail-label">Số điện thoại</div>
+                                <div class="modal-detail-val mb-0" id="modalCustomerPhone">0912345678</div>
+                            </div>
+                            <div class="col-6 mb-2">
+                                <div class="modal-detail-label">Biển số đăng ký</div>
+                                <div class="modal-detail-val mb-0" id="modalCustomerPlate">81A-123.45</div>
+                            </div>
+                            <div class="col-6 mb-2">
+                                <div class="modal-detail-label">Mã đặt chỗ</div>
+                                <div class="modal-detail-val mb-0 text-success" id="modalBookingCode">#DC1024</div>
+                            </div>
+                            <div class="col-12">
+                                <div class="modal-detail-label">Thời gian đặt</div>
+                                <div class="modal-detail-val mb-0 text-primary" id="modalRentalTime">14:00 - 18:00 (24/05/2026)</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Physical Lock State -->
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center bg-light rounded-3 p-3 border">
+                            <div>
+                                <span class="d-block small text-muted modal-detail-label">Trạng thái khóa vật lý</span>
+                                <strong class="text-dark fs-5" id="modalPhysicalLockStatus">
+                                    <i class="fa-solid fa-lock text-danger me-1"></i> Đang đóng
+                                </strong>
+                            </div>
+                            <div class="d-flex gap-2" id="modalLockControlActions">
+                                <button class="btn btn-sm btn-outline-primary py-2 px-3 barrier-ctrl-btn" id="btnToggleLock">Mở khóa</button>
+                                <button class="btn btn-sm btn-outline-danger py-2 px-3 barrier-ctrl-btn" id="btnReportError">Báo lỗi</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer px-4 py-3 border-top border-light d-flex justify-content-between">
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-warning" id="btnToggleMaintenance">Đưa vào bảo trì</button>
+                </div>
+                <button type="button" class="btn btn-sm btn-secondary rounded-3 px-3 py-2" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Area Modal -->
+<div class="modal fade" id="addAreaModal" tabindex="-1" aria-labelledby="addAreaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <form id="addAreaForm">
+                <div class="modal-header px-4 py-3 border-bottom border-light">
+                    <h5 class="modal-title fw-bold text-dark" id="addAreaModalLabel">
+                        <i class="fa-solid fa-square-plus text-primary me-2"></i> Thêm khu vực đỗ xe mới
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Lot selection -->
+                    <div class="mb-3">
+                        <label for="addAreaLotSelect" class="form-label fw-semibold text-dark">Chọn bãi đỗ xe</label>
+                        <select class="form-select rounded-3" id="addAreaLotSelect" required>
+                            @if (ViewBag.BaiXes != null)
+                            {
+                                var baiXes = (List<WebApplication1.Models.Entities.BaiXe>)ViewBag.BaiXes;
+                                foreach (var lot in baiXes)
+                                {
+                                    <option value="@lot.ID">@lot.TenBai</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Area Code/Name -->
+                    <div class="mb-3">
+                        <label for="addAreaNameInput" class="form-label fw-semibold text-dark">Tên khu vực (Ký hiệu)</label>
+                        <input type="text" class="form-control rounded-3" id="addAreaNameInput" placeholder="Ví dụ: C, D, E..." required maxlength="5" pattern="^[a-zA-Z0-9]+$" title="Vui lòng chỉ nhập chữ và số">
+                        <div class="form-text">Nhập ký hiệu khu vực. Nếu khu vực đã tồn tại với cùng loại xe, hệ thống sẽ tự động thêm nối tiếp các chỗ đỗ mới (Ví dụ: E-11, E-12...).</div>
+                    </div>
+
+                    <!-- Vehicle Type -->
+                    <div class="mb-3">
+                        <label for="addAreaVehicleType" class="form-label fw-semibold text-dark">Loại xe áp dụng</label>
+                        <select class="form-select rounded-3" id="addAreaVehicleType" required>
+                            <option value="oto">Ô tô con</option>
+                            <option value="xebantai">Xe bán tải</option>
+                            <option value="xebuyt">Xe buýt</option>
+                            <option value="xetai">Xe tải</option>
+                        </select>
+                    </div>
+
+                    <!-- Spot Count -->
+                    <div class="mb-3">
+                        <label for="addAreaSpotCount" class="form-label fw-semibold text-dark">Số lượng chỗ đỗ xe</label>
+                        <input type="number" class="form-control rounded-3" id="addAreaSpotCount" min="1" max="100" placeholder="Nhập số chỗ cần thêm, tối đa 100" required>
+                    </div>
+                </div>
+                <div class="modal-footer px-4 py-3 border-top border-light">
+                    <button type="button" class="btn btn-secondary rounded-3 px-3 py-2" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary rounded-3 px-4 py-2 fw-bold">
+                        <i class="fa-solid fa-check me-1"></i> Xác nhận thêm
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</div>
+</div><!-- end #mainContent -->
+
+@section Scripts {
+    <script>
+        // Vehicle Type Configs
+        const vehicleTypeNames = {
+            'oto': 'Ô tô con',
+            'xebantai': 'Xe bán tải',
+            'xebuyt': 'Xe buýt',
+            'xetai': 'Xe tải',
+            'xemay': 'Xe máy',
+            'xedapdien': 'Xe đạp điện'
+        };
+
+        const vehicleTypeIcons = {
+            'oto': 'fa-car',
+            'xebantai': 'fa-truck-pickup',
+            'xebuyt': 'fa-bus',
+            'xetai': 'fa-truck',
+            'xemay': 'fa-motorcycle',
+            'xedapdien': 'fa-bicycle'
+        };
+
+        const vehicleSizes = {
+            'oto': '5x2.5m',
+            'xebantai': '5.5x2.6m',
+            'xebuyt': '12x3.0m',
+            'xetai': '8x2.8m',
+            'xemay': '2x1.0m',
+            'xedapdien': '1.8x0.8m'
+        };
+
+        // Dynamic Data reflecting database schema entities from Controller ViewBag
+        const spotsData = @Html.Raw(ViewBag.SpotsJson ?? "{}");
+
+        let currentActiveLot = $('#lotSelect').val() ? parseInt($('#lotSelect').val()) : 0;
+        let selectedSpotId = null;
+        let areaFilter = 'all';
+        let searchQuery = '';
+
+        // Initial setup on document ready
+        $(document).ready(function() {
+            const savedLot = localStorage.getItem('owner_active_lot');
+            if (savedLot && $('#lotSelect option[value="' + savedLot + '"]').length > 0) {
+                $('#lotSelect').val(savedLot);
+                currentActiveLot = parseInt(savedLot);
+            }
+
+            checkLotStatus();
+            renderAreaFilters();
+            renderSpots();
+            updateStats();
+
+            // Toggle Add Area button based on lot status
+            function updateAddAreaButton() {
+                const selectedOption = $('#lotSelect option:selected');
+                const trangThai = selectedOption.data('trangthai') || '';
+                const btn = $('#btnAddArea');
+                if (trangThai !== 'Hoạt động') {
+                    btn.prop('disabled', true)
+                       .attr('data-bs-toggle', '')
+                       .attr('title', `Bãi xe đang ở trạng thái "${trangThai}". Chỉ có thể thêm khu vực khi bãi hoạt động.`)
+                       .addClass('disabled opacity-50');
+                } else {
+                    btn.prop('disabled', false)
+                       .attr('data-bs-toggle', 'modal')
+                       .removeAttr('title')
+                       .removeClass('disabled opacity-50');
+                }
+            }
+
+            updateAddAreaButton();
+
+            // Handle lot change
+            $('#lotSelect').change(function() {
+                currentActiveLot = parseInt($(this).val());
+                localStorage.setItem('owner_active_lot', currentActiveLot);
+                areaFilter = 'all';
+                searchQuery = '';
+                $('#spotSearchInput').val('');
+                checkLotStatus();
+                renderAreaFilters();
+                renderSpots();
+                updateStats();
+                updateAddAreaButton();
+            });
+
+            // Handle area filter tab click
+            $('#areaFilterContainer').on('click', '.filter-btn', function() {
+                $('#areaFilterContainer .filter-btn').removeClass('active');
+                $(this).addClass('active');
+                areaFilter = $(this).data('filter');
+                renderSpots();
+            });
+
+            // Handle live search
+            $('#spotSearchInput').on('input', function() {
+                searchQuery = $(this).val().toLowerCase().trim();
+                renderSpots();
+            });
+
+            // Set up Modal action buttons listeners with AJAX
+            $('#btnToggleLock').click(function() {
+                if (selectedSpotId !== null) {
+                    const spot = spotsData[currentActiveLot].find(s => s.id === selectedSpotId);
+                    if (spot) {
+                        const btn = $(this);
+                        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang truyền lệnh...');
+                        
+                        $.ajax({
+                            url: '/Owner/SoDo/ToggleLock',
+                            type: 'POST',
+                            data: { spotId: selectedSpotId },
+                            success: function(response) {
+                                btn.prop('disabled', false);
+                                if (response.success) {
+                                    spot.lockState = response.newLockState;
+                                    btn.text(response.newLockState === 'Mở' ? 'Đóng khóa' : 'Mở khóa');
+                                    updateSpotCardUI(spot);
+                                    showPhysicalLockStatus(spot);
+                                    updateStats();
+                                    alert(`Gửi lệnh điều khiển khóa ${spot.lockCode} sang trạng thái [${response.newLockState}] THÀNH CÔNG!`);
+                                } else {
+                                    alert('Gửi lệnh thất bại: ' + response.message);
+                                }
+                            },
+                            error: function() {
+                                btn.prop('disabled', false);
+                                alert('Có lỗi kết nối xảy ra.');
+                            }
+                        });
+                    }
+                }
+            });
+
+            $('#btnReportError').click(function() {
+                if (selectedSpotId !== null) {
+                    const spot = spotsData[currentActiveLot].find(s => s.id === selectedSpotId);
+                    if (spot) {
+                        const confirmReport = confirm(`Bạn có chắc muốn báo lỗi khóa cho chỗ đỗ ${spot.name}? Trạng thái khóa sẽ chuyển sang Lỗi.`);
+                        if (confirmReport) {
+                            $.ajax({
+                                url: '/Owner/SoDo/ReportError',
+                                type: 'POST',
+                                data: { spotId: selectedSpotId },
+                                success: function(response) {
+                                    if (response.success) {
+                                        spot.lockState = 'Lỗi';
+                                        spot.occupancyState = 'Bảo trì';
+                                        updateSpotCardUI(spot);
+                                        showPhysicalLockStatus(spot);
+                                        updateStats();
+                                        $('#spotDetailModal').modal('hide');
+                                        alert(`Đã báo lỗi chỗ đỗ ${spot.name}. Hệ thống sẽ ghi nhận và tạo lệnh bảo trì.`);
+                                    } else {
+                                        alert('Gửi yêu cầu thất bại: ' + response.message);
+                                    }
+                                },
+                                error: function() {
+                                    alert('Có lỗi kết nối xảy ra.');
+                                }
+                            });
+                        }
+                    }
+                }
+            });
+
+            $('#btnToggleMaintenance').click(function() {
+                if (selectedSpotId !== null) {
+                    const spot = spotsData[currentActiveLot].find(s => s.id === selectedSpotId);
+                    if (spot) {
+                        const isCurrentlyMaintenance = spot.occupancyState === 'Bảo trì';
+                        const confirmMsg = isCurrentlyMaintenance 
+                            ? `Đưa chỗ đỗ ${spot.name} trở lại hoạt động bình thường?`
+                            : `Chuyển chỗ đỗ ${spot.name} sang trạng thái bảo trì? Chỗ đỗ sẽ bị đóng băng và không thể đặt.`;
+                        
+                        if (confirm(confirmMsg)) {
+                            $.ajax({
+                                url: '/Owner/SoDo/ToggleMaintenance',
+                                type: 'POST',
+                                data: { spotId: selectedSpotId },
+                                success: function(response) {
+                                    if (response.success) {
+                                        spot.occupancyState = response.newOccupancyState;
+                                        spot.lockState = response.newLockState;
+                                        updateSpotCardUI(spot);
+                                        updateStats();
+                                        $('#spotDetailModal').modal('hide');
+                                        alert(response.newOccupancyState === 'Bảo trì'
+                                            ? `Đã chuyển chỗ đỗ ${spot.name} sang bảo trì.`
+                                            : `Đã mở khóa chỗ đỗ ${spot.name} và đưa vào hoạt động bình thường.`
+                                        );
+                                    } else {
+                                        alert('Thao tác thất bại: ' + response.message);
+                                    }
+                                },
+                                error: function() {
+                                    alert('Có lỗi kết nối xảy ra.');
+                                }
+                            });
+                        }
+                    }
+                }
+            });
+
+            // Auto-select active lot when Add Area modal is shown, and reset inputs if opened by generic button
+            $('#addAreaModal').on('show.bs.modal', function(e) {
+                const activeLot = $('#lotSelect').val();
+                if (activeLot) {
+                    $('#addAreaLotSelect').val(activeLot);
+                }
+
+                const button = $(e.relatedTarget);
+                if (button.attr('id') === 'btnAddArea') {
+                    $('#addAreaNameInput').val('').prop('readonly', false);
+                    $('#addAreaVehicleType').prop('disabled', false);
+                    $('#addAreaSpotCount').val('');
+                    $('#addAreaModalLabel').html('<i class="fa-solid fa-square-plus text-primary me-2"></i> Thêm khu vực đỗ xe mới');
+                }
+            });
+
+            // Handle Add Area Form Submit with AJAX
+            $('#addAreaForm').submit(function(e) {
+                e.preventDefault();
+
+                const lotId = parseInt($('#addAreaLotSelect').val());
+                const areaName = $('#addAreaNameInput').val().trim().toUpperCase();
+                const vehicleType = $('#addAreaVehicleType').val();
+                const spotCount = parseInt($('#addAreaSpotCount').val());
+
+                if (!areaName) {
+                    alert('Vui lòng nhập tên khu vực!');
+                    return;
+                }
+
+                if (spotCount <= 0 || spotCount > 100) {
+                    alert('Số lượng chỗ đỗ xe không hợp lệ (từ 1 đến 100).');
+                    return;
+                }
+
+                const btn = $(this).find('button[type="submit"]');
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang xử lý...');
+
+                $.ajax({
+                    url: '/Owner/SoDo/AddArea',
+                    type: 'POST',
+                    data: {
+                        LotId: lotId,
+                        AreaName: areaName,
+                        VehicleType: vehicleType,
+                        SpotCount: spotCount
+                    },
+                    success: function(response) {
+                        btn.prop('disabled', false).html('<i class="fa-solid fa-check me-1"></i> Xác nhận thêm');
+                        if (response.success) {
+                            alert(`Đã thêm/cập nhật khu vực ${areaName} với ${spotCount} chỗ đỗ thành công!`);
+                            $('#addAreaModal').modal('hide');
+                            
+                            // Reset form fields
+                            $('#addAreaNameInput').val('');
+                            $('#addAreaSpotCount').val('');
+                            
+                            // Save lot to localStorage to ensure reload stays on this lot
+                            localStorage.setItem('owner_active_lot', lotId);
+                            
+                            // Reload page to reflect database-generated ID and details
+                            location.reload();
+                        } else {
+                            alert('Thêm khu vực thất bại: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        btn.prop('disabled', false).html('<i class="fa-solid fa-floppy-disk me-1"></i>Tạo khu vực');
+                        alert('Có lỗi kết nối xảy ra.');
+                    }
+                });
+            });
+        });
+
+        // Calculate and update stats counter
+        function updateStats() {
+            const list = spotsData[currentActiveLot] || [];
+            
+            let total = list.length;
+            let trong = list.filter(s => s.occupancyState === 'Trống').length;
+            let dangdo = list.filter(s => s.occupancyState === 'Đang đỗ').length;
+            let dadat = list.filter(s => s.occupancyState === 'Đã đặt').length;
+            let baotri = list.filter(s => s.occupancyState === 'Bảo trì').length;
+
+            $('#stat-total').text(total + ' chỗ');
+            $('#stat-trong').text(trong + ' chỗ');
+            $('#stat-doing').text(`${dangdo} / ${dadat} chỗ`);
+            $('#stat-baotri').text(baotri + ' chỗ');
+        }
+
+        // Generate area tab filters dynamically
+        function renderAreaFilters() {
+            const container = $('#areaFilterContainer');
+            container.empty();
+
+            // Default "All" tab
+            let allActive = areaFilter === 'all' ? 'active' : '';
+            container.append(`<button class="filter-btn ${allActive}" data-filter="all">Tất cả</button>`);
+
+            const list = spotsData[currentActiveLot] || [];
+            const uniqueAreas = {};
+
+            list.forEach(spot => {
+                if (!uniqueAreas[spot.area]) {
+                    uniqueAreas[spot.area] = spot.type;
+                }
+            });
+
+            // Sort areas alphabetically
+            const sortedAreaKeys = Object.keys(uniqueAreas).sort();
+
+            sortedAreaKeys.forEach(areaKey => {
+                const type = uniqueAreas[areaKey];
+                const typeName = vehicleTypeNames[type] || 'Ô tô con';
+                const activeClass = areaFilter === areaKey ? 'active' : '';
+                container.append(`<button class="filter-btn ${activeClass}" data-filter="${areaKey}">Khu ${areaKey} - ${typeName}</button>`);
+            });
+        }
+
+        // Render Spot Cards Grid with current active filters
+        function renderSpots() {
+            const container = $('#spotGridContainer');
+            container.empty();
+
+            const list = spotsData[currentActiveLot] || [];
+
+            if (list.length === 0) {
+                container.html('<div class="col-12 text-center p-5 text-muted"><i class="fa-solid fa-hourglass-empty fs-2 mb-3"></i><p>Không có dữ liệu chỗ đỗ hoặc bãi xe chưa được phê duyệt.</p></div>');
+                return;
+            }
+
+            // Apply Filters
+            let filteredList = list;
+            
+            // Area tab filter
+            if (areaFilter !== 'all') {
+                filteredList = filteredList.filter(s => s.area === areaFilter);
+            }
+
+            // Search query filter
+            if (searchQuery !== '') {
+                filteredList = filteredList.filter(s => {
+                    return s.name.toLowerCase().includes(searchQuery) || 
+                           s.plate.toLowerCase().includes(searchQuery) ||
+                           s.customerName.toLowerCase().includes(searchQuery);
+                });
+            }
+
+            if (filteredList.length === 0) {
+                container.html('<div class="col-12 text-center p-5 text-muted"><i class="fa-solid fa-magnifying-glass fs-2 mb-3"></i><p>Không tìm thấy chỗ đỗ phù hợp.</p></div>');
+                return;
+            }
+
+            // Generate HTML elements
+            filteredList.forEach(spot => {
+                let stateClass = '';
+                let statusText = '';
+                let vehicleIcon = vehicleTypeIcons[spot.type] || 'fa-car';
+                
+                switch (spot.occupancyState) {
+                    case 'Trống':
+                        stateClass = 'state-trong';
+                        statusText = 'Trống';
+                        break;
+                    case 'Đang đỗ':
+                        stateClass = 'state-dangdo';
+                        statusText = 'Đang đỗ';
+                        break;
+                    case 'Đã đặt':
+                        stateClass = 'state-dadat';
+                        statusText = 'Đã đặt';
+                        break;
+                    case 'Bảo trì':
+                        stateClass = 'state-baotri';
+                        statusText = 'Bảo trì';
+                        break;
+                }
+
+                // Show plate instead of state if occupied
+                // Hiển thị biển số nếu đang đỗ
+                let centerContent = '';
+
+                if (spot.occupancyState === 'Đang đỗ') {
+                    centerContent = `
+                        <span class="spot-plate">
+                            ${spot.plate || 'Chưa có BSX'}
+                        </span>`;
+                }
+                else {
+                    centerContent = `
+                        <span class="spot-status-text">
+                            ${statusText}
+                        </span>`;
+                }
+
+                let lockIcon = '';
+                let lockBg = '';
+                if (spot.lockState === 'Mở') {
+                    lockIcon = 'fa-lock-open text-primary';
+                    lockBg = 'bg-primary-light';
+                } else if (spot.lockState === 'Đóng') {
+                    lockIcon = 'fa-lock text-muted';
+                    lockBg = 'bg-light';
+                } else {
+                    lockIcon = 'fa-circle-exclamation text-danger';
+                    lockBg = 'bg-danger-light';
+                }
+
+                const cardHtml = `
+                    <div class="spot-card ${stateClass}" id="spot-card-${spot.id}" onclick="openSpotDetail(${spot.id})">
+                        <div class="spot-header">
+                            <span class="spot-name">${spot.name}</span>
+                            <span class="spot-lock-badge ${lockBg}">
+                                <i class="fa-solid ${lockIcon}"></i>
+                            </span>
+                        </div>
+                        <div class="spot-body">
+                            <i class="fa-solid ${vehicleIcon} spot-icon"></i>
+                            ${centerContent}
+                        </div>
+                    </div>
+                `;
+                container.append(cardHtml);
+            });
+
+            // Append the "+ Thêm chỗ" card at the end of the spots grid if a specific area is filtered
+            if (areaFilter !== 'all') {
+                const addCardHtml = `
+                    <div class="spot-card add-spot-card" onclick="openAddSpotToArea('${areaFilter}')">
+                        <div class="d-flex flex-column align-items-center justify-content-center h-100 w-100 py-3 text-center">
+                            <i class="fa-solid fa-circle-plus add-spot-icon mb-2"></i>
+                            <span class="add-spot-text">Thêm chỗ đỗ</span>
+                        </div>
+                    </div>
+                `;
+                container.append(addCardHtml);
+            }
+        }
+
+        // Single spot card DOM update to prevent redraw
+        function updateSpotCardUI(spot) {
+            const card = $(`#spot-card-${spot.id}`);
+            if (card.length === 0) return;
+
+            // Remove previous classes
+            card.removeClass('state-trong state-dangdo state-dadat state-baotri');
+
+            let stateClass = '';
+            let statusText = '';
+            switch (spot.occupancyState) {
+                case 'Trống':
+                    stateClass = 'state-trong';
+                    statusText = 'Trống';
+                    break;
+                case 'Đang đỗ':
+                    stateClass = 'state-dangdo';
+                    statusText = 'Đang đỗ';
+                    break;
+                case 'Đã đặt':
+                    stateClass = 'state-dadat';
+                    statusText = 'Đã đặt';
+                    break;
+                case 'Bảo trì':
+                    stateClass = 'state-baotri';
+                    statusText = 'Bảo trì';
+                    break;
+            }
+            card.addClass(stateClass);
+
+            // Update body
+            const body = card.find('.spot-body');
+            let vehicleIcon = vehicleTypeIcons[spot.type] || 'fa-car';
+            
+            let centerContent = '';
+
+            if (spot.occupancyState === 'Đang đỗ') {
+                centerContent = `
+                    <span class="spot-plate">
+                        ${spot.plate || 'Chưa có BSX'}
+                    </span>`;
+            }
+            else {
+                centerContent = `
+                    <span class="spot-status-text">
+                        ${statusText}
+                    </span>`;
+            }
+
+            // Update lock badge
+            const badge = card.find('.spot-lock-badge');
+            badge.removeClass('bg-primary-light bg-light bg-danger-light');
+            
+            let lockIcon = '';
+            let lockBg = '';
+            if (spot.lockState === 'Mở') {
+                lockIcon = 'fa-lock-open text-primary';
+                lockBg = 'bg-primary-light';
+            } else if (spot.lockState === 'Đóng') {
+                lockIcon = 'fa-lock text-muted';
+                lockBg = 'bg-light';
+            } else {
+                lockIcon = 'fa-circle-exclamation text-danger';
+                lockBg = 'bg-danger-light';
+            }
+            badge.addClass(lockBg).html(`<i class="fa-solid ${lockIcon}"></i>`);
+        }
+
+        // Open detailed info of clicked parking slot
+        function openSpotDetail(id) {
+            selectedSpotId = id;
+            const spot = spotsData[currentActiveLot].find(s => s.id === id);
+            if (!spot) return;
+
+            $('#modalSpotName').text(spot.name);
+            const typeName = vehicleTypeNames[spot.type] || 'Ô tô con';
+            $('#modalArea').text(`Khu ${spot.area} - ${typeName}`);
+            $('#modalSize').text(spot.size);
+            $('#modalLockCode').text(spot.lockCode);
+            $('#modalSpotState').text(spot.occupancyState);
+
+            // Show or hide rental info based on state
+            if (spot.occupancyState === 'Đang đỗ' || spot.occupancyState === 'Đã đặt') {
+                $('#modalRentalInfo').show();
+                $('#modalCustomerName').text(spot.customerName);
+                $('#modalCustomerPhone').text(spot.customerPhone);
+                $('#modalCustomerPlate').text(spot.plate);
+                $('#modalBookingCode').text(spot.bookingCode);
+                $('#modalRentalTime').text(spot.rentalTime);
+            } else {
+                $('#modalRentalInfo').hide();
+            }
+
+            showPhysicalLockStatus(spot);
+
+            // Change maintenance button label based on current state
+            if (spot.occupancyState === 'Bảo trì') {
+                $('#btnToggleMaintenance').text('Khôi phục hoạt động').removeClass('btn-outline-warning').addClass('btn-success');
+            } else {
+                $('#btnToggleMaintenance').text('Đưa vào bảo trì').removeClass('btn-success').addClass('btn-outline-warning');
+            }
+
+            // Open Modal
+            const myModal = new bootstrap.Modal(document.getElementById('spotDetailModal'));
+            myModal.show();
+        }
+
+        // Show Physical Lock Status details inside modal
+        function showPhysicalLockStatus(spot) {
+            const statusEl = $('#modalPhysicalLockStatus');
+            const toggleBtn = $('#btnToggleLock');
+            
+            if (spot.lockState === 'Mở') {
+                statusEl.html('<i class="fa-solid fa-lock-open text-success me-1"></i> Đang mở (🔓)');
+                toggleBtn.text('Đóng khóa').removeClass('btn-outline-primary').addClass('btn-outline-danger');
+            } else if (spot.lockState === 'Đóng') {
+                statusEl.html('<i class="fa-solid fa-lock text-danger me-1"></i> Đang đóng (🔒)');
+                toggleBtn.text('Mở khóa').removeClass('btn-outline-danger').addClass('btn-outline-primary');
+            } else {
+                statusEl.html('<i class="fa-solid fa-circle-exclamation text-warning me-1"></i> Lỗi kết nối / Kẹt khóa (⚠️)');
+                toggleBtn.text('Thử mở khóa').removeClass('btn-outline-danger').addClass('btn-outline-primary');
+            }
+        }
+
+        // Open Add Spot Modal with prefilled parameters for a specific area
+        function openAddSpotToArea(areaName) {
+            // Find one spot in this area to determine its vehicle type
+            const list = spotsData[currentActiveLot] || [];
+            const spotInArea = list.find(s => s.area === areaName);
+            
+            // Map spot type to vehicle type select value
+            let vehicleType = 'oto';
+            if (spotInArea) {
+                vehicleType = spotInArea.type;
+            }
+
+            // Set modal values
+            $('#addAreaLotSelect').val(currentActiveLot);
+            $('#addAreaNameInput').val(areaName).prop('readonly', true);
+            // Disable vehicle type input to prevent changing it since it is an existing area
+            $('#addAreaVehicleType').val(vehicleType).prop('disabled', true);
+            $('#addAreaSpotCount').val('');
+            
+            // Change modal title to reflect adding spots
+            $('#addAreaModalLabel').html(`<i class="fa-solid fa-circle-plus text-primary me-2"></i> Thêm chỗ đỗ vào Khu ${areaName}`);
+            
+            // Show the modal
+            $('#addAreaModal').modal('show');
+        }
+        // Check lot approval status and show/hide pending banner
+        function checkLotStatus() {
+            const selectedOption = $('#lotSelect option:selected');
+            const trangThai = selectedOption.data('trangthai') || 'Hoạt động';
+
+            if (trangThai !== 'Hoạt động') {
+                let icon = 'fa-hourglass-half';
+                let color = '#f97316';
+                let borderColor = '#fb923c';
+                let bgGradient = 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)';
+                let titleText = 'Bãi xe đang chờ duyệt';
+                let descText = 'Bãi xe này hiện chưa được Admin phê duyệt. Bạn chưa thể xem sơ đồ bãi đỗ ở đây.';
+                let btnClass = 'btn-outline-warning';
+
+                if (trangThai === 'Từ chối' || trangThai === 'Bị từ chối') {
+                    icon = 'fa-circle-xmark';
+                    color = '#dc2626';
+                    borderColor = '#f87171';
+                    bgGradient = 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)';
+                    titleText = 'Bãi xe đã bị từ chối';
+                    descText = 'Yêu cầu đăng ký bãi xe này đã bị Admin từ chối. Vui lòng liên hệ quản trị viên để biết thêm chi tiết.';
+                    btnClass = 'btn-outline-danger';
+                } else if (trangThai === 'Tạm ngưng' || trangThai === 'Ngưng hoạt động') {
+                    icon = 'fa-pause-circle';
+                    color = '#6b7280';
+                    borderColor = '#9ca3af';
+                    bgGradient = 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)';
+                    titleText = 'Bãi xe đang tạm ngưng';
+                    descText = 'Bãi xe này hiện đang tạm ngưng hoạt động. Bạn chưa thể sử dụng các tính năng quản lý.';
+                    btnClass = 'btn-outline-secondary';
+                }
+
+                const bannerInner = $('#lotPendingBanner > div');
+                bannerInner.css({ 'background': bgGradient, 'border-color': borderColor });
+                bannerInner.find('div:first').css('background', `linear-gradient(135deg, ${color}, ${color}dd)`);
+                bannerInner.find('i.fa-solid').attr('class', `fa-solid ${icon} text-white`);
+                bannerInner.find('.btn').attr('class', `btn ${btnClass} fw-semibold px-4`);
+                $('#lotPendingTitle').text(titleText).css('color', color);
+                $('#lotPendingDesc').text(descText);
+                $('#lotPendingStatusText').text(trangThai).css('color', color);
+
+                $('#lotPendingBanner').removeClass('d-none');
+                $('#mainContent').addClass('d-none');
+            } else {
+                $('#lotPendingBanner').addClass('d-none');
+                $('#mainContent').removeClass('d-none');
+            }
+        }
+    </script>
+}

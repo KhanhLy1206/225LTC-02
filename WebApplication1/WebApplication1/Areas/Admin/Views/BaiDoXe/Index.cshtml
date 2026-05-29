@@ -1,0 +1,518 @@
+@model WebApplication1.Areas.Admin.Models.BaiDoXeIndexViewModel
+@{
+    ViewData["Title"] = "Quản Lý Bãi Đỗ Xe";
+}
+
+@section Styles {
+<style>
+    .tab-nav .nav-link { border-radius: 10px 10px 0 0; font-weight: 500; color: #6b7280; padding: 10px 20px; }
+    .tab-nav .nav-link.active { color: #4f46e5; border-bottom: 2px solid #4f46e5; background: #fff; }
+    .don-card { border: none; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.07); transition: transform .2s; }
+    .don-card:hover { transform: translateY(-2px); }
+    .info-box { background: #f8fafc; border-radius: 8px; padding: 10px 12px; }
+    .info-box small { font-size: .75rem; color: #9ca3af; display: block; margin-bottom: 2px; }
+    .info-box span { font-size: .85rem; font-weight: 600; color: #374151; }
+    .progress { height: 6px; border-radius: 4px; }
+    .stat-mini { background: #fff; border-radius: 12px; padding: 16px 20px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+    .stat-mini .val { font-size: 1.5rem; font-weight: 700; }
+    .stat-mini .lbl { font-size: .75rem; color: #6b7280; }
+    .action-btn { font-size: .8rem; padding: 5px 12px; border-radius: 8px; }
+    .search-box { border-radius: 10px; border: 1.5px solid #e5e7eb; padding: 8px 14px; font-size: .9rem; }
+    .search-box:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,.1); outline: none; }
+    .empty-state { padding: 60px 20px; text-align: center; color: #9ca3af; }
+    .empty-state i { font-size: 3rem; opacity: .2; display: block; margin-bottom: 12px; }
+</style>
+}
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div class="page-header mb-0">
+        <h4><i class="fa-solid fa-warehouse me-2 text-primary"></i>Quản Lý Bãi Đỗ Xe</h4>
+        <p>Xét duyệt đơn đăng ký và quản lý vận hành các bãi đỗ xe trong hệ thống.</p>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show rounded-3 mb-3" role="alert">
+        <i class="fa-solid fa-circle-check me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3 col-xl">
+        <div class="stat-mini">
+            <div class="val text-dark">@Model.TongBai</div>
+            <div class="lbl"><i class="fa-solid fa-warehouse me-1 text-primary"></i>Tổng bãi xe</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl">
+        <div class="stat-mini">
+            <div class="val text-success">@Model.TongHoatDong</div>
+            <div class="lbl"><i class="fa-solid fa-circle-check me-1 text-success"></i>Hoạt động</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl">
+        <div class="stat-mini">
+            <div class="val text-warning">@Model.TongChoDuyet</div>
+            <div class="lbl"><i class="fa-solid fa-clock me-1 text-warning"></i>Chờ duyệt</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl">
+        <div class="stat-mini">
+            <div class="val text-danger">@Model.TongTamDong</div>
+            <div class="lbl"><i class="fa-solid fa-pause-circle me-1 text-danger"></i>Tạm đóng</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl">
+        <div class="stat-mini">
+            <div class="val text-secondary">@Model.TongBaoTri</div>
+            <div class="lbl"><i class="fa-solid fa-wrench me-1 text-secondary"></i>Bảo trì</div>
+        </div>
+    </div>
+</div>
+
+<!-- Search + Tabs -->
+<div class="card card-admin mb-0">
+    <div class="card-header d-flex flex-wrap gap-3 align-items-center justify-content-between">
+        <ul class="nav tab-nav mb-0 gap-1" id="baiXeTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link @(Model.Tab == "choduyet" ? "active" : "")"
+                   data-bs-toggle="tab" href="#tab-choduyet" role="tab">
+                    <i class="fa-solid fa-clock me-1"></i>Chờ Duyệt
+                    @if (Model.TongChoDuyet > 0)
+                    { <span class="badge bg-warning text-dark ms-1">@Model.TongChoDuyet</span> }
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(Model.Tab == "hoatdong" ? "active" : "")"
+                   data-bs-toggle="tab" href="#tab-hoatdong" role="tab">
+                    <i class="fa-solid fa-circle-check me-1"></i>Hoạt Động
+                    <span class="badge bg-success ms-1">@Model.TongHoatDong</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(Model.Tab == "tamdong" ? "active" : "")"
+                   data-bs-toggle="tab" href="#tab-tamdong" role="tab">
+                    <i class="fa-solid fa-pause-circle me-1"></i>Tạm Đóng
+                    @if (Model.TongTamDong > 0)
+                    { <span class="badge bg-danger ms-1">@Model.TongTamDong</span> }
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(Model.Tab == "baotri" ? "active" : "")"
+                   data-bs-toggle="tab" href="#tab-baotri" role="tab">
+                    <i class="fa-solid fa-wrench me-1"></i>Bảo Trì
+                    @if (Model.TongBaoTri > 0)
+                    { <span class="badge bg-secondary ms-1">@Model.TongBaoTri</span> }
+                </a>
+            </li>
+        </ul>
+        <form method="get" class="d-flex gap-2">
+            <input type="hidden" name="tab" value="@Model.Tab" />
+            <input type="text" name="search" value="@Model.Search" class="form-control search-box"
+                   placeholder="Tìm tên bãi, chủ bãi..." style="width:240px" />
+            <button class="btn btn-primary action-btn px-3">
+                <i class="fa-solid fa-search"></i>
+            </button>
+            @if (!string.IsNullOrEmpty(Model.Search))
+            {
+                <a href="/Admin/BaiDoXe?tab=@Model.Tab" class="btn btn-outline-secondary action-btn">
+                    <i class="fa-solid fa-xmark"></i>
+                </a>
+            }
+        </form>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="tab-content">
+
+            <!-- ── TAB CHỜ DUYỆT ── -->
+            <div class="tab-pane fade @(Model.Tab == "choduyet" ? "show active" : "")" id="tab-choduyet">
+                @if (!Model.DonChoDuyet.Any())
+                {
+                    <div class="empty-state">
+                        <i class="fa-solid fa-check-circle text-success"></i>
+                        <p class="mb-0">Không có đơn nào đang chờ duyệt.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="row g-3 p-3">
+                        @foreach (var don in Model.DonChoDuyet)
+                        {
+                            <div class="col-lg-6 col-xl-4">
+                                <div class="don-card card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div>
+                                                <h6 class="fw-bold mb-1 text-dark">@don.TenBai</h6>
+                                                <small class="text-muted">
+                                                    <i class="fa-solid fa-location-dot me-1 text-danger"></i>
+                                                    @don.DiaChiChiTiet
+                                                    @if (don.XaPhuong != null)
+                                                    {
+                                                        <span>, @don.XaPhuong.TenXa</span>
+                                                        @if (don.XaPhuong.QuanHuyen != null)
+                                                        {
+                                                            <span>, @don.XaPhuong.QuanHuyen.TenHuyen</span>
+                                                            @if (don.XaPhuong.QuanHuyen.TinhThanh != null)
+                                                            { <span>, @don.XaPhuong.QuanHuyen.TinhThanh.TenTinh</span> }
+                                                        }
+                                                    }
+                                                </small>
+                                            </div>
+                                            <span class="badge bg-warning text-dark">Chờ duyệt</span>
+                                        </div>
+                                        <div class="row g-2 mb-3">
+                                            <div class="col-6">
+                                                <div class="info-box">
+                                                    <small>Chủ bãi</small>
+                                                    <span>@(don.ChuBaiXe?.TenChuBai ?? "—")</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="info-box">
+                                                    <small>Sức chứa</small>
+                                                    <span>@don.SucChua chỗ</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="info-box">
+                                                    <small>SĐT</small>
+                                                    <span>@(don.ChuBaiXe?.SDT ?? "—")</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="info-box">
+                                                    <small>Email</small>
+                                                    <span style="font-size:.78rem">@(don.ChuBaiXe?.Email ?? "—")</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="info-box">
+                                                    <small>CCCD</small>
+                                                    <span>@(don.ChuBaiXe?.CCCD ?? "—")</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="info-box">
+                                                    <small>Ngày gửi</small>
+                                                    <span>@don.NgayGui.ToString("dd/MM/yyyy")</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(don.GiayPhepKinhDoanh))
+                                        {
+                                            <div class="mb-3">
+                                                <a href="@don.GiayPhepKinhDoanh" target="_blank"
+                                                   class="btn btn-outline-secondary btn-sm w-100 action-btn">
+                                                    <i class="fa-solid fa-file-pdf me-1"></i>Xem giấy phép kinh doanh
+                                                </a>
+                                            </div>
+                                        }
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-success flex-fill action-btn"
+                                                    data-bs-toggle="modal" data-bs-target="#modalDuyetDon"
+                                                    data-id="@don.ID" data-ten="@don.TenBai">
+                                                <i class="fa-solid fa-check me-1"></i>Duyệt
+                                            </button>
+                                            <button class="btn btn-outline-danger flex-fill action-btn"
+                                                    data-bs-toggle="modal" data-bs-target="#modalTuChoi"
+                                                    data-id="@don.ID" data-ten="@don.TenBai">
+                                                <i class="fa-solid fa-xmark me-1"></i>Từ Chối
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- ── TAB HOẠT ĐỘNG ── -->
+            <div class="tab-pane fade @(Model.Tab == "hoatdong" ? "show active" : "")" id="tab-hoatdong">
+                @await Html.PartialAsync("_BaiXeTable", Model.BaiHoatDong)
+            </div>
+
+            <!-- ── TAB TẠM ĐÓNG ── -->
+            <div class="tab-pane fade @(Model.Tab == "tamdong" ? "show active" : "")" id="tab-tamdong">
+                @await Html.PartialAsync("_BaiXeTable", Model.BaiTamDong)
+            </div>
+
+            <!-- ── TAB BẢO TRÌ ── -->
+            <div class="tab-pane fade @(Model.Tab == "baotri" ? "show active" : "")" id="tab-baotri">
+                @await Html.PartialAsync("_BaiXeTable", Model.BaiBaoTri)
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Modal Duyệt Đơn (có thỏa thuận hoa hồng) -->
+<div class="modal fade" id="modalDuyetDon" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" asp-action="DuyetDon">
+            @Html.AntiForgeryToken()
+            <div class="modal-content" style="border-radius:16px;border:none">
+                <div class="modal-header border-0 pb-0">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="width:44px;height:44px;border-radius:12px;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:1.2rem">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title mb-0 fw-bold">Duyệt Đơn Đăng Ký</h5>
+                            <small class="text-muted" id="duyetTen"></small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pt-3">
+                    <input type="hidden" name="id" id="duyetId" />
+
+                    <div class="alert alert-info border-0 rounded-3 py-2 px-3 mb-3" style="background:#eff6ff;font-size:.85rem">
+                        <i class="fa-solid fa-circle-info me-2 text-primary"></i>
+                        Xác nhận tỷ lệ hoa hồng đã thỏa thuận với chủ bãi trước khi phê duyệt.
+                    </div>
+
+                    <!-- Chọn nhanh -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Chọn nhanh tỷ lệ</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var rate in new[] { 5, 8, 10, 12, 15, 20 })
+                            {
+                                <button type="button"
+                                        class="btn btn-sm @(rate == 10 ? "btn-primary active" : "btn-outline-secondary") quick-rate-duyet"
+                                        data-val="@rate">@rate%</button>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Nhập tay -->
+                    <div class="mb-1">
+                        <label class="form-label fw-semibold">
+                            Tỷ lệ hoa hồng (%) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="number" name="phanTramChietKhau" id="duyetPhanTram"
+                                   min="0" max="100" step="0.5" value="10" required
+                                   class="form-control" style="border-radius:10px 0 0 10px;font-size:.95rem" />
+                            <span class="input-group-text" style="border-radius:0 10px 10px 0">%</span>
+                        </div>
+                        <small class="text-muted">Mặc định 10% — điều chỉnh theo thỏa thuận thực tế.</small>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-success px-4">
+                        <i class="fa-solid fa-check me-1"></i>Xác Nhận Duyệt
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Từ Chối -->
+<div class="modal fade" id="modalTuChoi" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" asp-action="TuChoiDon">
+            @Html.AntiForgeryToken()
+            <div class="modal-content" style="border-radius:14px;border:none">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fa-solid fa-circle-xmark me-2 text-danger"></i>Từ Chối Đơn Đăng Ký
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Bãi: <strong id="tuChoiTen"></strong></p>
+                    <input type="hidden" name="id" id="tuChoiId" />
+                    <label class="form-label fw-semibold">
+                        Lý do từ chối <span class="text-danger">*</span>
+                    </label>
+                    <textarea name="ghiChu" class="form-control" rows="4" required
+                              placeholder="Nhập lý do từ chối đơn đăng ký này..."
+                              style="border-radius:10px"></textarea>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fa-solid fa-xmark me-1"></i>Xác Nhận Từ Chối
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Đổi Trạng Thái -->
+<div class="modal fade" id="modalDoiTrangThai" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" asp-action="DoiTrangThai">
+            @Html.AntiForgeryToken()
+            <div class="modal-content" style="border-radius:14px;border:none">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fa-solid fa-arrows-rotate me-2 text-primary"></i>Đổi Trạng Thái Vận Hành
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Bãi: <strong id="doiTrangThaiTen"></strong></p>
+                    <input type="hidden" name="id" id="doiTrangThaiId" />
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Trạng thái mới</label>
+                        <select name="trangThai" class="form-select" style="border-radius:10px" required>
+                            <option value="Hoạt động">✅ Hoạt động</option>
+                            <option value="Tạm đóng">⏸️ Tạm đóng</option>
+                            <option value="Bảo trì">🔧 Bảo trì</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label fw-semibold">Lý do (tùy chọn)</label>
+                        <textarea name="lyDo" class="form-control" rows="3"
+                                  placeholder="Ghi chú lý do thay đổi trạng thái..."
+                                  style="border-radius:10px"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-check me-1"></i>Xác Nhận
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Khóa Bãi -->
+<div class="modal fade" id="modalKhoaBai" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" asp-action="KhoaBai">
+            @Html.AntiForgeryToken()
+            <div class="modal-content" style="border-radius:14px;border:none">
+                <div class="modal-header border-0 pb-0">
+                    <div class="d-flex align-items-center gap-2">
+                        <div style="width:40px;height:40px;border-radius:10px;background:#fee2e2;color:#dc2626;display:flex;align-items:center;justify-content:center">
+                            <i class="fa-solid fa-lock"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title mb-0 fw-bold">Khóa Bãi Đỗ Xe</h5>
+                            <small class="text-muted" id="khoaBaiTen"></small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="khoaBaiId" />
+                    <input type="hidden" name="returnTab" value="hoatdong" />
+                    <label class="form-label fw-semibold">Lý do khóa <span class="text-danger">*</span></label>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <button type="button" class="btn btn-sm btn-outline-secondary lydo-bai-btn"
+                                data-val="Vi phạm quy định vận hành">Vi phạm quy định</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary lydo-bai-btn"
+                                data-val="Nhận nhiều khiếu nại từ khách hàng">Nhiều khiếu nại</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary lydo-bai-btn"
+                                data-val="Bãi xe không đạt tiêu chuẩn an toàn">Không đạt tiêu chuẩn</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary lydo-bai-btn"
+                                data-val="Gian lận doanh thu">Gian lận doanh thu</button>
+                    </div>
+                    <textarea name="lyDo" id="khoaBaiLyDo" class="form-control" rows="3"
+                              placeholder="Nhập lý do khóa bãi..." required
+                              style="border-radius:10px"></textarea>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-danger px-4">
+                        <i class="fa-solid fa-lock me-1"></i>Xác Nhận Khóa
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Modal từ chối
+    document.querySelectorAll('[data-bs-target="#modalTuChoi"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('tuChoiId').value = btn.dataset.id;
+            document.getElementById('tuChoiTen').textContent = btn.dataset.ten;
+        });
+    });
+
+    // Modal duyệt đơn
+    document.querySelectorAll('[data-bs-target="#modalDuyetDon"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('duyetId').value  = btn.dataset.id;
+            document.getElementById('duyetTen').textContent = btn.dataset.ten;
+            document.getElementById('duyetPhanTram').value  = 10;
+            // Reset quick-rate
+            document.querySelectorAll('.quick-rate-duyet').forEach(b => {
+                b.classList.remove('btn-primary', 'active');
+                b.classList.add('btn-outline-secondary');
+            });
+            document.querySelector('.quick-rate-duyet[data-val="10"]')
+                ?.classList.replace('btn-outline-secondary', 'btn-primary');
+        });
+    });
+
+    // Chọn nhanh tỷ lệ trong modal duyệt
+    document.querySelectorAll('.quick-rate-duyet').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.quick-rate-duyet').forEach(b => {
+                b.classList.remove('btn-primary', 'active');
+                b.classList.add('btn-outline-secondary');
+            });
+            btn.classList.add('btn-primary', 'active');
+            btn.classList.remove('btn-outline-secondary');
+            document.getElementById('duyetPhanTram').value = btn.dataset.val;
+        });
+    });
+
+    // Modal đổi trạng thái
+    document.querySelectorAll('[data-bs-target="#modalDoiTrangThai"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('doiTrangThaiId').value = btn.dataset.id;
+            document.getElementById('doiTrangThaiTen').textContent = btn.dataset.ten;
+            const sel = document.querySelector('#modalDoiTrangThai select[name="trangThai"]');
+            if (sel) sel.value = btn.dataset.trangthai || 'Hoạt động';
+        });
+    });
+
+    // Modal khóa bãi
+    function moModalKhoaBai(id, ten) {
+        document.getElementById('khoaBaiId').value = id;
+        document.getElementById('khoaBaiTen').textContent = ten;
+        document.getElementById('khoaBaiLyDo').value = '';
+        new bootstrap.Modal(document.getElementById('modalKhoaBai')).show();
+    }
+
+    // Lý do nhanh khóa bãi
+    document.querySelectorAll('.lydo-bai-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.lydo-bai-btn').forEach(b => b.classList.remove('active', 'btn-primary'));
+            btn.classList.add('active', 'btn-primary');
+            btn.classList.remove('btn-outline-secondary');
+            document.getElementById('khoaBaiLyDo').value = btn.dataset.val;
+        });
+    });
+
+    // Giữ tab active khi reload
+    const activeTab = '@Model.Tab';
+    const tabMap = { choduyet: '#tab-choduyet', hoatdong: '#tab-hoatdong', tamdong: '#tab-tamdong', baotri: '#tab-baotri' };
+    if (tabMap[activeTab]) {
+        const triggerEl = document.querySelector(`[href="${tabMap[activeTab]}"]`);
+        if (triggerEl) {
+            const tab = new bootstrap.Tab(triggerEl);
+            tab.show();
+        }
+    }
+</script>
+}

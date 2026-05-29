@@ -1,0 +1,440 @@
+@using WebApplication1.Models.Entities
+@{
+    Layout = "~/Areas/Customer/Views/Shared/_CustomerLayout.cshtml";
+    ViewData["Title"] = "Thông Tin Tài Khoản";
+    var customer = ViewBag.Customer as KhachHang;
+    var provinces = ViewBag.Provinces as List<TinhThanh> ?? new List<TinhThanh>();
+    var districts = ViewBag.Districts as List<QuanHuyen> ?? new List<QuanHuyen>();
+    var wards = ViewBag.Wards as List<XaPhuong> ?? new List<XaPhuong>();
+}
+
+<div class="row g-4 mb-4">
+    <!-- Left Column: Personal details & Banking link -->
+    <div class="col-lg-8">
+        <!-- Personal details card -->
+        <div class="glass-card mb-4">
+            <h5 class="fw-bold mb-3 text-gradient"><i class="fa-solid fa-user-pen me-2"></i>Cập Nhật Thông Tin Cá Nhân</h5>
+            
+            <form id="updateProfileForm">
+                <div class="row g-3">
+                    <!-- Full Name -->
+                    <div class="col-md-6">
+                        <label class="auth-label" for="profileName">Họ và Tên</label>
+                        <div class="auth-input-group">
+                            <input type="text" class="form-control" id="profileName" value="@(customer?.HoTen ?? "")" required />
+                            <i class="fa-solid fa-user input-icon"></i>
+                        </div>
+                    </div>
+
+                    <!-- Phone Number -->
+                    <div class="col-md-6">
+                        <label class="auth-label" for="profilePhone">Số điện thoại</label>
+                        <div class="auth-input-group">
+                            <input type="tel" class="form-control" id="profilePhone" value="@(customer?.SDT ?? "")" required />
+                            <i class="fa-solid fa-phone input-icon"></i>
+                        </div>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="col-md-6">
+                        <label class="auth-label" for="profileEmail">Địa chỉ Email</label>
+                        <div class="auth-input-group">
+                            <input type="email" class="form-control" id="profileEmail" value="@(customer?.Email ?? "")" required />
+                            <i class="fa-solid fa-envelope input-icon"></i>
+                        </div>
+                    </div>
+
+                    <!-- CCCD / Identity Card -->
+                    <div class="col-md-6">
+                        <label class="auth-label" for="profileCccd">Số CCCD / Hộ chiếu</label>
+                        <div class="auth-input-group">
+                            <input type="text" class="form-control" id="profileCccd" value="@(customer?.CCCD ?? "")" required />
+                            <i class="fa-solid fa-id-card input-icon"></i>
+                        </div>
+                    </div>
+
+                    <!-- Driving License -->
+                    <div class="col-md-12">
+                        <label class="auth-label" for="profileLicense">Số bằng lái xe (Không bắt buộc)</label>
+                        <div class="auth-input-group">
+                            <input type="text" class="form-control" id="profileLicense" value="@(customer?.BangLaiXe ?? "")" />
+                            <i class="fa-solid fa-id-card-clip input-icon"></i>
+                        </div>
+                    </div>
+
+                    <!-- Cascading Address Selector -->
+                    <div class="col-md-4">
+                        <label class="auth-label">Tỉnh / Thành</label>
+                        <div class="auth-input-group">
+                            <select class="form-select" id="profProvinceSelect" required style="border-radius:10px;">
+                                <option value="">-- Chọn Tỉnh --</option>
+                                @foreach (var p in provinces)
+                                {
+                                    bool isSelected = (p.MaTinh == ViewBag.CurrentTinh);
+                                    <!option value="@p.MaTinh" @(isSelected ? "selected" : "")>@p.TenTinh</!option>
+                                }
+                            </select>
+                            <i class="fa-solid fa-city input-icon"></i>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="auth-label">Quận / Huyện</label>
+                        <div class="auth-input-group">
+                            <select class="form-select" id="profDistrictSelect" required style="border-radius:10px;" @(districts.Count == 0 ? "disabled" : "")>
+                                <option value="">-- Chọn Huyện --</option>
+                                @foreach (var d in districts)
+                                {
+                                    bool isSelected = (d.MaHuyen == ViewBag.CurrentHuyen);
+                                    <!option value="@d.MaHuyen" @(isSelected ? "selected" : "")>@d.TenHuyen</!option>
+                                }
+                            </select>
+                            <i class="fa-solid fa-map input-icon"></i>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="auth-label">Xã / Phường</label>
+                        <div class="auth-input-group">
+                            <select class="form-select" id="profWardSelect" required style="border-radius:10px;" @(wards.Count == 0 ? "disabled" : "")>
+                                <option value="">-- Chọn Xã --</option>
+                                @foreach (var w in wards)
+                                {
+                                    bool isSelected = (w.MaXa == ViewBag.CurrentXa);
+                                    <!option value="@w.MaXa" @(isSelected ? "selected" : "")>@w.TenXa</!option>
+                                }
+                            </select>
+                            <i class="fa-solid fa-street-view input-icon"></i>
+                        </div>
+                    </div>
+
+                    <!-- Detail Address -->
+                    <div class="col-md-12">
+                        <label class="auth-label" for="profileStreet">Địa chỉ chi tiết (Số nhà, tên đường)</label>
+                        <div class="auth-input-group">
+                            <input type="text" class="form-control" id="profileStreet" value="@(customer?.DiaChiChiTiet ?? "")" required />
+                            <i class="fa-solid fa-house input-icon"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary-custom py-2.5 px-4 mt-4">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> Lưu Cập Nhật
+                </button>
+            </form>
+        </div>
+
+        <!-- Banking Link Card -->
+        <div class="glass-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-gradient"><i class="fa-solid fa-credit-card me-2"></i>Tài Khoản Liên Kết Thanh Toán</h5>
+                <button class="btn btn-sm btn-outline-secondary py-1 px-3" data-bs-toggle="modal" data-bs-target="#linkBankModal">
+                    <i class="fa-solid fa-plus me-1"></i>Thêm Liên Kết
+                </button>
+            </div>
+
+            <p class="text-muted small mb-4">Các phương thức thanh toán đã liên kết để nạp tiền vào ví hoặc thanh toán tự động khi đặt chỗ:</p>
+
+            <div class="row g-3" id="linkedAccountsGrid">
+                <!-- Method 1: Vietcombank -->
+                <div class="col-md-6 account-link-item" id="bank-vcb">
+                    <div class="p-3 bg-dark bg-opacity-40 rounded border border-secondary border-opacity-10 d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="fs-2 text-primary"><i class="fa-solid fa-building-columns"></i></div>
+                            <div>
+                                <strong class="d-block text-white">Vietcombank</strong>
+                                <span class="text-muted small">•••• 9876 | @(customer?.HoTen?.ToUpper() ?? "KHÁCH HÀNG")</span>
+                                <span class="badge bg-success bg-opacity-10 text-success d-block mt-1" style="width: fit-content; font-size:0.65rem;">ĐÃ XÁC THỰC</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger btn-unlink-partner" data-target="bank-vcb" data-name="Vietcombank">Hủy</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Card preview & Security password changes -->
+    <div class="col-lg-4">
+        <!-- Quick Preview card -->
+        <div class="glass-card text-center mb-4">
+            <div class="position-relative d-inline-block mx-auto mb-3">
+                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto" style="width: 100px; height: 100px; font-size: 3rem; font-weight: 700; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%) !important;">
+                    @(!string.IsNullOrEmpty(customer?.HoTen) && customer.HoTen.Length >= 2 ? customer.HoTen.Substring(0, 2).ToUpper() : "KH")
+                </div>
+                <span class="position-absolute bottom-0 end-0 bg-secondary text-white rounded-circle p-2 border border-dark cursor-pointer" title="Đổi ảnh đại diện">
+                    <i class="fa-solid fa-camera small"></i>
+                </span>
+            </div>
+            <h5 class="fw-bold text-white mb-1" id="previewDisplayName">@(customer?.HoTen ?? "")</h5>
+            <span class="text-muted small d-block mb-3">Mã Khách hàng: #KH-@customer?.ID</span>
+            
+            <div class="border-top border-secondary border-opacity-10 pt-3 text-start">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Hạng thành viên:</span>
+                    <span class="text-warning fw-semibold small"><i class="fa-solid fa-crown me-1"></i>Thành Viên Bạc</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Số điện thoại:</span>
+                    <span class="text-white small">@customer?.SDT</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted small">Số dư ví:</span>
+                    <strong class="text-success small">150,000đ</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Password Change Card -->
+        <div class="glass-card">
+            <h5 class="fw-bold mb-3 text-gradient"><i class="fa-solid fa-shield-halved me-2"></i>Đổi Mật Khẩu</h5>
+            
+            <form id="changePasswordForm">
+                <div class="mb-3">
+                    <label class="auth-label" for="oldPassword">Mật khẩu hiện tại</label>
+                    <div class="auth-input-group">
+                        <input type="password" class="form-control" id="oldPassword" placeholder="••••••••" required />
+                        <i class="fa-solid fa-lock input-icon"></i>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="auth-label" for="newPassword">Mật khẩu mới</label>
+                    <div class="auth-input-group">
+                        <input type="password" class="form-control" id="newPassword" placeholder="••••••••" required />
+                        <i class="fa-solid fa-lock input-icon"></i>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="auth-label" for="confirmNewPassword">Xác nhận mật khẩu mới</label>
+                    <div class="auth-input-group">
+                        <input type="password" class="form-control" id="confirmNewPassword" placeholder="••••••••" required />
+                        <i class="fa-solid fa-lock input-icon"></i>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-outline-secondary w-100 py-2.5 mt-2">
+                    <i class="fa-solid fa-key me-1"></i> Đổi Mật Khẩu
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Link New Bank / E-Wallet -->
+<div class="modal fade" id="linkBankModal" tabindex="-1" aria-labelledby="linkBankModalLabel" aria-hidden="true" style="backdrop-filter: blur(5px);">
+    <div class="modal-dialog modal-dialog-centered text-white">
+        <div class="modal-content bg-dark border-secondary p-3 shadow-2xl" style="border-radius:16px;">
+            <div class="modal-header border-secondary border-opacity-10">
+                <h5 class="modal-title fw-bold text-gradient" id="linkBankModalLabel">Liên Kết Thanh Toán Mới</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="linkBankForm">
+                    <!-- Partner Select -->
+                    <div class="mb-3">
+                        <label class="auth-label">Chọn Đối Tác Liên Kết</label>
+                        <div class="auth-input-group">
+                            <select class="form-select" id="bankPartner" required style="border-radius:10px;">
+                                <option value="VCB" selected>Vietcombank</option>
+                                <option value="TCB">Techcombank</option>
+                                <option value="BIDV">BIDV Bank</option>
+                                <option value="MOMO">Ví MoMo</option>
+                                <option value="VNPAY">Ví VNPay</option>
+                            </select>
+                            <i class="fa-solid fa-circle-nodes input-icon"></i>
+                        </div>
+                    </div>
+
+                    <!-- Card / Account Number -->
+                    <div class="mb-3">
+                        <label class="auth-label" for="accountNumberInput">Số Tài Khoản / Số Thẻ / Số Điện Thoại</label>
+                        <div class="auth-input-group">
+                            <input type="text" class="form-control" id="accountNumberInput" placeholder="Nhập số tài khoản hoặc số điện thoại ví..." required />
+                            <i class="fa-solid fa-hashtag input-icon"></i>
+                        </div>
+                    </div>
+
+                    <!-- Owner name -->
+                    <div class="mb-3">
+                        <label class="auth-label" for="accountNameInput">Tên Chủ Tài Khoản (Viết Hoa Không Dấu)</label>
+                        <div class="auth-input-group">
+                            <input type="text" class="form-control" id="accountNameInput" placeholder="VD: NGUYEN VAN A..." required style="text-transform: uppercase;" />
+                            <i class="fa-solid fa-signature input-icon"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-check small mb-4">
+                        <input class="form-check-input bg-dark border-secondary" type="checkbox" id="linkConsent" required checked />
+                        <label class="form-check-label text-muted" for="linkConsent">
+                            Tôi xác nhận đồng ý liên kết tài khoản này với hệ thống ví thông minh SmartParking để thanh toán tự động.
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary-custom w-100 py-3">
+                        XÁC NHẬN LIÊN KẾT <i class="fa-solid fa-circle-check ms-1"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Force upper case in account owner input
+            $('#accountNameInput').on('input', function() {
+                this.value = this.value.toUpperCase();
+            });
+
+            // Cascading address selections using real geographical API endpoints
+            $('#profProvinceSelect').change(function() {
+                const val = $(this).val();
+                const $dist = $('#profDistrictSelect');
+                const $ward = $('#profWardSelect');
+
+                $dist.empty().append('<option value="">-- Chọn Huyện --</option>');
+                $ward.empty().append('<option value="">-- Chọn Xã --</option>').attr('disabled', true);
+
+                if (val) {
+                    $.getJSON('/Customer/Home/GetDistricts', { provinceId: val }, function(data) {
+                        data.forEach(function(item) {
+                            $dist.append(`<option value="${item.id}">${item.name}</option>`);
+                        });
+                        $dist.removeAttr('disabled');
+                    });
+                } else {
+                    $dist.attr('disabled', true);
+                }
+            });
+
+            $('#profDistrictSelect').change(function() {
+                const val = $(this).val();
+                const $ward = $('#profWardSelect');
+
+                $ward.empty().append('<option value="">-- Chọn Xã --</option>');
+
+                if (val) {
+                    $.getJSON('/Customer/Home/GetWards', { districtId: val }, function(data) {
+                        data.forEach(function(item) {
+                            $ward.append(`<option value="${item.id}">${item.name}</option>`);
+                        });
+                        $ward.removeAttr('disabled');
+                    });
+                } else {
+                    $ward.attr('disabled', true);
+                }
+            });
+
+            // Update profile submit
+            $('#updateProfileForm').submit(function(e) {
+                e.preventDefault();
+                
+                const model = {
+                    HoTen: $('#profileName').val(),
+                    SDT: $('#profilePhone').val(),
+                    Email: $('#profileEmail').val(),
+                    CCCD: $('#profileCccd').val(),
+                    BangLaiXe: $('#profileLicense').val(),
+                    MaXa: $('#profWardSelect').val(),
+                    DiaChiChiTiet: $('#profileStreet').val()
+                };
+
+                $.ajax({
+                    url: '/Customer/Home/UpdateProfile',
+                    type: 'POST',
+                    data: model,
+                    success: function(response) {
+                        if (response.success) {
+                            $('#previewDisplayName').text(model.HoTen);
+                            alert('Cập nhật thông tin cá nhân thành công!');
+                            window.location.reload();
+                        } else {
+                            alert(response.message || 'Lỗi khi cập nhật thông tin.');
+                        }
+                    },
+                    error: function() {
+                        alert('Không thể kết nối đến máy chủ.');
+                    }
+                });
+            });
+
+            // Change password submit
+            $('#changePasswordForm').submit(function(e) {
+                e.preventDefault();
+                
+                const model = {
+                    OldPassword: $('#oldPassword').val(),
+                    NewPassword: $('#newPassword').val(),
+                    ConfirmNewPassword: $('#confirmNewPassword').val()
+                };
+
+                $.ajax({
+                    url: '/Customer/Home/ChangePassword',
+                    type: 'POST',
+                    data: model,
+                    success: function(response) {
+                        if (response.success) {
+                            alert('Đổi mật khẩu thành công!');
+                            $('#changePasswordForm')[0].reset();
+                        } else {
+                            alert(response.message || 'Lỗi khi đổi mật khẩu.');
+                        }
+                    },
+                    error: function() {
+                        alert('Không thể kết nối đến máy chủ.');
+                    }
+                });
+            });
+
+            // Add payment partner linking (Local preview)
+            $('#linkBankForm').submit(function(e) {
+                e.preventDefault();
+                const partnerCode = $('#bankPartner').val();
+                const partnerName = $('#bankPartner option:selected').text();
+                const accountNum = $('#accountNumberInput').val();
+                const accountOwner = $('#accountNameInput').val().toUpperCase();
+
+                const safeNum = accountNum.length > 4 ? '•••• ' + accountNum.slice(-4) : accountNum;
+                const idRandom = 'partner-' + Math.floor(Math.random() * 10000);
+                
+                const icon = partnerCode === 'MOMO' || partnerCode === 'VNPAY' ? 'fa-wallet' : 'fa-building-columns';
+                const textCol = partnerCode === 'MOMO' ? 'text-warning' : (partnerCode === 'VNPAY' ? 'text-info' : 'text-primary');
+
+                const itemHTML = `
+                    <div class="col-md-6 account-link-item" id="${idRandom}">
+                        <div class="p-3 bg-dark bg-opacity-40 rounded border border-secondary border-opacity-10 d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="fs-2 ${textCol}"><i class="fa-solid ${icon}"></i></div>
+                                <div>
+                                    <strong class="d-block text-white">${partnerName}</strong>
+                                    <span class="text-muted small">${safeNum} | ${accountOwner}</span>
+                                    <span class="badge bg-success bg-opacity-10 text-success d-block mt-1" style="width: fit-content; font-size:0.65rem;">ĐÃ XÁC THỰC</span>
+                                </div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger btn-unlink-partner" data-target="${idRandom}" data-name="${partnerName}">Hủy</button>
+                        </div>
+                    </div>
+                `;
+
+                $('#linkedAccountsGrid').append(itemHTML);
+                bootstrap.Modal.getInstance(document.getElementById('linkBankModal')).hide();
+                $('#linkBankForm')[0].reset();
+                alert(`Liên kết tài khoản ${partnerName} thành công!`);
+            });
+
+            // Unlink payment partner action
+            $(document).on('click', '.btn-unlink-partner', function() {
+                const targetId = $(this).data('target');
+                const partnerName = $(this).data('name');
+
+                if (confirm(`Bạn có chắc chắn muốn hủy liên kết với ${partnerName}?`)) {
+                    $('#' + targetId).remove();
+                    alert(`Đã hủy liên kết với ${partnerName}!`);
+                }
+            });
+        });
+    </script>
+}

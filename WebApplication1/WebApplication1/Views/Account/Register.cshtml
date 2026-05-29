@@ -1,0 +1,138 @@
+@model WebApplication1.Models.ViewModels.RegisterViewModel
+@{
+    ViewData["Title"] = "Đăng Ký Khách Hàng - SmartParking";
+}
+
+<div class="auth-wrapper">
+    <div class="glass-card auth-card-wide animate-fade-in-up">
+        <!-- Logo and Title -->
+        <div class="text-center mb-4">
+            <div class="fs-1 text-secondary mb-2">
+                <i class="fa-solid fa-user-plus"></i>
+            </div>
+            <h3 class="auth-title text-gradient mb-1">ĐĂNG KÝ KHÁCH HÀNG</h3>
+            <p class="text-muted small">Tạo tài khoản để đặt chỗ và điều khiển barie đỗ xe thông minh</p>
+        </div>
+
+        <form method="post" asp-controller="Account" asp-action="Register" id="registerForm">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-3 text-center"></div>
+
+            <div class="row g-3">
+                <!-- Column 1: Personal Info -->
+                <div class="col-md-6 border-end border-secondary border-opacity-10 pe-md-4">
+                    <h5 class="text-secondary mb-3 small text-uppercase fw-bold tracking-wider"><i class="fa-solid fa-address-card me-2"></i>Thông tin cá nhân</h5>
+                    
+                    <!-- Username -->
+                    <div class="mb-3">
+                        <label class="auth-label" asp-for="TenDangNhap">Tên đăng nhập</label>
+                        <div class="auth-input-group">
+                            <input asp-for="TenDangNhap" type="text" class="form-control" placeholder="Tên đăng nhập..." autocomplete="username" />
+                            <i class="fa-solid fa-user-gear input-icon"></i>
+                        </div>
+                        <span asp-validation-for="TenDangNhap" class="text-danger small mt-1 d-block"></span>
+                    </div>
+
+                    <!-- Full Name -->
+                    <div class="mb-3">
+                        <label class="auth-label" asp-for="HoTen">Họ và Tên</label>
+                        <div class="auth-input-group">
+                            <input asp-for="HoTen" type="text" class="form-control" placeholder="Nguyễn Văn A..." />
+                            <i class="fa-solid fa-user input-icon"></i>
+                        </div>
+                        <span asp-validation-for="HoTen" class="text-danger small mt-1 d-block"></span>
+                    </div>
+
+                    <!-- Phone Number -->
+                    <div class="mb-3">
+                        <label class="auth-label" asp-for="SDT">Số điện thoại</label>
+                        <div class="auth-input-group">
+                            <input asp-for="SDT" type="tel" class="form-control" placeholder="0901234567..." />
+                            <i class="fa-solid fa-phone input-icon"></i>
+                        </div>
+                        <span asp-validation-for="SDT" class="text-danger small mt-1 d-block"></span>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="mb-3">
+                        <label class="auth-label" asp-for="Email">Địa chỉ Email</label>
+                        <div class="auth-input-group">
+                            <input asp-for="Email" type="email" class="form-control" placeholder="email@vi-du.com..." />
+                            <i class="fa-solid fa-envelope input-icon"></i>
+                        </div>
+                        <span asp-validation-for="Email" class="text-danger small mt-1 d-block"></span>
+                    </div>
+                </div>
+
+                <!-- Column 2: Security & Submit -->
+                <div class="col-md-6 ps-md-4">
+                    <h5 class="text-secondary mb-3 small text-uppercase fw-bold tracking-wider"><i class="fa-solid fa-shield-halved me-2"></i>Bảo mật tài khoản</h5>
+
+                    <!-- Password -->
+                    <div class="mb-3">
+                        <label class="auth-label" asp-for="MatKhau">Mật khẩu</label>
+                        <div class="auth-input-group">
+                            <input asp-for="MatKhau" type="password" class="form-control" placeholder="••••••••" autocomplete="new-password" />
+                            <i class="fa-solid fa-lock input-icon"></i>
+                            <button type="button" class="btn-eye-toggle toggle-pass-btn" data-target="MatKhau" tabindex="-1">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="MatKhau" class="text-danger small mt-1 d-block"></span>
+                    </div>
+
+                    <!-- Confirm Password -->
+                    <div class="mb-3">
+                        <label class="auth-label" asp-for="XacNhanMatKhau">Xác nhận mật khẩu</label>
+                        <div class="auth-input-group">
+                            <input asp-for="XacNhanMatKhau" type="password" class="form-control" placeholder="••••••••" autocomplete="new-password" />
+                            <i class="fa-solid fa-lock input-icon"></i>
+                            <button type="button" class="btn-eye-toggle toggle-pass-btn" data-target="XacNhanMatKhau" tabindex="-1">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="XacNhanMatKhau" class="text-danger small mt-1 d-block"></span>
+                    </div>
+
+                    <!-- Terms acceptance checkbox -->
+                    <div class="form-check my-4 small">
+                        <input class="form-check-input bg-dark border-secondary" type="checkbox" id="termsCheck" required />
+                        <label class="form-check-label text-muted" for="termsCheck">
+                            Tôi đồng ý với các <a href="#" class="text-secondary text-decoration-none">Điều khoản sử dụng</a> và chính sách bảo mật của SmartParking.
+                        </label>
+                    </div>
+
+                    <!-- Actions buttons -->
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-8">
+                            <button type="submit" class="btn btn-primary-custom w-100 py-3">
+                                TẠO TÀI KHOẢN KHÁCH HÀNG <i class="fa-solid fa-user-plus ms-1"></i>
+                            </button>
+                        </div>
+                        <div class="col-md-4 text-center text-md-end">
+                            <a asp-controller="Account" asp-action="Login" class="text-muted text-decoration-none small">
+                                Đã có tài khoản? <span class="text-secondary fw-semibold">Đăng nhập</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // --- Ẩn / hiện mật khẩu ---
+            $('.toggle-pass-btn').click(function() {
+                const targetId = $(this).data('target');
+                const passInput = $('#' + targetId);
+                const type = passInput.attr('type') === 'password' ? 'text' : 'password';
+                passInput.attr('type', type);
+                
+                $(this).find('i').toggleClass('fa-eye fa-eye-slash');
+            });
+        });
+    </script>
+}

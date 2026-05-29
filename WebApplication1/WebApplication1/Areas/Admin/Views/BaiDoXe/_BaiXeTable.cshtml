@@ -1,0 +1,149 @@
+@model List<WebApplication1.Areas.Admin.Models.BaiXeStatItem>
+
+@if (Model == null || !Model.Any())
+{
+    <div class="text-center py-5 text-muted">
+        <i class="fa-solid fa-warehouse fa-3x mb-3 opacity-20 d-block"></i>
+        <p class="mb-0">Không có bãi xe nào trong danh mục này.</p>
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table admin-table mb-0">
+            <thead>
+                <tr>
+                    <th>Bãi Đỗ Xe</th>
+                    <th>Chủ Bãi</th>
+                    <th>Số Chỗ</th>
+                    <th>Tỷ Lệ Lấp Đầy</th>
+                    <th>Đánh Giá</th>
+                    <th>Doanh Thu Tháng</th>
+                    <th>Trạng Thái</th>
+                    <th class="text-center">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var bai in Model)
+                {
+                    var pct = bai.PhanTramLapDay;
+                    var barColor = pct >= 90 ? "bg-danger" : pct >= 60 ? "bg-warning" : "bg-success";
+                    var stars = bai.DiemDanhGia;
+                    <tr>
+                        <!-- Tên bãi -->
+                        <td>
+                            <div class="fw-semibold text-dark">@bai.TenBai</div>
+                            <small class="text-muted">ID: @bai.IDBaiXe · @bai.TongLuotThang lượt/tháng</small>
+                        </td>
+                        <!-- Chủ bãi -->
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div style="width:30px;height:30px;border-radius:50%;background:#4f46e5;color:#fff;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0">
+                                    @bai.TenChuBai.Substring(0,1).ToUpper()
+                                </div>
+                                <span style="font-size:.85rem">@bai.TenChuBai</span>
+                            </div>
+                        </td>
+                        <!-- Số chỗ -->
+                        <td>
+                            <div class="fw-semibold">@bai.TongChoDo <small class="text-muted fw-normal">/ @bai.SucChua</small></div>
+                            <small class="text-muted">@bai.SoDangDung đang dùng</small>
+                        </td>
+                        <!-- Tỷ lệ lấp đầy -->
+                        <td style="min-width:130px">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <div class="progress flex-fill" style="height:6px;border-radius:3px">
+                                    <div class="progress-bar @barColor" style="width:@pct%"></div>
+                                </div>
+                                <small class="fw-semibold" style="min-width:30px;font-size:.78rem">@pct%</small>
+                            </div>
+                        </td>
+                        <!-- Đánh giá -->
+                        <td>
+                            @if (bai.SoDanhGia > 0)
+                            {
+                                <div class="d-flex align-items-center gap-1">
+                                    @for (int s = 1; s <= 5; s++)
+                                    {
+                                        if (s <= Math.Floor(stars))
+                                        { <i class="fa-solid fa-star text-warning" style="font-size:.75rem"></i> }
+                                        else if (s - stars < 1 && s - stars > 0)
+                                        { <i class="fa-solid fa-star-half-stroke text-warning" style="font-size:.75rem"></i> }
+                                        else
+                                        { <i class="fa-regular fa-star text-muted" style="font-size:.75rem"></i> }
+                                    }
+                                    <small class="text-muted ms-1">(@bai.SoDanhGia)</small>
+                                </div>
+                                <small class="text-warning fw-semibold">@stars.ToString("F1")</small>
+                            }
+                            else
+                            {
+                                <span class="text-muted" style="font-size:.8rem">Chưa có</span>
+                            }
+                        </td>
+                        <!-- Doanh thu -->
+                        <td>
+                            <span class="fw-semibold text-success" style="font-size:.88rem">
+                                @bai.DoanhThuThang.ToString("N0")₫
+                            </span>
+                        </td>
+                        <!-- Trạng thái -->
+                        <td>
+                            @if (bai.TrangThai == "Hoạt động")
+                            { <span class="badge bg-success"><i class="fa-solid fa-circle me-1" style="font-size:.5rem"></i>Hoạt động</span> }
+                            else if (bai.TrangThai == "Tạm đóng")
+                            { <span class="badge bg-danger"><i class="fa-solid fa-lock me-1" style="font-size:.7rem"></i>Tạm đóng</span> }
+                            else
+                            { <span class="badge bg-secondary"><i class="fa-solid fa-wrench me-1" style="font-size:.7rem"></i>Bảo trì</span> }
+                        </td>
+                        <!-- Thao tác -->
+                        <td>
+                            <div class="d-flex gap-1 justify-content-center">
+                                <!-- Xem chi tiết -->
+                                <a href="/Admin/BaiDoXe/ChiTiet/@bai.IDBaiXe"
+                                   class="btn btn-sm btn-outline-primary" title="Xem chi tiết"
+                                   style="border-radius:8px;padding:4px 10px">
+                                    <i class="fa-solid fa-eye"></i>
+                                </a>
+                                <!-- Khóa / Mở khóa -->
+                                @if (bai.TrangThai == "Hoạt động")
+                                {
+                                    <button class="btn btn-sm btn-outline-danger"
+                                            style="border-radius:8px;padding:4px 10px"
+                                            title="Khóa bãi"
+                                            onclick="moModalKhoaBai(@bai.IDBaiXe, '@bai.TenBai')">
+                                        <i class="fa-solid fa-lock"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <form method="post" asp-action="KhoaBai" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@bai.IDBaiXe" />
+                                        <input type="hidden" name="lyDo" value="Admin mở khóa" />
+                                        <input type="hidden" name="returnTab" value="tamdong" />
+                                        <button class="btn btn-sm btn-outline-success"
+                                                style="border-radius:8px;padding:4px 10px"
+                                                title="Mở khóa bãi">
+                                            <i class="fa-solid fa-lock-open"></i>
+                                        </button>
+                                    </form>
+                                }
+                                <!-- Đổi trạng thái -->
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        style="border-radius:8px;padding:4px 10px"
+                                        title="Đổi trạng thái"
+                                        data-bs-toggle="modal" data-bs-target="#modalDoiTrangThai"
+                                        data-id="@bai.IDBaiXe"
+                                        data-ten="@bai.TenBai"
+                                        data-trangthai="@bai.TrangThai">
+                                    <i class="fa-solid fa-arrows-rotate"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

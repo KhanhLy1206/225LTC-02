@@ -1,0 +1,495 @@
+@model WebApplication1.Areas.Admin.Models.HoaHongViewModel
+@{
+    ViewData["Title"] = "Cấu Hình Hoa Hồng";
+}
+
+@section Styles {
+<style>
+    .rate-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 4px 12px; border-radius: 20px;
+        font-size: .82rem; font-weight: 700;
+    }
+    .rate-low    { background: #dcfce7; color: #16a34a; }
+    .rate-mid    { background: #fef9c3; color: #ca8a04; }
+    .rate-high   { background: #fee2e2; color: #dc2626; }
+    .rate-custom { background: #ede9fe; color: #7c3aed; }
+
+    .stat-mini { background: #fff; border-radius: 14px; padding: 20px 22px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+    .stat-mini .val { font-size: 1.6rem; font-weight: 700; line-height: 1; }
+    .stat-mini .lbl { font-size: .78rem; color: #6b7280; margin-top: 4px; }
+
+    .search-box { border-radius: 10px; border: 1.5px solid #e5e7eb; padding: 8px 14px; font-size: .9rem; }
+    .search-box:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,.1); outline: none; }
+
+    .rate-input {
+        width: 80px; border-radius: 8px; border: 1.5px solid #e5e7eb;
+        padding: 4px 8px; font-size: .88rem; text-align: center;
+    }
+    .rate-input:focus { border-color: #4f46e5; outline: none; box-shadow: 0 0 0 3px rgba(79,70,229,.1); }
+
+    .progress-rate { height: 6px; border-radius: 4px; background: #f1f5f9; }
+    .progress-rate .bar { height: 100%; border-radius: 4px; transition: width .4s; }
+
+    .action-btn { font-size: .8rem; padding: 5px 12px; border-radius: 8px; }
+    .empty-state { padding: 60px 20px; text-align: center; color: #9ca3af; }
+    .empty-state i { font-size: 3rem; opacity: .2; display: block; margin-bottom: 12px; }
+
+    .bulk-bar {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        border-radius: 14px; padding: 20px 24px; color: #fff;
+        box-shadow: 0 4px 16px rgba(79,70,229,.3);
+    }
+</style>
+}
+
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div class="page-header mb-0">
+        <h4><i class="fa-solid fa-percent me-2 text-primary"></i>Cấu Hình Hoa Hồng</h4>
+        <p>Thiết lập tỷ lệ chiết khấu hoa hồng cho từng bãi xe hoặc áp dụng đồng loạt toàn hệ thống.</p>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show rounded-3 mb-3">
+        <i class="fa-solid fa-circle-check me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show rounded-3 mb-3">
+        <i class="fa-solid fa-circle-xmark me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3">
+        <div class="stat-mini">
+            <div class="val text-primary">@Model.TyLeMacDinh.ToString("0.##")%</div>
+            <div class="lbl"><i class="fa-solid fa-sliders me-1 text-primary"></i>Tỷ lệ TB hiện tại</div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="stat-mini">
+            <div class="val text-success">@Model.DanhSachBai.Count</div>
+            <div class="lbl"><i class="fa-solid fa-warehouse me-1 text-success"></i>Tổng bãi đang quản lý</div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="stat-mini">
+            <div class="val text-warning">@Model.TongHoaHongThang.ToString("N0") ₫</div>
+            <div class="lbl"><i class="fa-solid fa-coins me-1 text-warning"></i>Hoa hồng tháng này</div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="stat-mini">
+            @if (Model.SoPhanHoiChuaDoc > 0)
+            {
+                <div class="val text-danger">@Model.SoPhanHoiChuaDoc</div>
+                <div class="lbl"><i class="fa-solid fa-reply me-1 text-danger"></i>Phản hồi chưa xử lý</div>
+            }
+            else
+            {
+                <div class="val text-info">@Model.TongDoanhThuThang.ToString("N0") ₫</div>
+                <div class="lbl"><i class="fa-solid fa-chart-line me-1 text-info"></i>Doanh thu tháng này</div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Áp dụng đồng loạt -->
+<div class="bulk-bar mb-4">
+    <div class="row align-items-center g-3">
+        <div class="col-md-6">
+            <h6 class="fw-bold mb-1 text-white">
+                <i class="fa-solid fa-wand-magic-sparkles me-2"></i>Áp Dụng Đồng Loạt
+            </h6>
+            <p class="mb-0 text-white" style="opacity:.8;font-size:.85rem">
+                Đặt cùng một tỷ lệ hoa hồng cho tất cả bãi xe (hoặc theo trạng thái lọc hiện tại).
+            </p>
+        </div>
+        <div class="col-md-6">
+            <form method="post" asp-action="ApDungDongLoat" class="d-flex flex-wrap gap-2 align-items-end">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="locTrangThai" value="@Model.LocTrangThai" />
+                <div>
+                    <label class="text-white fw-semibold" style="font-size:.8rem">Tỷ lệ (%)</label>
+                    <input type="number" name="phanTram" min="0" max="100" step="0.5"
+                           class="form-control rate-input" placeholder="VD: 10" required
+                           style="background:#fff;color:#111" />
+                </div>
+                <div class="flex-fill">
+                    <label class="text-white fw-semibold" style="font-size:.8rem">Lý do (tùy chọn)</label>
+                    <input type="text" name="lyDo" class="form-control"
+                           placeholder="Điều chỉnh chính sách Q3/2025..."
+                           style="border-radius:8px;font-size:.88rem" />
+                </div>
+                <button type="button" class="btn btn-light fw-semibold px-4"
+                        onclick="xacNhanDongLoat(this.closest('form'))">
+                    <i class="fa-solid fa-check me-1"></i>Áp Dụng
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bảng danh sách -->
+<div class="card card-admin">
+    <div class="card-header d-flex flex-wrap gap-3 align-items-center justify-content-between">
+        <span class="fw-bold">
+            <i class="fa-solid fa-list me-2 text-primary"></i>
+            Danh Sách Bãi Xe
+            <span class="badge bg-primary ms-1">@Model.DanhSachBai.Count</span>
+        </span>
+        <form method="get" class="d-flex flex-wrap gap-2">
+            <input type="text" name="search" value="@Model.Search"
+                   class="form-control search-box" placeholder="Tìm tên bãi, chủ bãi, email..."
+                   style="width:220px" />
+            <select name="locTrangThai" class="form-select search-box" style="width:150px">
+                <option value="">Tất cả trạng thái</option>
+                <option value="Hoạt động"  selected="@(Model.LocTrangThai == "Hoạt động")">Hoạt động</option>
+                <option value="Tạm đóng"   selected="@(Model.LocTrangThai == "Tạm đóng")">Tạm đóng</option>
+                <option value="Bảo trì"    selected="@(Model.LocTrangThai == "Bảo trì")">Bảo trì</option>
+            </select>
+            <button class="btn btn-primary action-btn px-3">
+                <i class="fa-solid fa-search"></i>
+            </button>
+            @if (!string.IsNullOrEmpty(Model.Search) || !string.IsNullOrEmpty(Model.LocTrangThai))
+            {
+                <a href="/Admin/HoaHong" class="btn btn-outline-secondary action-btn">
+                    <i class="fa-solid fa-xmark"></i>
+                </a>
+            }
+        </form>
+    </div>
+
+    <div class="card-body p-0">
+        @if (!Model.DanhSachBai.Any())
+        {
+            <div class="empty-state">
+                <i class="fa-solid fa-percent"></i>
+                <p class="mb-0">Không tìm thấy bãi xe nào.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table admin-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Bãi Xe</th>
+                            <th>Chủ Bãi</th>
+                            <th>Trạng Thái</th>
+                            <th class="text-center">Tỷ Lệ HH (%)</th>
+                            <th class="text-end">DT Tháng</th>
+                            <th class="text-end">HH Tháng</th>
+                            <th class="text-center">GD Tháng</th>
+                            <th class="text-center">Phản Hồi</th>
+                            <th class="text-center">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.DanhSachBai)
+                        {
+                            var rateCss = item.PhanTramHienTai <= 5 ? "rate-low"
+                                        : item.PhanTramHienTai <= 15 ? "rate-mid"
+                                        : item.PhanTramHienTai <= 25 ? "rate-high"
+                                        : "rate-custom";
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold text-dark" style="font-size:.9rem">@item.TenBai</div>
+                                    <small class="text-muted">ID #@item.IDBaiXe</small>
+                                </td>
+                                <td>
+                                    <div style="font-size:.88rem">@item.TenChuBai</div>
+                                    <small class="text-muted">@item.Email</small>
+                                </td>
+                                <td>
+                                    @{
+                                        var (badgeCss, icon) = item.TrangThai switch {
+                                            "Hoạt động" => ("bg-success", "fa-circle-check"),
+                                            "Tạm đóng"  => ("bg-danger",  "fa-pause-circle"),
+                                            "Bảo trì"   => ("bg-secondary","fa-wrench"),
+                                            _           => ("bg-secondary","fa-circle")
+                                        };
+                                    }
+                                    <span class="badge @badgeCss">
+                                        <i class="fa-solid @icon me-1"></i>@item.TrangThai
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="rate-badge @rateCss">
+                                        <i class="fa-solid fa-percent" style="font-size:.7rem"></i>
+                                        @item.PhanTramHienTai.ToString("0.##")
+                                    </span>
+                                    <div class="progress-rate mt-1" style="width:70px;margin:4px auto 0">
+                                        <div class="bar @(item.PhanTramHienTai <= 5 ? "bg-success" : item.PhanTramHienTai <= 15 ? "bg-warning" : "bg-danger")"
+                                             style="width:@(Math.Min((double)item.PhanTramHienTai, 100))%"></div>
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <span class="fw-semibold" style="font-size:.88rem">
+                                        @item.DoanhThuThang.ToString("N0") ₫
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="text-success fw-semibold" style="font-size:.88rem">
+                                        @item.HoaHongThang.ToString("N0") ₫
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-light text-dark border">@item.SoGiaoDichThang</span>
+                                </td>
+                                <td class="text-center">
+                                    @if (item.OwnerChapNhan)
+                                    {
+                                        <span class="badge bg-success mb-1 d-block">
+                                            <i class="fa-solid fa-check me-1"></i>Chấp nhận
+                                        </span>
+                                        <form method="post" asp-action="DocPhanHoi">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="idThongBao" value="@item.IDThongBaoPhanHoi" />
+                                            <button class="btn btn-success btn-sm action-btn">
+                                                <i class="fa-solid fa-check-double me-1"></i>Áp dụng
+                                            </button>
+                                        </form>
+                                    }
+                                    else if (item.OwnerTuChoi)
+                                    {
+                                        <span class="badge bg-danger mb-1 d-block">
+                                            <i class="fa-solid fa-xmark me-1"></i>Từ chối
+                                        </span>
+                                        <button class="btn btn-outline-secondary btn-sm action-btn mb-1"
+                                                data-bs-toggle="modal" data-bs-target="#modalXemLyDo"
+                                                data-lydo="@item.NoiDungPhanHoi">
+                                            <i class="fa-solid fa-eye me-1"></i>Lý do
+                                        </button>
+                                        <form method="post" asp-action="DocPhanHoi">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="idThongBao" value="@item.IDThongBaoPhanHoi" />
+                                            <button class="btn btn-outline-danger btn-sm action-btn">
+                                                <i class="fa-solid fa-check me-1"></i>Đã đọc
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted" style="font-size:.78rem">Chờ phản hồi</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <button class="btn btn-outline-primary action-btn"
+                                            data-bs-toggle="modal" data-bs-target="#modalCapNhat"
+                                            data-id="@item.IDBaiXe"
+                                            data-ten="@item.TenBai"
+                                            data-tyle="@item.PhanTramHienTai">
+                                        <i class="fa-solid fa-paper-plane me-1"></i>Đề xuất
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Modal Cập Nhật Tỷ Lệ -->
+<div class="modal fade" id="modalCapNhat" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" asp-action="CapNhatTyLe">
+            @Html.AntiForgeryToken()
+            <div class="modal-content" style="border-radius:16px;border:none">
+                <div class="modal-header border-0 pb-0">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="width:44px;height:44px;border-radius:12px;background:#ede9fe;color:#7c3aed;display:flex;align-items:center;justify-content:center;font-size:1.2rem">
+                            <i class="fa-solid fa-percent"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title mb-0 fw-bold">Cập Nhật Tỷ Lệ Hoa Hồng</h5>
+                            <small class="text-muted" id="capNhatTen"></small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pt-3">
+                    <input type="hidden" name="id" id="capNhatId" />
+
+                    <!-- Tỷ lệ hiện tại -->
+                    <div class="alert alert-light border rounded-3 mb-3 py-2 px-3">
+                        <small class="text-muted">Tỷ lệ hiện tại:</small>
+                        <span class="fw-bold ms-2" id="capNhatTyLeHienTai"></span>
+                    </div>
+
+                    <!-- Chọn nhanh -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Chọn nhanh</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var rate in new[] { 5, 8, 10, 12, 15, 20 })
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-secondary quick-rate"
+                                        data-val="@rate">@rate%</button>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Nhập tay -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            Tỷ lệ mới (%) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="number" name="phanTram" id="capNhatPhanTram"
+                                   min="0" max="100" step="0.5" required
+                                   class="form-control" style="border-radius:10px 0 0 10px;font-size:.95rem"
+                                   placeholder="Nhập từ 0 đến 100" />
+                            <span class="input-group-text" style="border-radius:0 10px 10px 0">%</span>
+                        </div>
+                        <div class="mt-2" id="previewHoaHong" style="display:none">
+                            <small class="text-muted">
+                                Ước tính hoa hồng tháng này:
+                                <strong class="text-success" id="previewSoTien"></strong>
+                            </small>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="form-label fw-semibold">Lý do thay đổi (tùy chọn)</label>
+                        <textarea name="lyDo" class="form-control" rows="3"
+                                  placeholder="Điều chỉnh theo chính sách mới, thưởng đối tác..."
+                                  style="border-radius:10px;font-size:.88rem"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="fa-solid fa-check me-1"></i>Lưu Thay Đổi
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Xem Lý Do Từ Chối -->
+<div class="modal fade" id="modalXemLyDo" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px; border:none; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+            <div class="modal-header border-0 pb-0">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width:44px; height:44px; border-radius:12px; background:#fee2e2; color:#dc2626; display:flex; align-items:center; justify-content:center; font-size:1.2rem">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title mb-0 fw-bold">Chi Tiết Phản Hồi Từ Chối</h5>
+                        <small class="text-muted">Lý do từ chủ bãi xe</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-3">
+                <div class="p-3 rounded mb-0" style="background:#f8fafc; border-left:4px solid #ef4444; white-space: pre-line; font-size:.9rem; color:#374151;" id="xemLyDoNoiDung">
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light px-4" style="border-radius: 8px;" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Dữ liệu doanh thu tháng theo bãi (để preview)
+    const doanhThuMap = {
+        @foreach (var item in Model.DanhSachBai)
+        {
+            @:@item.IDBaiXe: @item.DoanhThuThang,
+        }
+    };
+
+    // Mở modal cập nhật
+    document.querySelectorAll('[data-bs-target="#modalCapNhat"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id    = btn.dataset.id;
+            const ten   = btn.dataset.ten;
+            const tyLe  = parseFloat(btn.dataset.tyle);
+
+            document.getElementById('capNhatId').value          = id;
+            document.getElementById('capNhatTen').textContent   = ten;
+            document.getElementById('capNhatPhanTram').value    = tyLe;
+            document.getElementById('capNhatTyLeHienTai').textContent = tyLe + '%';
+
+            // Reset quick-rate buttons
+            document.querySelectorAll('.quick-rate').forEach(b => {
+                b.classList.remove('btn-primary', 'active');
+                b.classList.add('btn-outline-secondary');
+                if (parseFloat(b.dataset.val) === tyLe) {
+                    b.classList.add('btn-primary', 'active');
+                    b.classList.remove('btn-outline-secondary');
+                }
+            });
+
+            updatePreview(id, tyLe);
+        });
+    });
+
+    // Chọn nhanh tỷ lệ
+    document.querySelectorAll('.quick-rate').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.quick-rate').forEach(b => {
+                b.classList.remove('btn-primary', 'active');
+                b.classList.add('btn-outline-secondary');
+            });
+            btn.classList.add('btn-primary', 'active');
+            btn.classList.remove('btn-outline-secondary');
+
+            const val = btn.dataset.val;
+            document.getElementById('capNhatPhanTram').value = val;
+            const id = document.getElementById('capNhatId').value;
+            updatePreview(id, parseFloat(val));
+        });
+    });
+
+    // Preview hoa hồng khi nhập tay
+    document.getElementById('capNhatPhanTram').addEventListener('input', function () {
+        const id = document.getElementById('capNhatId').value;
+        updatePreview(id, parseFloat(this.value) || 0);
+    });
+
+    function updatePreview(id, tyLe) {
+        const dt = doanhThuMap[id] || 0;
+        if (dt > 0 && tyLe > 0) {
+            const hoaHong = dt * tyLe / 100;
+            document.getElementById('previewSoTien').textContent =
+                new Intl.NumberFormat('vi-VN').format(Math.round(hoaHong)) + ' ₫';
+            document.getElementById('previewHoaHong').style.display = 'block';
+        } else {
+            document.getElementById('previewHoaHong').style.display = 'none';
+        }
+    }
+
+    // Xem lý do từ chối
+    document.querySelectorAll('[data-bs-target="#modalXemLyDo"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('xemLyDoNoiDung').textContent = btn.dataset.lydo;
+        });
+    });
+
+    // Xác nhận áp dụng đồng loạt
+    function xacNhanDongLoat(form) {
+        const phanTram = form.querySelector('[name="phanTram"]').value;
+        if (!phanTram) { alert('Vui lòng nhập tỷ lệ hoa hồng.'); return; }
+        const soLuong = @Model.DanhSachBai.Count;
+        if (confirm(`Áp dụng tỷ lệ ${phanTram}% cho ${soLuong} bãi xe?\n\nThao tác này sẽ gửi thông báo đến tất cả chủ bãi.`)) {
+            form.submit();
+        }
+    }
+</script>
+}

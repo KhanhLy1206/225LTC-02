@@ -1,0 +1,578 @@
+@model WebApplication1.Areas.Admin.Models.ChiTietBaiXeViewModel
+@{
+    ViewData["Title"] = "Chi Tiết Bãi Xe - " + Model.BaiXe.TenBai;
+    var bai = Model.BaiXe;
+    var chuBai = bai.ChuBaiXe;
+    var xa = bai.XaPhuong;
+}
+
+@section Styles {
+<style>
+    .detail-card { border: none; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+    .info-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #f1f5f9; font-size: .88rem; }
+    .info-row:last-child { border-bottom: none; }
+    .info-row .lbl { color: #6b7280; }
+    .info-row .val { font-weight: 600; color: #111827; text-align: right; max-width: 60%; }
+    .stat-mini2 { background: #f8fafc; border-radius: 10px; padding: 14px 16px; text-align: center; }
+    .stat-mini2 .val { font-size: 1.4rem; font-weight: 700; }
+    .stat-mini2 .lbl { font-size: .72rem; color: #6b7280; margin-top: 2px; }
+    .cho-badge { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
+    .tab-detail .nav-link { font-size: .85rem; padding: 8px 14px; border-radius: 8px 8px 0 0; color: #6b7280; }
+    .tab-detail .nav-link.active { color: #4f46e5; border-bottom: 2px solid #4f46e5; background: #fff; }
+    .progress { height: 8px; border-radius: 4px; }
+    .khu-vuc-card { border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 14px 16px; }
+    .cho-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .cho-item { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 700; cursor: default; }
+    .cho-trong { background: #dcfce7; color: #16a34a; border: 1.5px solid #86efac; }
+    .cho-dadat { background: #fef9c3; color: #ca8a04; border: 1.5px solid #fde047; }
+    .cho-dangdo { background: #fee2e2; color: #dc2626; border: 1.5px solid #fca5a5; }
+    .cho-baotri { background: #f1f5f9; color: #64748b; border: 1.5px solid #cbd5e1; }
+    .back-btn { font-size: .85rem; color: #6b7280; text-decoration: none; }
+    .back-btn:hover { color: #4f46e5; }
+</style>
+}
+
+<!-- Header -->
+<div class="d-flex align-items-center gap-3 mb-4">
+    <a href="/Admin/BaiDoXe" class="back-btn">
+        <i class="fa-solid fa-arrow-left me-1"></i>Quay lại
+    </a>
+    <span class="text-muted">/</span>
+    <h4 class="mb-0 fw-bold text-dark">
+        <i class="fa-solid fa-warehouse me-2 text-primary"></i>@bai.TenBai
+    </h4>
+    @if (bai.TrangThai == "Hoạt động")
+    { <span class="badge bg-success ms-2">Hoạt động</span> }
+    else if (bai.TrangThai == "Tạm đóng")
+    { <span class="badge bg-danger ms-2">Tạm đóng</span> }
+    else
+    { <span class="badge bg-secondary ms-2">Bảo trì</span> }
+    <div class="ms-auto">
+        <button class="btn btn-outline-secondary btn-sm"
+                data-bs-toggle="modal" data-bs-target="#modalDoiTrangThaiChiTiet">
+            <i class="fa-solid fa-arrows-rotate me-1"></i>Đổi Trạng Thái
+        </button>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show rounded-3 mb-3" role="alert">
+        <i class="fa-solid fa-circle-check me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row g-4">
+    <!-- ── CỘT TRÁI ── -->
+    <div class="col-lg-4">
+        <!-- Thông tin bãi -->
+        <div class="detail-card card mb-3">
+            <div class="card-header">
+                <i class="fa-solid fa-warehouse me-2 text-primary"></i>Thông Tin Bãi Xe
+            </div>
+            <div class="card-body">
+                @if (!string.IsNullOrEmpty(bai.HinhAnh))
+                {
+                    <img src="@bai.HinhAnh" class="img-fluid rounded-3 mb-3 w-100"
+                         style="height:160px;object-fit:cover" alt="@bai.TenBai" />
+                }
+                <div class="info-row">
+                    <span class="lbl">Tên bãi</span>
+                    <span class="val">@bai.TenBai</span>
+                </div>
+                <div class="info-row">
+                    <span class="lbl">Sức chứa</span>
+                    <span class="val">@bai.SucChua chỗ</span>
+                </div>
+                <div class="info-row">
+                    <span class="lbl">Chiết khấu Admin</span>
+                    <span class="val">@bai.PhanTramChietKhau%</span>
+                </div>
+                <div class="info-row">
+                    <span class="lbl">Địa chỉ</span>
+                    <span class="val">
+                        @bai.DiaChiChiTiet
+                        @if (xa != null)
+                        {
+                            <span>, @xa.TenXa</span>
+                            @if (xa.QuanHuyen != null)
+                            {
+                                <span>, @xa.QuanHuyen.TenHuyen</span>
+                                @if (xa.QuanHuyen.TinhThanh != null)
+                                { <span>, @xa.QuanHuyen.TinhThanh.TenTinh</span> }
+                            }
+                        }
+                    </span>
+                </div>
+            </div>
+        </div>
+        <!-- Thông tin chủ bãi -->
+        <div class="detail-card card mb-3">
+            <div class="card-header">
+                <i class="fa-solid fa-user-tie me-2 text-indigo"></i>Chủ Bãi Xe
+            </div>
+            <div class="card-body">
+                <div class="info-row">
+                    <span class="lbl">Họ tên</span>
+                    <span class="val">@(chuBai?.TenChuBai ?? "—")</span>
+                </div>
+                <div class="info-row">
+                    <span class="lbl">SĐT</span>
+                    <span class="val">@(chuBai?.SDT ?? "—")</span>
+                </div>
+                <div class="info-row">
+                    <span class="lbl">Email</span>
+                    <span class="val" style="font-size:.82rem">@(chuBai?.Email ?? "—")</span>
+                </div>
+                @if (!string.IsNullOrEmpty(chuBai?.CCCD))
+                {
+                    <div class="info-row">
+                        <span class="lbl">CCCD</span>
+                        <span class="val">@chuBai.CCCD</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Thống kê nhanh -->
+        <div class="detail-card card">
+            <div class="card-header">
+                <i class="fa-solid fa-chart-bar me-2 text-success"></i>Thống Kê Nhanh
+            </div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <div class="stat-mini2">
+                            <div class="val text-primary">@Model.TongLuotDo</div>
+                            <div class="lbl">Tổng lượt đỗ</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-mini2">
+                            <div class="val text-success">@Model.LuotDoThang</div>
+                            <div class="lbl">Lượt tháng này</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-mini2">
+                            <div class="val text-warning" style="font-size:1.1rem">
+                                @Model.DoanhThuThang.ToString("N0")₫
+                            </div>
+                            <div class="lbl">Doanh thu tháng</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-mini2">
+                            <div class="val @(Model.PhanTramLapDay >= 80 ? "text-danger" : "text-success")">
+                                @Model.PhanTramLapDay%
+                            </div>
+                            <div class="lbl">Tỷ lệ lấp đầy</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-mini2">
+                            <div class="val text-danger">@Model.TongKhieuNai</div>
+                            <div class="lbl">Tổng khiếu nại</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-mini2">
+                            <div class="val text-warning">@Model.KhieuNaiCho</div>
+                            <div class="lbl">Chờ xử lý</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ── END CỘT TRÁI ── -->
+
+    <!-- ── CỘT PHẢI ── -->
+    <div class="col-lg-8">
+        <div class="detail-card card">
+            <div class="card-header">
+                <ul class="nav tab-detail mb-0 gap-1" id="chiTietTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab" href="#ct-khuvuc">
+                            <i class="fa-solid fa-map-marked-alt me-1"></i>Khu Vực & Chỗ Đỗ
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#ct-bangia">
+                            <i class="fa-solid fa-tags me-1"></i>Bảng Giá
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#ct-hieuqua">
+                            <i class="fa-solid fa-chart-line me-1"></i>Hiệu Suất
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#ct-khieuNai">
+                            <i class="fa-solid fa-flag me-1"></i>Khiếu Nại
+                            @if (Model.KhieuNaiCho > 0)
+                            { <span class="badge bg-danger ms-1">@Model.KhieuNaiCho</span> }
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content">
+                    <!-- Tab Khu Vực & Chỗ Đỗ -->
+                    <div class="tab-pane fade show active" id="ct-khuvuc">
+                        <!-- Legend -->
+                        <div class="d-flex gap-3 mb-3 flex-wrap">
+                            <span><span class="cho-badge" style="background:#16a34a"></span>Trống</span>
+                            <span><span class="cho-badge" style="background:#ca8a04"></span>Đã đặt</span>
+                            <span><span class="cho-badge" style="background:#dc2626"></span>Đang đỗ</span>
+                            <span><span class="cho-badge" style="background:#64748b"></span>Bảo trì</span>
+                        </div>
+                        @if (!Model.KhuVucs.Any())
+                        {
+                            <p class="text-muted text-center py-4">Chưa có khu vực nào.</p>
+                        }
+                        else
+                        {
+                            <div class="row g-3">
+                                @foreach (var kv in Model.KhuVucs)
+                                {
+                                    <div class="col-md-6">
+                                        <div class="khu-vuc-card">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <div>
+                                                    <span class="fw-bold text-dark">@kv.KhuVuc.TenKhuVuc</span>
+                                                    <small class="text-muted ms-2">(@(kv.KhuVuc.LoaiXe?.TenLoaiXe ?? "—"))</small>
+                                                </div>
+                                                <span class="badge bg-light text-dark border">@kv.PhanTramDay%</span>
+                                            </div>
+                                            <div class="progress mb-2">
+                                                @{ var pct2 = kv.PhanTramDay; var c2 = pct2 >= 90 ? "bg-danger" : pct2 >= 60 ? "bg-warning" : "bg-success"; }
+                                                <div class="progress-bar @c2" style="width:@pct2%"></div>
+                                            </div>
+                                            <div class="d-flex gap-3 mb-2" style="font-size:.8rem">
+                                                <span class="text-success"><i class="fa-solid fa-circle me-1"></i>Trống: @kv.SoTrong</span>
+                                                <span class="text-warning"><i class="fa-solid fa-circle me-1"></i>Đã đặt: @kv.SoDaDat</span>
+                                                <span class="text-danger"><i class="fa-solid fa-circle me-1"></i>Đang đỗ: @kv.SoDangDo</span>
+                                                <span class="text-secondary"><i class="fa-solid fa-circle me-1"></i>Bảo trì: @kv.SoBaoTri</span>
+                                            </div>
+                                            <div class="cho-grid">
+                                                @foreach (var cho in kv.KhuVuc.ChoDauXes)
+                                                {
+                                                    var cls = cho.TrangThaiO switch {
+                                                        "Trống" => "cho-trong",
+                                                        "Đã đặt" => "cho-dadat",
+                                                        "Đang đỗ" => "cho-dangdo",
+                                                        _ => "cho-baotri"
+                                                    };
+                                                    <div class="cho-item @cls" title="@cho.TenChoDau - @cho.TrangThaiO">
+                                                        @cho.TenChoDau
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Tab Bảng Giá -->
+                    <div class="tab-pane fade" id="ct-bangia">
+                        @if (!Model.BangGias.Any())
+                        {
+                            <p class="text-muted text-center py-4">Chưa có bảng giá nào.</p>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table admin-table mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Tên Bảng Giá</th>
+                                            <th>Loại Xe</th>
+                                            <th>Giá / Giờ</th>
+                                            <th>Giá Qua Đêm</th>
+                                            <th>Giá / Tháng</th>
+                                            <th>Giá Đặt Chỗ</th>
+                                            <th>Trạng Thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var bg in Model.BangGias)
+                                        {
+                                            <tr>
+                                                <td class="fw-semibold">@bg.TenBangGia</td>
+                                                <td>@(bg.LoaiXe?.TenLoaiXe ?? "—")</td>
+                                                <td class="text-success fw-semibold">@bg.GiaTheoGio.ToString("N0")₫</td>
+                                                <td>@bg.GiaQuaDem.ToString("N0")₫</td>
+                                                <td>@bg.GiaTheoThang.ToString("N0")₫</td>
+                                                <td>@bg.GiaDatCho.ToString("N0")₫</td>
+                                                <td>
+                                                    @if (bg.TrangThai)
+                                                    { <span class="badge bg-success">Áp dụng</span> }
+                                                    else
+                                                    { <span class="badge bg-secondary">Tắt</span> }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Tab Lịch Sử Đặt Chỗ -->
+                    <div class="tab-pane fade" id="ct-lichsu">
+                        @if (!Model.LichSuDatCho.Any())
+                        {
+                            <p class="text-muted text-center py-4">Chưa có lịch sử đặt chỗ.</p>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table admin-table mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Biển Số</th>
+                                            <th>Khách Hàng</th>
+                                            <th>Khu Vực / Chỗ</th>
+                                            <th>Thời Gian</th>
+                                            <th>Tổng Tiền</th>
+                                            <th>Trạng Thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var dc in Model.LichSuDatCho)
+                                        {
+                                            <tr>
+                                                <td class="text-muted">@dc.ID</td>
+                                                <td class="fw-semibold">@dc.BienSoXe</td>
+                                                <td>@dc.TenKhachHang</td>
+                                                <td>
+                                                    <small class="text-muted">@dc.TenKhuVuc</small>
+                                                    <div class="fw-semibold" style="font-size:.85rem">@dc.TenChoDau</div>
+                                                </td>
+                                                <td>
+                                                    <small>@dc.TgianBatDau.ToString("dd/MM HH:mm")</small>
+                                                    <br /><small class="text-muted">→ @dc.TgianKetThuc.ToString("dd/MM HH:mm")</small>
+                                                </td>
+                                                <td>
+                                                    @if (dc.TongTien.HasValue)
+                                                    { <span class="text-success fw-semibold">@dc.TongTien.Value.ToString("N0")₫</span> }
+                                                    else
+                                                    { <span class="text-muted">—</span> }
+                                                </td>
+                                                <td>
+                                                    @{
+                                                        var (badgeCls, badgeTxt) = dc.TrangThai switch {
+                                                            "Hoàn thành" => ("bg-success", "Hoàn thành"),
+                                                            "Đang đỗ" => ("bg-primary", "Đang đỗ"),
+                                                            "Đã đặt" => ("bg-warning text-dark", "Đã đặt"),
+                                                            "Đã hủy" => ("bg-danger", "Đã hủy"),
+                                                            _ => ("bg-secondary", dc.TrangThai)
+                                                        };
+                                                    }
+                                                    <span class="badge @badgeCls">@badgeTxt</span>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Tab Hiệu Suất -->
+                    <div class="tab-pane fade" id="ct-hieuqua">
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <div class="stat-mini2">
+                                    <div class="val text-success">@Model.TongHoanThanh</div>
+                                    <div class="lbl">Hoàn thành (@Model.PhanTramHoanThanh%)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="stat-mini2">
+                                    <div class="val text-danger">@Model.TongHuy</div>
+                                    <div class="lbl">Đã hủy (@Model.PhanTramHuy%)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="stat-mini2">
+                                    <div class="val text-primary">@Model.DoanhThuTong.ToString("N0")₫</div>
+                                    <div class="lbl">Tổng doanh thu</div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Tỷ lệ hoàn thành / hủy -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-1" style="font-size:.82rem">
+                                <span class="text-success fw-semibold">Hoàn thành @Model.PhanTramHoanThanh%</span>
+                                <span class="text-danger fw-semibold">Hủy @Model.PhanTramHuy%</span>
+                            </div>
+                            <div class="progress" style="height:12px;border-radius:8px">
+                                <div class="progress-bar bg-success" style="width:@Model.PhanTramHoanThanh%"></div>
+                                <div class="progress-bar bg-danger" style="width:@Model.PhanTramHuy%"></div>
+                            </div>
+                        </div>
+                        <!-- Biểu đồ doanh thu 7 ngày -->
+                        <h6 class="fw-bold mb-3">Doanh Thu 7 Ngày Gần Nhất (nghìn đồng)</h6>
+                        <canvas id="chartDoanhThu" height="100"></canvas>
+                    </div>
+
+                    <!-- Tab Khiếu Nại -->
+                    <div class="tab-pane fade" id="ct-khieuNai">
+                        @if (!Model.KhieuNais.Any())
+                        {
+                            <p class="text-muted text-center py-4">
+                                <i class="fa-solid fa-check-circle text-success me-2"></i>Không có khiếu nại nào.
+                            </p>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table admin-table mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Tiêu Đề</th>
+                                            <th>Khách Hàng</th>
+                                            <th>Ngày Gửi</th>
+                                            <th>Trạng Thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var kn in Model.KhieuNais)
+                                        {
+                                            <tr>
+                                                <td class="text-muted">@kn.ID</td>
+                                                <td>
+                                                    <div class="fw-semibold">@kn.TieuDe</div>
+                                                    <small class="text-muted">@kn.NoiDung.Substring(0, Math.Min(60, kn.NoiDung.Length))@(kn.NoiDung.Length > 60 ? "..." : "")</small>
+                                                </td>
+                                                <td>@(kn.KhachHang?.HoTen ?? "—")</td>
+                                                <td><small>@kn.NgayGui.ToString("dd/MM/yyyy HH:mm")</small></td>
+                                                <td>
+                                                    @{
+                                                        var (knCls, knTxt) = kn.TrangThai switch {
+                                                            "Chờ xử lý" => ("bg-warning text-dark", "Chờ xử lý"),
+                                                            "Đang xử lý" => ("bg-primary", "Đang xử lý"),
+                                                            "Đã xử lý" => ("bg-success", "Đã xử lý"),
+                                                            _ => ("bg-secondary", kn.TrangThai)
+                                                        };
+                                                    }
+                                                    <span class="badge @knCls">@knTxt</span>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+
+                </div><!-- end tab-content -->
+            </div><!-- end card-body -->
+        </div><!-- end detail-card -->
+    </div><!-- end col-lg-8 -->
+</div><!-- end row -->
+
+<!-- Modal Đổi Trạng Thái -->
+<div class="modal fade" id="modalDoiTrangThaiChiTiet" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" asp-action="DoiTrangThai" asp-controller="BaiDoXe" asp-area="Admin">
+            @Html.AntiForgeryToken()
+            <div class="modal-content" style="border-radius:14px;border:none">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fa-solid fa-arrows-rotate me-2 text-primary"></i>Đổi Trạng Thái Vận Hành
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Bãi: <strong>@bai.TenBai</strong></p>
+                    <input type="hidden" name="id" value="@bai.ID" />
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Trạng thái mới</label>
+                        <select name="trangThai" class="form-select" style="border-radius:10px" required>
+                            @{
+                                var trangThais = new[] { "Hoạt động", "Tạm đóng", "Bảo trì" };
+                                var icons = new[] { "✅", "⏸️", "🔧" };
+                                for (int i = 0; i < trangThais.Length; i++)
+                                {
+                                    var tt = trangThais[i];
+                                    var ic = icons[i];
+                                    if (tt == bai.TrangThai)
+                                    { <option value="@tt" selected>@ic @tt</option> }
+                                    else
+                                    { <option value="@tt">@ic @tt</option> }
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label fw-semibold">Lý do (tùy chọn)</label>
+                        <textarea name="lyDo" class="form-control" rows="3"
+                                  placeholder="Ghi chú lý do thay đổi trạng thái..."
+                                  style="border-radius:10px"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-check me-1"></i>Xác Nhận
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.NhanNgay));
+    const dtData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DoanhThuNgay));
+    const luotData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.LuotDoNgay));
+
+    const ctx = document.getElementById('chartDoanhThu');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Doanh thu (nghìn đ)',
+                        data: dtData,
+                        backgroundColor: 'rgba(79,70,229,0.7)',
+                        borderRadius: 6,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Lượt đỗ',
+                        data: luotData,
+                        type: 'line',
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16,185,129,0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { position: 'top' } },
+                scales: {
+                    y: { type: 'linear', position: 'left', title: { display: true, text: 'Nghìn đồng' } },
+                    y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Lượt' } }
+                }
+            }
+        });
+    }
+</script>
+}

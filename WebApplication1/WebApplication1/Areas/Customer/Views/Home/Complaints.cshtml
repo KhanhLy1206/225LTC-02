@@ -1,0 +1,161 @@
+@using WebApplication1.Models.Entities
+@{
+    Layout = "~/Areas/Customer/Views/Shared/_CustomerLayout.cshtml";
+    ViewData["Title"] = "Khiếu Nại & Hỗ Trợ";
+    var complaints = ViewBag.Complaints as List<KhieuNai> ?? new List<KhieuNai>();
+    var bookings = ViewBag.Bookings as List<DatCho> ?? new List<DatCho>();
+}
+
+<div class="row g-4">
+    <!-- Complaint Form -->
+    <div class="col-lg-5">
+        <div class="glass-card h-100">
+            <h5 class="fw-bold mb-3 text-gradient"><i class="fa-solid fa-pen-to-square text-secondary me-2"></i>Gửi Khiếu Nại Mới</h5>
+            <p class="text-muted small">Nếu bạn gặp sự cố kỹ thuật hoặc tranh chấp tài chính liên quan đến đơn đỗ xe, hãy gửi khiếu nại. Ban quản trị hệ thống sẽ xử lý và phản hồi trong 24 giờ.</p>
+            
+            <form id="complaintForm">
+                <!-- Select Booking -->
+                <div class="mb-3">
+                    <label class="auth-label">Chọn Đơn Đỗ Xe Gặp Sự Cố</label>
+                    <select class="form-select bg-dark text-white border-secondary" id="complaintBookingId" required style="border-radius:10px;">
+                        <option value="" selected>-- Chọn đơn đặt chỗ --</option>
+                        @foreach (var b in bookings)
+                        {
+                            <option value="@b.ID">#SP-@b.ID - @(b.ChoDauXe?.KhuVuc?.BaiXe?.TenBai ?? "Bãi xe") (@b.TienCoc.ToString("N0")đ)</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Category (Title) -->
+                <div class="mb-3">
+                    <label class="auth-label">Loại Sự Cố</label>
+                    <select class="form-select bg-dark text-white border-secondary" id="complaintCategory" required style="border-radius:10px;">
+                        <option value="Lỗi thiết bị Barie">Lỗi không tự điều khiển mở/đóng được Barie</option>
+                        <option value="Sai lệch chi phí">Sai lệch tiền tài khoản khấu trừ</option>
+                        <option value="Thái độ chủ bãi">Tranh chấp / Thái độ với chủ bãi xe</option>
+                        <option value="Khác">Lý do khác...</option>
+                    </select>
+                </div>
+
+                <!-- Description -->
+                <div class="mb-3">
+                    <label class="auth-label" for="complaintContent">Chi tiết sự cố</label>
+                    <textarea class="form-control bg-dark border-secondary text-white" id="complaintContent" rows="4" placeholder="Mô tả cụ thể thời gian, vị trí chỗ đỗ và diễn biến sự cố để admin xử lý nhanh nhất..." required style="border-radius:10px;"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary-custom w-100 py-3">
+                    GỬI ĐƠN KHIẾU NẠI <i class="fa-solid fa-paper-plane ms-1"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Complaint History -->
+    <div class="col-lg-7">
+        <div class="glass-card h-100">
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-history text-secondary me-2"></i>Lịch Sử Khiếu Nại Của Bạn</h5>
+            <p class="text-muted small">Theo dõi tiến độ giải quyết các khiếu nại đã gửi:</p>
+
+            <div class="table-responsive">
+                <table class="table table-dark table-hover table-borderless align-middle" style="background: transparent;">
+                    <thead>
+                        <tr class="text-muted border-bottom border-secondary border-opacity-10">
+                            <th scope="col" class="pb-3">Mã khiếu nại</th>
+                            <th scope="col" class="pb-3">Mã đơn</th>
+                            <th scope="col" class="pb-3">Loại sự cố</th>
+                            <th scope="col" class="pb-3">Ngày gửi</th>
+                            <th scope="col" class="pb-3">Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody id="complaintsTableBody">
+                        @if (complaints.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">Bạn chưa gửi khiếu nại nào.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var c in complaints)
+                            {
+                                <tr class="border-bottom border-secondary border-opacity-5">
+                                    <td class="font-monospace text-secondary py-3">#KN-@c.ID</td>
+                                    <td class="font-monospace">#SP-@c.IDDatCho</td>
+                                    <td class="small">@c.TieuDe</td>
+                                    <td class="small text-muted">@c.NgayGui.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        @if (c.TrangThai == "Chờ xử lý")
+                                        {
+                                            <span class="badge bg-warning text-dark fw-bold px-2 py-1">Chờ xử lý</span>
+                                        }
+                                        else if (c.TrangThai == "Đang xử lý")
+                                        {
+                                            <span class="badge bg-info text-dark fw-bold px-2 py-1">Đang xử lý</span>
+                                        }
+                                        else if (c.TrangThai == "Đã giải quyết")
+                                        {
+                                            <span class="badge bg-success text-white fw-bold px-2 py-1">Đã giải quyết</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger text-white fw-bold px-2 py-1">Từ chối</span>
+                                        }
+                                    </td>
+                                </tr>
+                                <tr class="bg-dark bg-opacity-20">
+                                    <td colspan="5" class="p-3 text-muted small" style="border-radius:8px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                        <div class="mb-1"><strong>Nội dung:</strong> @c.NoiDung</div>
+                                        @if (!string.IsNullOrEmpty(c.GhiChuAdmin))
+                                        {
+                                            <div><i class="fa-solid fa-reply text-secondary me-1"></i><strong>Phản hồi:</strong> @c.GhiChuAdmin</div>
+                                        }
+                                        else
+                                        {
+                                            <div class="text-italic text-opacity-50"><i class="fa-solid fa-hourglass-half text-secondary me-1"></i>Đang chờ ban quản trị kiểm tra...</div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Xử lý gửi khiếu nại qua AJAX
+            $('#complaintForm').submit(function(e) {
+                e.preventDefault();
+
+                const bookingId = $('#complaintBookingId').val();
+                const category = $('#complaintCategory').val();
+                const content = $('#complaintContent').val();
+
+                $.ajax({
+                    url: '/Customer/Home/SubmitComplaint',
+                    type: 'POST',
+                    data: {
+                        IDDatCho: bookingId,
+                        TieuDe: category,
+                        NoiDung: content
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            alert(`Gửi khiếu nại thành công!\nMã khiếu nại: ${response.complaintId}\nBan quản trị hệ thống đã tiếp nhận sự cố.`);
+                            window.location.reload();
+                        } else {
+                            alert(response.message || 'Lỗi khi gửi khiếu nại.');
+                        }
+                    },
+                    error: function() {
+                        alert('Đã xảy ra lỗi kết nối với máy chủ.');
+                    }
+                });
+            });
+        });
+    </script>
+}

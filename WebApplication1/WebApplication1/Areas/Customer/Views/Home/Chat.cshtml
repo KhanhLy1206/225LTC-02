@@ -1,0 +1,423 @@
+@using WebApplication1.Models.Entities
+@{
+    Layout = "~/Areas/Customer/Views/Shared/_CustomerLayout.cshtml";
+    ViewData["Title"] = "Trò Chuyện Với Chủ Bãi";
+    var chatSessions = ViewBag.ChatSessions as List<PhienChat> ?? new List<PhienChat>();
+    var activeSession = ViewBag.ActiveSession as PhienChat;
+    var messages = ViewBag.Messages as List<TinNhan> ?? new List<TinNhan>();
+    var userAccountId = (int)(ViewBag.UserAccountId ?? 0);
+}
+
+@{
+    string GetInitials(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "CB";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+        {
+            return (parts[parts.Length - 2][0].ToString() + parts[parts.Length - 1][0].ToString()).ToUpper();
+        }
+        return name.Substring(0, Math.Min(2, name.Length)).ToUpper();
+    }
+}
+
+<style>
+    /* ===== PREMIUM CUSTOMER CHAT LAYOUT ===== */
+    .customer-chat-container {
+        height: calc(100vh - 180px);
+        min-height: 520px;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        display: flex;
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+
+    .customer-chat-sidebar {
+        width: 320px;
+        min-width: 300px;
+        border-right: 1px solid var(--border-color);
+        background: #f8fafc;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        flex-shrink: 0;
+        transition: all 0.25s ease;
+    }
+
+    .customer-chat-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-width: 0;
+        background: #f1f5f9;
+    }
+
+    /* Contacts Sidebar */
+    .sidebar-search-container {
+        padding: 15px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .contacts-list-scroll {
+        flex-grow: 1;
+        overflow-y: auto;
+        min-height: 0;
+    }
+
+    .contact-item-custom {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 20px;
+        border-bottom: 1px solid rgba(0,0,0,0.04);
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .contact-item-custom:hover {
+        background: rgba(79, 70, 229, 0.03);
+    }
+    .contact-item-custom.active-chat-contact {
+        background: rgba(79, 70, 229, 0.07);
+        border-left: 4px solid var(--primary);
+    }
+
+    /* Message Stream Area */
+    .chat-messages-stream {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 20px;
+        background: #f8fafc;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    /* Message Bubbles styling */
+    .msg-bubble-right {
+        background: linear-gradient(135deg, var(--primary) 0%, #4338ca 100%) !important;
+        color: #ffffff !important;
+        padding: 12px 16px;
+        max-width: 70%;
+        border-radius: 16px 16px 0 16px !important;
+        box-shadow: 0 4px 12px rgba(79,70,229,0.15);
+    }
+    .msg-bubble-right p {
+        margin: 0;
+        color: #ffffff !important;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        word-break: break-word;
+    }
+    .msg-time-right {
+        color: rgba(255,255,255,0.7) !important;
+        font-size: 0.65rem;
+        display: block;
+        text-align: right;
+        margin-top: 4px;
+    }
+
+    .msg-bubble-left {
+        background: #ffffff !important;
+        color: var(--text-main) !important;
+        padding: 12px 16px;
+        max-width: 70%;
+        border-radius: 16px 16px 16px 0 !important;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+    .msg-bubble-left p {
+        margin: 0;
+        color: var(--text-main) !important;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        word-break: break-word;
+    }
+    .msg-time-left {
+        color: var(--text-muted) !important;
+        font-size: 0.65rem;
+        display: block;
+        text-align: left;
+        margin-top: 4px;
+        opacity: 0.7;
+    }
+
+    /* Input area */
+    .chat-input-container {
+        padding: 15px 20px;
+        border-top: 1px solid var(--border-color);
+        background: #ffffff;
+    }
+
+    /* Responsive styling matching Owner portal */
+    @@media (max-width: 768px) {
+        .customer-chat-sidebar {
+            width: 72px;
+            min-width: 72px;
+        }
+        .customer-chat-sidebar .contact-info-text, 
+        .customer-chat-sidebar .sidebar-search-container {
+            display: none !important;
+        }
+        .contact-item-custom {
+            justify-content: center;
+            padding: 12px 8px;
+        }
+    }
+</style>
+
+<div class="customer-chat-container">
+    <!-- ===== LEFT: Contacts Sidebar ===== -->
+    <div class="customer-chat-sidebar">
+        <div class="sidebar-search-container">
+            <div class="auth-input-group mb-0">
+                <input type="text" class="form-control" placeholder="Tìm kiếm liên hệ..." style="padding: 10px 15px 10px 40px;" id="contactSearch" />
+                <i class="fa-solid fa-magnifying-glass input-icon" style="left: 15px;"></i>
+            </div>
+        </div>
+
+        <div class="contacts-list-scroll" id="contactsList">
+            @if (!chatSessions.Any())
+            {
+                <div class="text-center text-muted p-4 small contact-info-text">
+                    Bạn chưa có cuộc trò chuyện nào. Hãy tìm bãi xe và nhắn tin để bắt đầu.
+                </div>
+            }
+            else
+            {
+                @foreach (var session in chatSessions)
+                {
+                    var partnerName = session.ChuBaiXe.TenChuBai;
+                    var initials = GetInitials(partnerName);
+                    var lastMsg = session.TinNhans.OrderByDescending(m => m.NgayGui).FirstOrDefault();
+                    var lastMsgText = lastMsg != null ? lastMsg.NoiDung : "Chưa có tin nhắn.";
+                    var lastMsgTime = lastMsg != null ? lastMsg.NgayGui.ToString("HH:mm") : "";
+                    
+                    bool isActive = activeSession != null && activeSession.ID == session.ID;
+                    
+                    <div class="contact-item-custom contact-item @(isActive ? "active-chat-contact" : "")" 
+                         onclick="window.location.href='/Customer/Home/Chat?activeChatId=@session.ID'"
+                         data-name="@partnerName.ToLower()">
+                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; font-weight:700; flex-shrink: 0; color: #ffffff !important;">
+                            @initials
+                        </div>
+                        <div class="flex-grow-1 min-w-0 contact-info-text">
+                            <div class="d-flex justify-content-between">
+                                <strong class="text-dark text-truncate small fw-bold">@partnerName</strong>
+                                <span class="text-muted" style="font-size: 0.7rem;">@lastMsgTime</span>
+                            </div>
+                            <p class="text-muted small mb-0 text-truncate last-msg-snippet">@lastMsgText</p>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- ===== RIGHT: Active Chat Window ===== -->
+    <div class="customer-chat-main">
+        @if (activeSession == null)
+        {
+            <div class="d-flex flex-column align-items-center justify-content-center h-100 text-muted p-5 bg-white">
+                <i class="fa-solid fa-comments mb-3" style="font-size: 4rem; color: rgba(79,70,229,0.15);"></i>
+                <h5 class="text-dark fw-bold">Không có cuộc hội thoại nào hoạt động</h5>
+                <p class="small text-center">Hãy bắt đầu nhắn tin với chủ bãi từ trang tìm kiếm bãi đỗ xe.</p>
+            </div>
+        }
+        else
+        {
+            <!-- Active Header -->
+            <div class="p-3 border-bottom border-secondary border-opacity-10 d-flex justify-content-between align-items-center bg-white" style="flex-shrink: 0;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; font-weight:700; flex-shrink: 0; color: #ffffff !important;">
+                        @GetInitials(activeSession.ChuBaiXe.TenChuBai)
+                    </div>
+                    <div>
+                        <strong class="text-dark d-block fw-bold" style="font-size: 0.95rem;">@activeSession.ChuBaiXe.TenChuBai</strong>
+                        <span class="text-success small" style="font-size: 0.8rem;"><i class="fa-solid fa-circle text-success me-1" style="font-size: 0.6rem;"></i>Trực tuyến</span>
+                    </div>
+                </div>
+                <div>
+                    @if (!string.IsNullOrEmpty(activeSession.ChuBaiXe.SDT))
+                    {
+                        <a href="tel:@activeSession.ChuBaiXe.SDT" class="btn btn-secondary-custom btn-sm" title="Gọi điện thoại"><i class="fa-solid fa-phone"></i></a>
+                    }
+                </div>
+            </div>
+
+            <!-- Messages Stream Area -->
+            <div class="chat-messages-stream" id="chatMessageArea">
+                @foreach (var msg in messages)
+                {
+                    bool isMe = msg.IDTaiKhoanGui == userAccountId;
+                    if (isMe)
+                    {
+                        <!-- Message Right -->
+                        <div class="d-flex align-items-end justify-content-end gap-2 mb-3">
+                            <div class="msg-bubble-right">
+                                <p>@msg.NoiDung</p>
+                                <span class="msg-time-right">@msg.NgayGui.ToString("HH:mm")</span>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- Message Left -->
+                        <div class="d-flex align-items-end gap-2 mb-3">
+                            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-weight:700; font-size: 0.75rem; flex-shrink: 0; color: #ffffff !important;">
+                                @GetInitials(activeSession.ChuBaiXe.TenChuBai)
+                            </div>
+                            <div class="msg-bubble-left">
+                                <p>@msg.NoiDung</p>
+                                <span class="msg-time-left">@msg.NgayGui.ToString("HH:mm")</span>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+
+            <!-- Typing Indicator -->
+            <div class="px-3 py-2 bg-white border-top border-secondary border-opacity-5 d-none" id="typingIndicator" style="flex-shrink: 0;">
+                <span class="text-muted small"><i class="fa-solid fa-ellipsis fa-fade me-1"></i> Đang nhập phản hồi...</span>
+            </div>
+
+            <!-- Input area -->
+            <div class="chat-input-container" style="flex-shrink: 0;">
+                <form id="chatSubmitForm" class="d-flex gap-2 mb-0">
+                    <input type="text" class="form-control bg-white text-dark border-secondary" id="chatMessageInput" placeholder="Nhập tin nhắn..." required autocomplete="off" />
+                    <button type="submit" class="btn btn-primary-custom px-4" style="flex-shrink: 0; color: #ffffff !important;">
+                        Gửi <i class="fa-solid fa-paper-plane ms-1" style="color: #ffffff !important;"></i>
+                    </button>
+                </form>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            const $chatArea = $('#chatMessageArea');
+            if ($chatArea.length) {
+                $chatArea.scrollTop($chatArea[0].scrollHeight);
+            }
+
+            const activeSessionId = @(activeSession?.ID ?? 0);
+            const userAccountId = @userAccountId;
+            const partnerInitials = '@(activeSession != null ? GetInitials(activeSession.ChuBaiXe.TenChuBai) : "")';
+
+            // Filter contacts sidebar search
+            $('#contactSearch').on('input', function() {
+                const term = $(this).val().trim().toLowerCase();
+                $('.contact-item').each(function() {
+                    const name = $(this).data('name') || '';
+                    if (name.includes(term)) {
+                        $(this).removeClass('d-none');
+                    } else {
+                        $(this).addClass('d-none');
+                    }
+                });
+            });
+
+            function escapeHtml(text) {
+                return text
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
+            // Establish SignalR connection
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/chatHub")
+                .withAutomaticReconnect()
+                .build();
+
+            // Receive message from SignalR
+            connection.on("ReceiveMessage", function(msg) {
+                if (!msg || !activeSessionId) return;
+
+                // Check if message already exists in UI
+                if ($chatArea.find(`[data-msg-id="${msg.id}"]`).length > 0) return;
+
+                const isMe = msg.senderId === userAccountId;
+                let msgHTML = '';
+
+                if (isMe) {
+                    msgHTML = `
+                        <div class="d-flex align-items-end justify-content-end gap-2 mb-3" data-msg-id="${msg.id}">
+                            <div class="msg-bubble-right">
+                                <p>${escapeHtml(msg.content)}</p>
+                                <span class="msg-time-right">${msg.time}</span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    msgHTML = `
+                        <div class="d-flex align-items-end gap-2 mb-3" data-msg-id="${msg.id}">
+                            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-weight:700; font-size: 0.75rem; flex-shrink: 0; color: #ffffff !important;">
+                                ${partnerInitials}
+                            </div>
+                            <div class="msg-bubble-left">
+                                <p>${escapeHtml(msg.content)}</p>
+                                <span class="msg-time-left">${msg.time}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                $chatArea.append(msgHTML);
+                $chatArea.scrollTop($chatArea[0].scrollHeight);
+
+                // Update last message in sidebar
+                $('.active-chat-contact .last-msg-snippet').text(msg.content);
+                $('.active-chat-contact .text-muted').first().text(msg.time);
+            });
+
+            // Start SignalR connection
+            connection.start().then(function() {
+                if (activeSessionId > 0) {
+                    connection.invoke("JoinSession", activeSessionId).catch(function(err) {
+                        console.error("JoinSession error: ", err.toString());
+                    });
+                }
+            }).catch(function(err) {
+                console.error("SignalR connection error: ", err.toString());
+            });
+
+            // Send message
+            $('#chatSubmitForm').submit(function(e) {
+                e.preventDefault();
+                const msgInput = $('#chatMessageInput');
+                const content = msgInput.val().trim();
+                if (!content || !activeSessionId) return;
+
+                $.ajax({
+                    url: '/Customer/Home/SendChatMessage',
+                    type: 'POST',
+                    data: {
+                        sessionId: activeSessionId,
+                        content: content
+                    },
+                    success: function(res) {
+                        if (res.success) {
+                            msgInput.val('');
+                            // The message will be appended via the SignalR broadcast (ReceiveMessage)
+                        } else {
+                            alert(res.message || "Gửi tin nhắn thất bại.");
+                        }
+                    },
+                    error: function() {
+                        alert("Không thể gửi tin nhắn. Vui lòng kiểm tra lại kết nối.");
+                    }
+                });
+            });
+        });
+    </script>
+}

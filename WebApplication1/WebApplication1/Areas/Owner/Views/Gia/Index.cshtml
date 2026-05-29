@@ -1,0 +1,974 @@
+@{
+    ViewData["Title"] = "Quản lý giá";
+}
+
+<!-- Custom Styles for Embedded Inline Card inputs -->
+<style>
+    .pricing-card {
+        background-color: var(--owner-card-bg);
+        border: 1px solid var(--owner-border);
+        border-radius: 20px;
+        padding: 24px;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--owner-shadow-sm);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .pricing-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 20px -8px rgba(79, 70, 229, 0.12);
+        border-color: rgba(79, 70, 229, 0.25);
+    }
+
+    /* Gradients for pricing header background decorations */
+    .pricing-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+    }
+
+    .pricing-card.rate-day::before {
+        background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+    }
+
+    .pricing-card.rate-night::before {
+        background: linear-gradient(90deg, #4f46e5 0%, #312e81 100%);
+    }
+
+    .pricing-card.rate-monthly::before {
+        background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+    }
+
+    .pricing-card.rate-booking::before {
+        background: linear-gradient(90deg, #06b6d4 0%, #0891b2 100%);
+    }
+
+    .pricing-icon-wrapper {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+        margin-bottom: 16px;
+        transition: transform 0.3s ease;
+    }
+
+    .pricing-card:hover .pricing-icon-wrapper {
+        transform: scale(1.1) rotate(5deg);
+    }
+
+    .rate-day .pricing-icon-wrapper {
+        background-color: var(--owner-warning-light);
+        color: var(--owner-warning);
+    }
+
+    .rate-night .pricing-icon-wrapper {
+        background-color: var(--owner-primary-light);
+        color: var(--owner-primary);
+    }
+
+    .rate-monthly .pricing-icon-wrapper {
+        background-color: var(--owner-success-light);
+        color: var(--owner-success);
+    }
+
+    .rate-booking .pricing-icon-wrapper {
+        background-color: var(--owner-info-light);
+        color: var(--owner-info);
+    }
+
+    .pricing-title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--owner-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 12px;
+    }
+
+    /* Embedded borderless inputs */
+    .card-input-wrapper {
+        background-color: #f1f5f9;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease;
+        margin-bottom: 12px;
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        align-items: center;
+    }
+
+    .card-input-wrapper:focus-within {
+        background-color: #ffffff;
+        border-color: var(--owner-primary);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+    }
+
+    .card-input-field {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-weight: 800;
+        font-size: 1.6rem;
+        color: var(--owner-text-main);
+        outline: none;
+        border: none;
+        background: transparent;
+        box-shadow: none !important;
+        padding: 6px 4px 6px 16px;
+        flex: 1;
+        min-width: 0;
+        text-align: left;
+    }
+
+    .card-input-unit {
+        font-weight: 750;
+        font-size: 1.1rem;
+        color: var(--owner-text-muted);
+        background: transparent;
+        border: none;
+        padding-right: 16px;
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+
+    .pricing-desc {
+        font-size: 0.85rem;
+        color: var(--owner-text-muted);
+        line-height: 1.4;
+    }
+
+    .pricing-status {
+        font-size: 0.72rem;
+        font-weight: 750;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 8px;
+        border-radius: 20px;
+        margin-top: 12px;
+    }
+
+    .pricing-status.active {
+        background-color: var(--owner-success-light);
+        color: var(--owner-success);
+    }
+
+    .pricing-status.inactive {
+        background-color: var(--owner-danger-light);
+        color: var(--owner-danger);
+    }
+
+    /* Interactive area filter buttons */
+    .filter-btn {
+        border-radius: 30px;
+        padding: 6px 18px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        transition: var(--owner-transition);
+        border: 1px solid var(--owner-border);
+        background-color: #ffffff;
+        color: var(--owner-text-muted);
+    }
+
+    .filter-btn:hover {
+        background-color: #f1f5f9;
+        color: var(--owner-text-main);
+    }
+
+    .filter-btn.active {
+        background-color: var(--owner-primary);
+        border-color: var(--owner-primary);
+        color: #ffffff;
+        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
+    }
+
+    .history-badge {
+        font-family: 'Plus Jakarta Sans', monospace;
+        font-weight: 650;
+    }
+
+    /* Animation for pricing form appearance */
+    @@keyframes slideUpFade {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animated-fade-in {
+        animation: slideUpFade 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+</style>
+
+<style>
+    /* ── Toast Notification ── */
+    #toastContainer {
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        pointer-events: none;
+    }
+
+    .owner-toast {
+        min-width: 340px;
+        max-width: 420px;
+        padding: 16px 20px;
+        border-radius: 16px;
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        box-shadow: 0 12px 40px -8px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.08);
+        pointer-events: all;
+        animation: toastSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        border-left: 5px solid transparent;
+    }
+
+    .owner-toast.toast-success {
+        background: #ffffff;
+        border-left-color: #10b981;
+    }
+    .owner-toast.toast-error {
+        background: #ffffff;
+        border-left-color: #ef4444;
+    }
+    .owner-toast.toast-warning {
+        background: #ffffff;
+        border-left-color: #f59e0b;
+    }
+
+    .toast-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+    .toast-success .toast-icon { background: #d1fae5; color: #059669; }
+    .toast-error .toast-icon   { background: #fee2e2; color: #dc2626; }
+    .toast-warning .toast-icon { background: #fef3c7; color: #d97706; }
+
+    .toast-body { flex: 1; }
+    .toast-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 3px; color: #1e293b; }
+    .toast-desc  { font-size: 0.82rem; color: #64748b; line-height: 1.5; }
+
+    .toast-close {
+        background: none;
+        border: none;
+        color: #94a3b8;
+        font-size: 1rem;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+        flex-shrink: 0;
+        transition: color 0.2s;
+    }
+    .toast-close:hover { color: #475569; }
+
+    .owner-toast.toast-hide {
+        animation: toastSlideOut 0.35s ease forwards;
+    }
+
+    @@keyframes toastSlideIn {
+        from { opacity: 0; transform: translateX(60px) scale(0.95); }
+        to   { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    @@keyframes toastSlideOut {
+        from { opacity: 1; transform: translateX(0); }
+        to   { opacity: 0; transform: translateX(60px); }
+    }
+</style>
+
+<!-- Toast Container -->
+<div id="toastContainer"></div>
+
+<div class="d-flex flex-column mb-4">
+    <h1 class="owner-page-title">Cấu hình bảng giá</h1>
+    <p class="owner-page-subtitle">Chọn bãi đỗ xe và loại xe để bắt đầu điều chỉnh đơn giá.</p>
+</div>
+
+<!-- Prerequisite Selection Card -->
+<div class="card shadow-sm border-0 mb-4" style="border-radius: 16px; background-color: var(--owner-card-bg); border: 1px solid var(--owner-border);">
+    <div class="card-body p-4">
+        <div class="row align-items-center g-3">
+            <!-- Bãi xe selection -->
+            <div class="col-12 col-md-6">
+                <div class="d-flex flex-column gap-1">
+                    <label class="small fw-bold text-muted text-uppercase mb-1" for="lotSelect"><i class="fa-solid fa-warehouse text-primary me-1"></i> Bãi xe:</label>
+                    <select class="form-select rounded-3 border-light shadow-sm py-2.5" id="lotSelect" style="border: 1px solid #cbd5e1 !important;">
+                        <option value="" disabled selected>-- Chọn bãi xe --</option>
+                        @if (ViewBag.BaiXes != null)
+                        {
+                            foreach (var lot in ViewBag.BaiXes)
+                            {
+                                <option value="@lot.ID" data-trangthai="@lot.TrangThai">
+                                    @lot.TenBai @(lot.TrangThai != "Hoạt động" ? $"({lot.TrangThai})" : "")
+                                </option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+            <!-- Loại xe selection -->
+            <div class="col-12 col-md-6">
+                <div class="d-flex flex-column gap-1">
+                    <label class="small fw-bold text-muted text-uppercase mb-1" for="vehicleTypeSelect"><i class="fa-solid fa-car text-primary me-1"></i> Loại xe:</label>
+                    <select class="form-select rounded-3 border-light shadow-sm py-2.5" id="vehicleTypeSelect" disabled style="border: 1px solid #cbd5e1 !important;">
+                        <option value="" disabled selected>-- Chọn bãi xe trước --</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Banner: Bãi xe chưa được duyệt -->
+<div id="lotPendingBanner" class="d-none mb-4">
+    <div style="
+        background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+        border: 2px solid #fb923c;
+        border-radius: 20px;
+        padding: 48px 32px;
+        text-align: center;
+    ">
+        <div style="
+            width: 80px; height: 80px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 24px rgba(249,115,22,0.3);
+        ">
+            <i class="fa-solid fa-hourglass-half text-white" style="font-size: 2rem;"></i>
+        </div>
+        <h4 id="lotPendingTitle" class="fw-bold mb-2" style="color: #c2410c; font-size: 1.4rem;">Bãi xe đang chờ duyệt</h4>
+        <p id="lotPendingDesc" class="text-muted mb-4" style="max-width: 480px; margin: 0 auto;">
+            Bãi xe này hiện chưa được Admin phê duyệt. Bạn chưa thể cấu hình bảng giá ở đây.
+        </p>
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+            <a href="/Owner/BaiXe" class="btn btn-outline-warning fw-semibold px-4">
+                <i class="fa-solid fa-arrow-left me-2"></i> Xem danh sách bãi xe
+            </a>
+        </div>
+        <div class="mt-4 p-3 rounded-3" style="background: rgba(249,115,22,0.08); display: inline-block;">
+            <small class="text-muted"><i class="fa-solid fa-circle-info me-1 text-warning"></i>
+                Trạng thái hiện tại: <strong id="lotPendingStatusText" class="text-warning">Chờ duyệt</strong>
+            </small>
+        </div>
+    </div>
+</div>
+
+<!-- Nội dung chính Cấu hình giá -->
+<div id="mainContent">
+<!-- Select Prompt Card -->
+<div class="card text-center p-5 border-0 shadow-sm mb-4" id="selectPromptCard" style="border-radius: 20px; background-color: var(--owner-card-bg); border: 1px solid var(--owner-border) !important;">
+    <div class="card-body py-5">
+        <div class="bg-primary-light text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-4" style="width: 80px; height: 80px; font-size: 2.2rem; background-color: rgba(79, 70, 229, 0.08);">
+            <i class="fa-solid fa-square-parking"></i>
+        </div>
+        <h4 class="fw-bold text-dark mb-2">Yêu cầu chọn thông tin bãi đỗ</h4>
+        <p class="text-muted mx-auto mb-0" style="max-width: 480px; font-size: 0.95rem;">Bạn cần chọn bãi đỗ xe và loại xe tương ứng trước khi có thể cập nhật hoặc xem bảng giá.</p>
+    </div>
+</div>
+
+<!-- Main One-Page Price Form -->
+<form id="inlinePricingForm">
+    @Html.AntiForgeryToken()
+    
+    <!-- Pricing Cards Grid -->
+    <div class="row g-4 mb-4" id="pricingCardsContainer">
+        <!-- Card 1: GiaTheoGio -->
+        <div class="col-xl-3 col-md-6">
+            <div class="pricing-card rate-day">
+                <div>
+                    <div class="pricing-icon-wrapper">
+                        <i class="fa-solid fa-sun"></i>
+                    </div>
+                    <div class="pricing-title">Giá theo giờ (Ngày)</div>
+                    
+                    <!-- Embedded Input Group -->
+                    <div class="input-group card-input-wrapper">
+                        <input type="number" class="card-input-field" id="inputGiaTheoGio" min="0" step="1000" required>
+                        <span class="card-input-unit">đ</span>
+                    </div>
+
+                    <p class="pricing-desc mb-0">Áp dụng cho mỗi giờ đỗ xe ô tô vào ban ngày (từ 06:00 đến 22:00 hàng ngày).</p>
+                </div>
+                <div>
+                    <span class="pricing-status active" id="status-day">
+                        <i class="fa-solid fa-circle-check"></i> Đang áp dụng
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: GiaQuaDem -->
+        <div class="col-xl-3 col-md-6">
+            <div class="pricing-card rate-night">
+                <div>
+                    <div class="pricing-icon-wrapper">
+                        <i class="fa-solid fa-moon"></i>
+                    </div>
+                    <div class="pricing-title">Giá qua đêm (Đêm)</div>
+                    
+                    <!-- Embedded Input Group -->
+                    <div class="input-group card-input-wrapper">
+                        <input type="number" class="card-input-field" id="inputGiaQuaDem" min="0" step="1000" required>
+                        <span class="card-input-unit">đ</span>
+                    </div>
+
+                    <p class="pricing-desc mb-0">Áp dụng trọn gói cho lượt gửi xe qua đêm (từ 22:00 đến 06:00 sáng hôm sau).</p>
+                </div>
+                <div>
+                    <span class="pricing-status active" id="status-night">
+                        <i class="fa-solid fa-circle-check"></i> Đang áp dụng
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: GiaTheoThang -->
+        <div class="col-xl-3 col-md-6">
+            <div class="pricing-card rate-monthly">
+                <div>
+                    <div class="pricing-icon-wrapper">
+                        <i class="fa-solid fa-calendar-days"></i>
+                    </div>
+                    <div class="pricing-title">Giá vé theo tháng</div>
+                    
+                    <!-- Embedded Input Group -->
+                    <div class="input-group card-input-wrapper">
+                        <input type="number" class="card-input-field" id="inputGiaTheoThang" min="0" step="1000" required>
+                        <span class="card-input-unit">đ</span>
+                    </div>
+
+                    <p class="pricing-desc mb-0">Áp dụng cho khách hàng đăng ký thuê bao đỗ cố định dài hạn theo chu kỳ 30 ngày.</p>
+                </div>
+                <div>
+                    <span class="pricing-status active" id="status-monthly">
+                        <i class="fa-solid fa-circle-check"></i> Đang áp dụng
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 4: GiaDatCho -->
+        <div class="col-xl-3 col-md-6">
+            <div class="pricing-card rate-booking">
+                <div>
+                    <div class="pricing-icon-wrapper">
+                        <i class="fa-solid fa-percent"></i>
+                    </div>
+                    <div class="pricing-title">Phí cọc</div>
+                    
+                    <!-- Embedded Input Group -->
+                    <div class="input-group card-input-wrapper">
+                        <input type="number" class="card-input-field" id="inputGiaDatCho" min="5" max="100" step="5" required>
+                        <span class="card-input-unit">%</span>
+                    </div>
+
+                    <p class="pricing-desc mb-0">Tỷ lệ đặt cọc giữ chỗ trước trên ứng dụng (phần trăm trên tổng hóa đơn dự kiến).</p>
+                </div>
+                <div>
+                    <span class="pricing-status active" id="status-booking">
+                        <i class="fa-solid fa-circle-check"></i> Đang áp dụng
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Master Controls Row -->
+    <div class="owner-table-card border-0 mb-4 p-3 bg-white d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <button type="submit" id="btnSavePricing" class="btn btn-primary-custom px-5 py-2.5 rounded-3 d-flex align-items-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi bảng giá
+        </button>
+        <div class="form-check form-switch d-flex align-items-center gap-2 m-0">
+            <input class="form-check-input fs-5 cursor-pointer m-0" type="checkbox" role="switch" id="switchStatus" checked style="cursor: pointer;">
+            <label class="form-check-label fw-bold text-dark cursor-pointer select-none" for="switchStatus" style="font-size: 0.95rem; cursor: pointer;">
+                Trạng thái áp dụng bảng giá
+            </label>
+        </div>
+    </div>
+</form>
+
+<!-- History Log Section -->
+<div class="owner-table-card border-0">
+    <div class="owner-card-header bg-transparent border-0 px-4 pt-4">
+        <h5 class="owner-card-title fs-5"><i class="fa-solid fa-history text-primary me-2"></i> Nhật ký điều chỉnh bảng giá</h5>
+    </div>
+    <div class="table-responsive p-4 pt-2">
+        <table class="table owner-table border">
+            <thead>
+                <tr>
+                    <th>Bãi Đỗ Xe</th>
+                    <th>Loại Xe</th>
+                    <th>Thời Gian Áp Dụng</th>
+                    <th>Người Điều Chỉnh</th>
+                    <th>Giá Theo Giờ</th>
+                    <th>Giá Qua Đêm</th>
+                    <th>Giá Theo Tháng</th>
+                    <th>Tỷ Lệ Cọc</th>
+                    <th>Trạng Thái</th>
+                </tr>
+            </thead>
+            <tbody id="historyTableBody">
+                <!-- Javascript populated -->
+            </tbody>
+        </table>
+    </div>
+    <!-- Pagination Footer -->
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3 px-4 pb-4">
+        <div class="text-muted small" id="paginationInfo">
+            Hiển thị 0 - 0 trong tổng số 0 nhật ký
+        </div>
+        <div id="paginationControls">
+            <!-- Dynamic pagination controls -->
+        </div>
+    </div>
+</div>
+
+</div><!-- end #mainContent -->
+
+@section Scripts {
+    <script>
+        // Audit Log History database array
+        let auditLogs = [];
+
+        const rowsPerPage = 6;
+        let currentPage = 1;
+
+        let currentActiveLot = null;
+        let currentActiveVehicleType = null;
+
+        function checkLotStatus() {
+            const selectedOpt = $('#lotSelect').find('option:selected');
+            const isPending = selectedOpt.data('trangthai') === 'Chờ duyệt';
+            
+            if (isPending) {
+                $('#lotPendingBanner').show();
+                $('#mainContent').hide();
+            } else {
+                $('#lotPendingBanner').hide();
+                $('#mainContent').show();
+            }
+            return isPending;
+        }
+
+        $(document).ready(function() {
+            // Render initial audit logs from database
+            loadAuditLogs();
+
+            // Hide pricing form initially, show prompt
+            $('#inlinePricingForm').hide();
+            $('#selectPromptCard').show();
+
+            // Handle Lot dropdown change
+            $('#lotSelect').change(function() {
+                const lotVal = $(this).val();
+                if (!lotVal) {
+                    resetSelection();
+                    return;
+                }
+                
+                checkLotStatus();
+                
+                currentActiveLot = parseInt(lotVal);
+                currentActiveVehicleType = null;
+
+                // Load Vehicle Types directly via AJAX
+                $.ajax({
+                    url: '/Owner/Gia/GetLoaiXes',
+                    type: 'GET',
+                    success: function(types) {
+                        const typeSelect = $('#vehicleTypeSelect');
+                        typeSelect.empty().append('<option value="" disabled selected>-- Chọn loại xe --</option>');
+                        
+                        types.forEach(type => {
+                            typeSelect.append(`<option value="${type.value}">${type.label}</option>`);
+                        });
+
+                        typeSelect.prop('disabled', false);
+                    },
+                    error: function() {
+                        alert('Có lỗi xảy ra khi tải danh sách loại xe.');
+                    }
+                });
+
+                // Hide form, show prompt
+                $('#inlinePricingForm').hide();
+                $('#selectPromptCard').show();
+            });
+
+            // Handle Vehicle Type dropdown change
+            $('#vehicleTypeSelect').change(function() {
+                currentActiveVehicleType = parseInt($(this).val());
+                if (currentActiveLot && currentActiveVehicleType) {
+                    // Load pricing and reveal form
+                    loadPricing();
+                    $('#selectPromptCard').hide();
+                    $('#inlinePricingForm').show().addClass('animated-fade-in');
+                    setTimeout(() => {
+                        $('#inlinePricingForm').removeClass('animated-fade-in');
+                    }, 450);
+                } else {
+                    $('#inlinePricingForm').hide();
+                    $('#selectPromptCard').show();
+                }
+            });
+
+            // Handle Pricing Edit Form Submit
+            $('#inlinePricingForm').submit(function(e) {
+                e.preventDefault();
+
+                const giaTheoGio = parseFloat($('#inputGiaTheoGio').val()) || 0;
+                const giaQuaDem = parseFloat($('#inputGiaQuaDem').val()) || 0;
+                const giaTheoThang = parseFloat($('#inputGiaTheoThang').val()) || 0;
+                const giaDatCho = parseFloat($('#inputGiaDatCho').val()) || 0;
+                const trangThai = $('#switchStatus').is(':checked');
+                const token = $('input[name="__RequestVerificationToken"]').val();
+
+                $.ajax({
+                    url: '/Owner/Gia/SavePricing',
+                    type: 'POST',
+                    data: {
+                        lotId: currentActiveLot,
+                        loaiXeId: currentActiveVehicleType,
+                        giaTheoGio: giaTheoGio,
+                        giaQuaDem: giaQuaDem,
+                        giaTheoThang: giaTheoThang,
+                        giaDatCho: giaDatCho,
+                        trangThai: trangThai,
+                        __RequestVerificationToken: token
+                    },
+                    success: function(res) {
+                        if (res.success) {
+                            // Re-load UI cards to enforce clean visual state
+                            loadPricing();
+                            // Reload audit logs from DB
+                            loadAuditLogs();
+
+                            const vehicleLabel = $('#vehicleTypeSelect option:selected').text().trim();
+                            const lotName = $('#lotSelect option:selected').text().trim();
+                            showToast('success', 'Lưu bảng giá thành công!', `Đã áp dụng giá mới cho <strong>${vehicleLabel}</strong> tại <strong>${lotName}</strong>.`);
+                        }
+                    },
+                    error: function() {
+                        showToast('error', 'Lưu thất bại', 'Không thể lưu bảng giá. Vui lòng kiểm tra lại thông tin.');
+                    }
+                });
+            });
+
+            // Dynamic change opacity visual indicator for switch status changes on the fly
+            $('#switchStatus').change(function() {
+                const isActive = $(this).is(':checked');
+                updateStatusBadge($('#status-day'), isActive);
+                updateStatusBadge($('#status-night'), isActive);
+                updateStatusBadge($('#status-monthly'), isActive);
+                updateStatusBadge($('#status-booking'), isActive);
+
+                if (!isActive) {
+                    $('#pricingCardsContainer').css('opacity', '0.7');
+                } else {
+                    $('#pricingCardsContainer').css('opacity', '1');
+                }
+            });
+        });
+
+        // Load audit logs from DB
+        function loadAuditLogs() {
+            $.ajax({
+                url: '/Owner/Gia/GetPricingLogs',
+                type: 'GET',
+                success: function(data) {
+                    auditLogs = data.map(item => ({
+                        lotName: item.lotName,
+                        vehicleLabel: item.vehicleLabel,
+                        time: 'Đang áp dụng',
+                        user: 'Chủ bãi',
+                        giaTheoGio: item.giaTheoGio,
+                        giaQuaDem: item.giaQuaDem,
+                        giaTheoThang: item.giaTheoThang,
+                        giaDatCho: item.giaDatCho,
+                        status: item.trangThai ? 'Sẵn sàng' : 'Tạm ngưng',
+                        statusClass: item.trangThai ? 'bg-success-light text-success' : 'bg-danger-light text-danger'
+                    }));
+                    currentPage = 1;
+                    renderAuditLogs();
+                },
+                error: function() {
+                    console.error('Không thể tải nhật ký bảng giá.');
+                }
+            });
+        }
+
+        // Dynamic rendering of audit logs table with client-side pagination
+        function renderAuditLogs() {
+            const tbody = $('#historyTableBody');
+            tbody.empty();
+
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = startIndex + rowsPerPage;
+            const paginatedItems = auditLogs.slice(startIndex, endIndex);
+
+            if (paginatedItems.length === 0) {
+                tbody.html('<tr><td colspan="9" class="text-center text-muted py-4">Chưa có cấu hình giá nào được tạo.</td></tr>');
+                $('#paginationInfo').text('Hiển thị 0 - 0 trong tổng số 0 cấu hình');
+                $('#paginationControls').empty();
+                return;
+            }
+
+            paginatedItems.forEach(log => {
+                const row = `
+                    <tr style="animation: tableRowFadeIn 0.4s ease-out;">
+                        <td><strong>${log.lotName}</strong></td>
+                        <td><span class="badge bg-light text-primary border">${log.vehicleLabel}</span></td>
+                        <td class="text-muted">${log.time}</td>
+                        <td>${log.user}</td>
+                        <td><span class="badge bg-light text-dark border history-badge">${log.giaTheoGio.toLocaleString()}đ</span></td>
+                        <td><span class="badge bg-light text-dark border history-badge">${log.giaQuaDem.toLocaleString()}đ</span></td>
+                        <td><span class="badge bg-light text-dark border history-badge">${log.giaTheoThang.toLocaleString()}đ</span></td>
+                        <td><span class="badge bg-light text-dark border history-badge">${log.giaDatCho}%</span></td>
+                        <td><span class="badge ${log.statusClass} px-2 py-1 rounded">${log.status}</span></td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+
+            // Update stats info text
+            const totalRecords = auditLogs.length;
+            const currentStart = startIndex + 1;
+            const currentEnd = Math.min(endIndex, totalRecords);
+            $('#paginationInfo').text(`Hiển thị ${currentStart} - ${currentEnd} trong tổng số ${totalRecords} cấu hình`);
+
+            renderPaginationControls();
+        }
+
+        // Generate paginator elements
+        function renderPaginationControls() {
+            const paginationContainer = $('#paginationControls');
+            paginationContainer.empty();
+
+            const totalPages = Math.ceil(auditLogs.length / rowsPerPage);
+            if (totalPages <= 1) return;
+
+            let html = `<nav aria-label="Page navigation"><ul class="pagination pagination-sm m-0 justify-content-end gap-1">`;
+            
+            // Previous button
+            html += `
+                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link rounded-3 border-light shadow-sm py-1.5 px-2.5" href="#" onclick="changePage(${currentPage - 1}); return false;" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            `;
+
+            for (let i = 1; i <= totalPages; i++) {
+                html += `
+                    <li class="page-item ${currentPage === i ? 'active' : ''}">
+                        <a class="page-link rounded-3 border-light shadow-sm fw-bold py-1.5 px-3" href="#" onclick="changePage(${i}); return false;">${i}</a>
+                    </li>
+                `;
+            }
+
+            // Next button
+            html += `
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link rounded-3 border-light shadow-sm py-1.5 px-2.5" href="#" onclick="changePage(${currentPage + 1}); return false;" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            `;
+
+            html += `</ul></nav>`;
+            paginationContainer.html(html);
+        }
+
+        // Navigate page helper
+        window.changePage = function(page) {
+            const totalPages = Math.ceil(auditLogs.length / rowsPerPage);
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderAuditLogs();
+        };
+
+        function resetSelection() {
+            currentActiveLot = null;
+            currentActiveVehicleType = null;
+            $('#vehicleTypeSelect').empty().append('<option value="" disabled selected>-- Chọn bãi xe trước --</option>').prop('disabled', true);
+            $('#inlinePricingForm').hide();
+            $('#selectPromptCard').show();
+        }
+
+        // Load pricing database values directly into input fields
+        function loadPricing() {
+            if (!currentActiveLot || !currentActiveVehicleType) return;
+
+            $.ajax({
+                url: '/Owner/Gia/GetPricing',
+                type: 'GET',
+                data: { lotId: currentActiveLot, loaiXeId: currentActiveVehicleType },
+                success: function(data) {
+                    // Load values to inputs embedded inside the cards
+                    $('#inputGiaTheoGio').val(data.giaTheoGio);
+                    $('#inputGiaQuaDem').val(data.giaQuaDem);
+                    $('#inputGiaTheoThang').val(data.giaTheoThang);
+                    $('#inputGiaDatCho').val(data.giaDatCho);
+                    $('#switchStatus').prop('checked', data.trangThai);
+
+                    // Set state badges
+                    updateStatusBadge($('#status-day'), data.trangThai);
+                    updateStatusBadge($('#status-night'), data.trangThai);
+                    updateStatusBadge($('#status-monthly'), data.trangThai);
+                    updateStatusBadge($('#status-booking'), data.trangThai);
+
+                    // Handle inactive state appearance visually
+                    if (!data.trangThai) {
+                        $('#pricingCardsContainer').css('opacity', '0.7');
+                    } else {
+                        $('#pricingCardsContainer').css('opacity', '1');
+                    }
+
+                    // Check lot approval status and disable controls if pending
+                    const lotStatus = $('#lotSelect option:selected').data('trangthai');
+                    const isPending = (lotStatus === 'Chờ duyệt');
+
+                    $('#inputGiaTheoGio').prop('disabled', isPending);
+                    $('#inputGiaQuaDem').prop('disabled', isPending);
+                    $('#inputGiaTheoThang').prop('disabled', isPending);
+                    $('#inputGiaDatCho').prop('disabled', isPending);
+                    $('#switchStatus').prop('disabled', isPending);
+
+                    const saveBtn = $('#btnSavePricing');
+                    if (isPending) {
+                        saveBtn.prop('disabled', true)
+                               .html('<i class="fa-solid fa-ban"></i> Bãi xe chưa được duyệt - Không thể cập nhật')
+                               .removeClass('btn-primary-custom')
+                               .addClass('btn-secondary');
+                    } else {
+                        saveBtn.prop('disabled', false)
+                               .html('<i class="fa-solid fa-floppy-disk"></i> Lưu thay đổi bảng giá')
+                               .removeClass('btn-secondary')
+                               .addClass('btn-primary-custom');
+                    }
+                },
+                error: function() {
+                    alert('Có lỗi xảy ra khi tải cấu hình giá.');
+                }
+            });
+        }
+
+        // Toggle pricing active status indicators
+        function updateStatusBadge(element, isActive) {
+            element.removeClass('pricing-status active inactive bg-success-light text-success bg-danger-light text-danger');
+            if (isActive) {
+                element.addClass('pricing-status active').html('<i class="fa-solid fa-circle-check"></i> Đang áp dụng');
+            } else {
+                element.addClass('pricing-status inactive').html('<i class="fa-solid fa-circle-xmark"></i> Tạm ngưng');
+            }
+        }
+        // Check lot approval status and show/hide pending banner
+        function checkLotStatus() {
+            const selectedOption = $('#lotSelect option:selected');
+            const trangThai = selectedOption.data('trangthai') || '';
+
+            if (trangThai && trangThai !== 'Hoạt động') {
+                let icon = 'fa-hourglass-half';
+                let color = '#f97316';
+                let borderColor = '#fb923c';
+                let bgGradient = 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)';
+                let titleText = 'Bãi xe đang chờ duyệt';
+                let descText = 'Bãi xe này hiện chưa được Admin phê duyệt. Bạn chưa thể cấu hình bảng giá ở đây.';
+                let btnClass = 'btn-outline-warning';
+
+                if (trangThai === 'Từ chối' || trangThai === 'Bị từ chối') {
+                    icon = 'fa-circle-xmark';
+                    color = '#dc2626';
+                    borderColor = '#f87171';
+                    bgGradient = 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)';
+                    titleText = 'Bãi xe đã bị từ chối';
+                    descText = 'Yêu cầu đăng ký bãi xe này đã bị Admin từ chối. Vui lòng liên hệ quản trị viên.';
+                    btnClass = 'btn-outline-danger';
+                } else if (trangThai === 'Tạm ngưng' || trangThai === 'Ngưng hoạt động') {
+                    icon = 'fa-pause-circle';
+                    color = '#6b7280';
+                    borderColor = '#9ca3af';
+                    bgGradient = 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)';
+                    titleText = 'Bãi xe đang tạm ngưng';
+                    descText = 'Bãi xe này hiện đang tạm ngưng hoạt động. Bạn chưa thể sử dụng các tính năng quản lý.';
+                    btnClass = 'btn-outline-secondary';
+                }
+
+                const bannerInner = $('#lotPendingBanner > div');
+                bannerInner.css({ 'background': bgGradient, 'border-color': borderColor });
+                bannerInner.find('div:first').css('background', `linear-gradient(135deg, ${color}, ${color}dd)`);
+                bannerInner.find('i.fa-solid').attr('class', `fa-solid ${icon} text-white`);
+                bannerInner.find('.btn').attr('class', `btn ${btnClass} fw-semibold px-4`);
+                $('#lotPendingTitle').text(titleText).css('color', color);
+                $('#lotPendingDesc').text(descText);
+                $('#lotPendingStatusText').text(trangThai).css('color', color);
+
+                $('#lotPendingBanner').removeClass('d-none');
+                $('#mainContent').addClass('d-none');
+            } else if (trangThai === 'Hoạt động') {
+                $('#lotPendingBanner').addClass('d-none');
+                $('#mainContent').removeClass('d-none');
+            }
+        }
+        // ── Show toast notification ──
+        function showToast(type, title, desc, duration = 4000) {
+            const icons = {
+                success: 'fa-circle-check',
+                error:   'fa-circle-xmark',
+                warning: 'fa-triangle-exclamation'
+            };
+            const id = 'toast-' + Date.now();
+            const html = `
+                <div class="owner-toast toast-${type}" id="${id}">
+                    <div class="toast-icon">
+                        <i class="fa-solid ${icons[type] || 'fa-info-circle'}"></i>
+                    </div>
+                    <div class="toast-body">
+                        <div class="toast-title">${title}</div>
+                        <div class="toast-desc">${desc}</div>
+                    </div>
+                    <button class="toast-close" onclick="dismissToast('${id}')">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            `;
+            $('#toastContainer').append(html);
+
+            // Auto dismiss
+            setTimeout(() => dismissToast(id), duration);
+        }
+
+        function dismissToast(id) {
+            const el = $(`#${id}`);
+            el.addClass('toast-hide');
+            setTimeout(() => el.remove(), 380);
+        }
+    </script>
+}

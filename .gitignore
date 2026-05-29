@@ -1,0 +1,62 @@
+## Ignore Visual Studio / .NET Core Build Outputs
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa]rchive/
+
+## Ignore Visual Studio Cache & User Settings
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.userprefs
+*.csproj.user
+*.sqlproj.user
+*.sqlsettings
+
+## Ignore VS Code settings (except standard workspace settings if desired)
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+## Ignore JetBrains IDEs (Rider, Resharper, WebStorm, etc.)
+.idea/
+.rider/
+*.sln.iml
+_ReSharper*/
+*.ReSharper.user
+
+## Ignore OS-generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+## Ignore Client-side dependencies (if using npm/yarn)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+## Ignore User Secrets and Local Configuration files
+secrets.json
+appsettings.local.json
+*.local.settings.json
+
+## Ignore Publish/Deployment outputs
+*.publish.xml
+*.pubxml
+*.pubxml.user
+
+## Ignore EF Core migrations bundle outputs
+*.exe
+*.dll
+*.pdb

@@ -1,0 +1,385 @@
+@using WebApplication1.Models.Entities
+@{
+    ViewData["Title"] = "Quản Lý Người Dùng";
+    var khachHangs = ViewBag.KhachHangs as List<KhachHang> ?? new();
+    var chuBais    = ViewBag.ChuBais    as List<ChuBaiXe>  ?? new();
+    var tab        = ViewBag.Tab as string ?? "khachhang";
+}
+
+@if (TempData["ThongBao"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+        <i class="fa-solid fa-check-circle me-2"></i>@TempData["ThongBao"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- THỐNG KÊ TỔNG QUAN -->
+<div class="row g-3 mb-4">
+    <div class="col-xl col-md-4">
+        <div class="stat-card bg-white">
+            <div class="stat-icon" style="background:#ede9fe;color:#7c3aed"><i class="fa-solid fa-users"></i></div>
+            <div>
+                <div class="stat-value">@ViewBag.TongTaiKhoan</div>
+                <div class="stat-label">Tổng Tài Khoản</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl col-md-4">
+        <div class="stat-card bg-white">
+            <div class="stat-icon" style="background:#dcfce7;color:#16a34a"><i class="fa-solid fa-circle-check"></i></div>
+            <div>
+                <div class="stat-value text-success">@ViewBag.TongHoatDong</div>
+                <div class="stat-label">Đang Hoạt Động</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl col-md-4">
+        <div class="stat-card bg-white">
+            <div class="stat-icon" style="background:#fee2e2;color:#dc2626"><i class="fa-solid fa-lock"></i></div>
+            <div>
+                <div class="stat-value text-danger">@ViewBag.TongKhoa</div>
+                <div class="stat-label">Đã Khóa</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl col-md-6">
+        <div class="stat-card bg-white">
+            <div class="stat-icon" style="background:#dbeafe;color:#2563eb"><i class="fa-solid fa-user"></i></div>
+            <div>
+                <div class="stat-value">@ViewBag.TongKhachHang</div>
+                <div class="stat-label">Khách Hàng</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl col-md-6">
+        <div class="stat-card bg-white">
+            <div class="stat-icon" style="background:#fef9c3;color:#ca8a04"><i class="fa-solid fa-building"></i></div>
+            <div>
+                <div class="stat-value">@ViewBag.TongChuBai</div>
+                <div class="stat-label">Chủ Bãi Xe</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- THANH TÌM KIẾM -->
+<div class="card card-admin mb-3">
+    <div class="card-body py-3">
+        <form method="get" class="d-flex gap-2 flex-wrap align-items-center">
+            <input type="hidden" name="tab" value="@tab" />
+            <div class="input-group" style="max-width:300px">
+                <span class="input-group-text bg-white"><i class="fa-solid fa-search text-muted"></i></span>
+                <input type="text" name="search" value="@ViewBag.Search"
+                       class="form-control border-start-0" placeholder="Tên, email, SĐT...">
+            </div>
+            @if (tab == "khachhang")
+            {
+                <select name="loai" class="form-select" style="max-width:160px">
+                    <option value="">Tất cả loại KH</option>
+                    <option value="VIP"          selected="@(ViewBag.Loai=="VIP"?"selected":null)">⭐ VIP</option>
+                    <option value="Thường xuyên" selected="@(ViewBag.Loai=="Thường xuyên"?"selected":null)">Thường xuyên</option>
+                    <option value="Vãng lai"     selected="@(ViewBag.Loai=="Vãng lai"?"selected":null)">Vãng lai</option>
+                </select>
+            }
+            <button class="btn btn-primary px-4"><i class="fa-solid fa-filter me-1"></i>Lọc</button>
+            <a href="/Admin/NguoiDung?tab=@tab" class="btn btn-outline-secondary">
+                <i class="fa-solid fa-rotate-left me-1"></i>Xóa lọc
+            </a>
+        </form>
+    </div>
+</div>
+
+<!-- TABS -->
+<ul class="nav nav-tabs mb-0" style="border-bottom:none">
+    <li class="nav-item">
+        <a class="nav-link @(tab=="khachhang"?"active":"")" href="/Admin/NguoiDung?tab=khachhang">
+            <i class="fa-solid fa-user me-1"></i>Khách Hàng
+            <span class="badge @(tab=="khachhang"?"bg-primary":"bg-secondary") ms-1">@khachHangs.Count</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(tab=="owner"?"active":"")" href="/Admin/NguoiDung?tab=owner">
+            <i class="fa-solid fa-building me-1"></i>Chủ Bãi Xe
+            <span class="badge @(tab=="owner"?"bg-primary":"bg-secondary") ms-1">@chuBais.Count</span>
+        </a>
+    </li>
+</ul>
+
+<div class="card card-admin" style="border-radius:0 14px 14px 14px">
+    <!-- TAB KHÁCH HÀNG -->
+    @if (tab == "khachhang")
+    {
+        <div class="card-body p-0">
+            @if (!khachHangs.Any())
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="fa-solid fa-users-slash fa-3x mb-3 opacity-25"></i>
+                    <p>Không tìm thấy khách hàng nào.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table admin-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Khách Hàng</th>
+                                <th>Tài Khoản</th>
+                                <th>Liên Hệ</th>
+                                <th>Loại KH</th>
+                                <th>Đặt Chỗ</th>
+                                <th>Trạng Thái</th>
+                                <th class="text-center">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var kh in khachHangs)
+                            {
+                                var soHuy    = kh.DatChos.Count(d => d.TrangThai == "Đã hủy");
+                                var isSpam   = soHuy >= 3;
+                                <tr class="@(isSpam ? "table-warning" : "")">
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="avatar-circle" style="background:@(kh.TaiKhoan.TrangThai?"#4f46e5":"#9ca3af")">
+                                                @kh.HoTen.Substring(0,1).ToUpper()
+                                            </div>
+                                            <div>
+                                                <div class="fw-semibold">@kh.HoTen</div>
+                                                <small class="text-muted">ID: @kh.ID</small>
+                                                @if (isSpam)
+                                                {
+                                                    <span class="badge bg-danger ms-1" style="font-size:.65rem">
+                                                        <i class="fa-solid fa-triangle-exclamation"></i> Bất thường
+                                                    </span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>@kh.TaiKhoan.TenDangNhap</div>
+                                        <small class="text-muted">@kh.TaiKhoan.VaiTro?.TenVaiTro</small>
+                                    </td>
+                                    <td>
+                                        <div><i class="fa-solid fa-phone fa-xs me-1 text-muted"></i>@(kh.SDT ?? "—")</div>
+                                        <small class="text-muted"><i class="fa-solid fa-envelope fa-xs me-1"></i>@(kh.Email ?? "—")</small>
+                                    </td>
+                                    <td>
+                                        @if (kh.DatChos.Count >= 10)
+                                        { <span class="badge" style="background:#fbbf24;color:#78350f"><i class="fa-solid fa-star me-1"></i>VIP</span> }
+                                        else if (kh.DatChos.Count >= 3)
+                                        { <span class="badge bg-info text-dark">Thường xuyên</span> }
+                                        else
+                                        { <span class="badge bg-secondary">Vãng lai</span> }
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold">@kh.DatChos.Count lượt</div>
+                                        @if (soHuy > 0)
+                                        { <small class="text-danger">@soHuy lần hủy</small> }
+                                    </td>
+                                    <td>
+                                        @if (kh.TaiKhoan.TrangThai)
+                                        { <span class="badge bg-success"><i class="fa-solid fa-circle me-1" style="font-size:.5rem"></i>Hoạt động</span> }
+                                        else
+                                        { <span class="badge bg-danger"><i class="fa-solid fa-circle me-1" style="font-size:.5rem"></i>Đã khóa</span> }
+                                    </td>
+                                    <td>
+                                        <div class="d-flex gap-1 justify-content-center">
+                                            <a href="/Admin/NguoiDung/ChiTiet/@kh.ID"
+                                               class="btn btn-sm btn-outline-primary" title="Xem chi tiết">
+                                                <i class="fa-solid fa-eye"></i>
+                                            </a>
+                                            @if (kh.TaiKhoan.TrangThai)
+                                            {
+                                                <button class="btn btn-sm btn-outline-danger"
+                                                        title="Khóa tài khoản"
+                                                        onclick="moModalKhoa(@kh.IDTaiKhoan, '@kh.HoTen')">
+                                                    <i class="fa-solid fa-lock"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <form method="post" action="/Admin/NguoiDung/KhoaTaiKhoan" class="d-inline">
+                                                    <input type="hidden" name="idTaiKhoan" value="@kh.IDTaiKhoan" />
+                                                    <button class="btn btn-sm btn-outline-success" title="Mở khóa">
+                                                        <i class="fa-solid fa-lock-open"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- TAB CHỦ BÃI XE -->
+    @if (tab == "owner")
+    {
+        <div class="card-body p-0">
+            @if (!chuBais.Any())
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="fa-solid fa-building-circle-xmark fa-3x mb-3 opacity-25"></i>
+                    <p>Không tìm thấy chủ bãi xe nào.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table admin-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Chủ Bãi Xe</th>
+                                <th>Tài Khoản</th>
+                                <th>Liên Hệ</th>
+                                <th>Số Bãi</th>
+                                <th>Trạng Thái</th>
+                                <th class="text-center">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var cb in chuBais)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="avatar-circle" style="background:#0891b2">
+                                                @cb.TenChuBai.Substring(0,1).ToUpper()
+                                            </div>
+                                            <div>
+                                                <div class="fw-semibold">@cb.TenChuBai</div>
+                                                <small class="text-muted">ID: @cb.ID</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>@cb.TaiKhoan.TenDangNhap</td>
+                                    <td>
+                                        <div><i class="fa-solid fa-phone fa-xs me-1 text-muted"></i>@cb.SDT</div>
+                                        <small class="text-muted"><i class="fa-solid fa-envelope fa-xs me-1"></i>@cb.Email</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">@cb.BaiXes.Count bãi</span>
+                                    </td>
+                                    <td>
+                                        @if (cb.TaiKhoan.TrangThai)
+                                        { <span class="badge bg-success"><i class="fa-solid fa-circle me-1" style="font-size:.5rem"></i>Hoạt động</span> }
+                                        else
+                                        { <span class="badge bg-danger"><i class="fa-solid fa-circle me-1" style="font-size:.5rem"></i>Đã khóa</span> }
+                                    </td>
+                                    <td>
+                                        <div class="d-flex gap-1 justify-content-center">
+                                            @if (cb.TaiKhoan.TrangThai)
+                                            {
+                                                <button class="btn btn-sm btn-outline-danger"
+                                                        onclick="moModalKhoa(@cb.IDTaiKhoan, '@cb.TenChuBai')">
+                                                    <i class="fa-solid fa-lock"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <form method="post" action="/Admin/NguoiDung/KhoaTaiKhoan" class="d-inline">
+                                                    <input type="hidden" name="idTaiKhoan" value="@cb.IDTaiKhoan" />
+                                                    <button class="btn btn-sm btn-outline-success">
+                                                        <i class="fa-solid fa-lock-open"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- MODAL KHÓA TÀI KHOẢN -->
+<div class="modal fade" id="modalKhoa" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" action="/Admin/NguoiDung/KhoaTaiKhoan">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="stat-icon" style="width:40px;height:40px;background:#fee2e2;color:#dc2626;border-radius:10px">
+                            <i class="fa-solid fa-lock"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title mb-0">Khóa Tài Khoản</h5>
+                            <small class="text-muted" id="modalKhoaTen"></small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="idTaiKhoan" id="modalKhoaId" />
+                    <input type="hidden" name="returnUrl" value="/Admin/NguoiDung?tab=@tab" />
+
+                    <label class="form-label fw-semibold">Lý do khóa <span class="text-danger">*</span></label>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <button type="button" class="btn btn-sm btn-outline-secondary lydo-btn"
+                                data-val="Vi phạm điều khoản sử dụng">Vi phạm điều khoản</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary lydo-btn"
+                                data-val="Spam đặt chỗ nhiều lần">Spam đặt chỗ</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary lydo-btn"
+                                data-val="Hành vi gian lận thanh toán">Gian lận thanh toán</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary lydo-btn"
+                                data-val="Tài khoản bị báo cáo nhiều lần">Bị báo cáo nhiều lần</button>
+                    </div>
+                    <textarea name="lyDo" id="lyDoInput" class="form-control" rows="3"
+                              placeholder="Nhập lý do khóa tài khoản..." required></textarea>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-danger px-4">
+                        <i class="fa-solid fa-lock me-1"></i>Xác Nhận Khóa
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Styles {
+<style>
+    .avatar-circle {
+        width: 36px; height: 36px;
+        border-radius: 50%;
+        color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: .85rem;
+        flex-shrink: 0;
+    }
+    .nav-tabs .nav-link { color: #6b7280; font-weight: 500; }
+    .nav-tabs .nav-link.active { color: #4f46e5; font-weight: 600; }
+    .lydo-btn.active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+</style>
+}
+
+@section Scripts {
+<script>
+    function moModalKhoa(id, ten) {
+        document.getElementById('modalKhoaId').value = id;
+        document.getElementById('modalKhoaTen').textContent = ten;
+        document.getElementById('lyDoInput').value = '';
+        document.querySelectorAll('.lydo-btn').forEach(b => b.classList.remove('active'));
+        new bootstrap.Modal(document.getElementById('modalKhoa')).show();
+    }
+
+    // Click nhanh lý do
+    document.querySelectorAll('.lydo-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.lydo-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('lyDoInput').value = btn.dataset.val;
+        });
+    });
+</script>
+}

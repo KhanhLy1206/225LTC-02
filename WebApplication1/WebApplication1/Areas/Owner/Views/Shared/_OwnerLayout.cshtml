@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - SmartParking Owner Panel</title>
+    <!-- Google Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" />
+    <!-- Bootstrap & FontAwesome -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Custom Owner Stylesheet -->
+    <link rel="stylesheet" href="~/css/owner-style.css" asp-append-version="true" />
+    <style>
+        .owner-notification-btn::after {
+            display: none !important;
+        }
+        .cursor-pointer {
+            cursor: pointer !important;
+        }
+    </style>
+</head>
+@inject WebApplication1.Models.DataContext.AppDbContext _context
+@using Microsoft.EntityFrameworkCore
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+
+    // Fetch dynamic owner info
+    var userIdClaim = User.FindFirst("UserId") ?? User.FindFirst("AccountId") ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+    int accountId = 0;
+    if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int id))
+    {
+        accountId = id;
+    }
+
+    var chuBai = _context.ChuBaiXes.Include(c => c.TaiKhoan).FirstOrDefault(c => c.IDTaiKhoan == accountId);
+    var ownerName = chuBai?.TenChuBai ?? "Lê Văn Chủ";
+    var avatarUrl = chuBai?.TaiKhoan?.AnhDaiDien ?? "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100";
+}
+<body class="owner-body">
+    <div class="owner-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="owner-sidebar" id="ownerSidebar">
+            <a href="/Owner" class="owner-brand">
+                <i class="fa-solid fa-square-parking"></i>
+                <span>SmartParking</span>
+            </a>
+            
+            <ul class="owner-menu">
+                <li class="owner-menu-item">
+                    <a href="/Owner/BaiXe" class="owner-menu-link @(currentController == "BaiXe" ? "active" : "")">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>Quản lý bãi xe</span>
+                    </a>
+                </li>
+                <li class="owner-menu-item">
+                    <a href="/Owner/SoDo" class="owner-menu-link @(currentController == "SoDo" ? "active" : "")">
+                        <i class="fa-solid fa-map-location-dot"></i>
+                        <span>Sơ đồ bãi đỗ</span>
+                    </a>
+                </li>
+                <li class="owner-menu-item">
+                    <a href="/Owner/Gia" class="owner-menu-link @(currentController == "Gia" ? "active" : "")">
+                        <i class="fa-solid fa-tags"></i>
+                        <span>Quản lý giá</span>
+                    </a>
+                </li>
+                <li class="owner-menu-item">
+                    <a href="/Owner/ThietBi" class="owner-menu-link @(currentController == "ThietBi" ? "active" : "")">
+                        <i class="fa-solid fa-microchip"></i>
+                        <span>Quản lý thiết bị</span>
+                    </a>
+                </li>
+                <li class="owner-menu-item">
+                    <a href="/Owner/ThongKe" class="owner-menu-link @(currentController == "ThongKe" ? "active" : "")">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <span>Thống kê doanh thu</span>
+                    </a>
+                </li>
+                <li class="owner-menu-item">
+                    <a href="/Owner/Chat" class="owner-menu-link @(currentController == "Chat" ? "active" : "")">
+                        <i class="fa-solid fa-comments"></i>
+                        <span>Chat hỗ trợ</span>
+                        <span id="sidebar-chat-badge" class="badge bg-danger rounded-pill ms-auto d-none" style="font-size: 0.75rem; padding: 0.25em 0.6em;">0</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="owner-sidebar-footer">
+                <a href="/Account/Logout" class="owner-menu-link text-danger">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Đăng xuất</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content Wrapper -->
+        <div class="owner-content">
+            <!-- Topbar Header -->
+            <header class="owner-topbar">
+                <div class="d-flex align-items-center gap-3">
+                    <button class="owner-sidebar-toggle" id="sidebarToggle">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="owner-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" class="owner-search-input" placeholder="Tìm kiếm giao dịch, mã số xe..." />
+                    </div>
+                </div>
+
+                <div class="owner-topbar-actions">
+                    <!-- Notification Dropdown -->
+                    <div class="dropdown">
+                        <button class="owner-notification-btn dropdown-toggle border-0" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="background: none;">
+                            <i class="fa-regular fa-bell"></i>
+                            <span class="badge bg-danger rounded-pill d-none" id="notificationBadge" style="position: absolute; top: -2px; right: -2px; font-size: 0.62rem; padding: 0.25em 0.5em;">0</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 py-2 mt-2" aria-labelledby="notificationDropdown" id="notificationDropdownList" style="width: 350px; border-radius: 12px; max-height: 400px; overflow-y: auto; font-size: 0.88rem;">
+                            <li class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+                                <span class="fw-bold text-dark"><i class="fa-solid fa-bell text-primary me-1"></i>Thông báo duyệt bãi</span>
+                                <button class="btn btn-sm btn-link text-primary p-0 text-decoration-none" onclick="markAllNotificationsAsRead(); event.stopPropagation();" style="font-size: 0.75rem;">Đã đọc tất cả</button>
+                            </li>
+                            <div id="notificationListItems">
+                                <li class="text-center py-3 text-muted">Đang tải thông báo...</li>
+                            </div>
+                        </ul>
+                    </div>
+
+                    <!-- Profile Info -->
+                    <a href="/Owner/Profile" class="owner-user-profile text-decoration-none">
+                        <img src="@avatarUrl" class="owner-avatar" alt="Avatar" />
+                        <div class="owner-user-info d-none d-md-flex">
+                            <span class="owner-user-name">@ownerName</span>
+                            <span class="owner-user-role">Chủ Bãi Đối Tác</span>
+                        </div>
+                    </a>
+                </div>
+            </header>
+
+            <!-- Page Main Body -->
+            <main class="owner-main-body">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SignalR client library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <!-- Chart.js for statistics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Sidebar Toggle JS -->
+    <script>
+        document.getElementById('sidebarToggle').addEventListener('click', function () {
+            document.getElementById('ownerSidebar').classList.toggle('show');
+        });
+    </script>
+
+    <!-- Global Chat Notification Badge JS -->
+    <script>
+        $(document).ready(function() {
+            function updateSidebarChatBadge() {
+                $.getJSON('/Owner/Chat/GetUnreadCount')
+                    .done(function(resp) {
+                        const count = resp.count || 0;
+                        const badge = $('#sidebar-chat-badge');
+                        if (badge.length) {
+                            badge.text(count);
+                            if (count > 0) {
+                                badge.removeClass('d-none');
+                            } else {
+                                badge.addClass('d-none');
+                            }
+                        }
+                    });
+            }
+
+            // Initial load update
+            updateSidebarChatBadge();
+
+            // Establish SignalR connection for notifications
+            const globalChatConnection = new signalR.HubConnectionBuilder()
+                .withUrl("/chatHub")
+                .withAutomaticReconnect()
+                .build();
+
+            globalChatConnection.on("ReceiveMessage", function(msg) {
+                // If a message is received in any of the joined session groups, update the sidebar badge
+                updateSidebarChatBadge();
+            });
+
+            globalChatConnection.start().then(function() {
+                // Once connected, fetch all session IDs for this owner and join them
+                $.getJSON('/Owner/Chat/GetOwnerSessions')
+                    .done(function(sessionIds) {
+                        if (Array.isArray(sessionIds)) {
+                            sessionIds.forEach(function(sid) {
+                                globalChatConnection.invoke("JoinSession", sid).catch(function(err) {
+                                    console.warn("Error joining session: ", sid, err.toString());
+                                });
+                            });
+                        }
+                    });
+            }).catch(function(err) {
+                console.warn("Global chat connection failed: ", err.toString());
+            });
+
+            // Expose globally so chat view can use it
+            window.updateSidebarChatBadge = updateSidebarChatBadge;
+        });
+    </script>
+
+    <!-- Notification Details Modal -->
+    <div class="modal fade" id="notificationDetailModal" tabindex="-1" aria-labelledby="notificationDetailModalLabel" aria-hidden="true" style="backdrop-filter: blur(5px);">
+        <div class="modal-dialog modal-dialog-centered text-dark">
+            <div class="modal-content border-0 shadow" style="border-radius: 16px; overflow: hidden; background: #ffffff;">
+                <div class="modal-header border-0 pb-0" style="padding: 20px 24px;">
+                    <h5 class="modal-title fw-bold text-dark" id="notificationDetailModalLabel">
+                        <i class="fa-solid fa-bell text-primary me-2"></i>Chi Tiết Phản Hồi Duyệt Bãi
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-4 py-3">
+                    <div class="p-3 bg-light rounded-3" style="font-family: 'Plus Jakarta Sans', sans-serif;">
+                        <h6 class="fw-bold text-dark mb-1" id="notif-lotName">Tên bãi đỗ</h6>
+                        <p class="text-muted small mb-3" id="notif-lotAddress">Địa chỉ bãi xe</p>
+                        
+                        <div class="row g-2 mb-3 small text-dark">
+                            <div class="col-6">
+                                <span class="text-muted d-block" style="font-size: 0.75rem;">Ngày gửi hồ sơ:</span>
+                                <strong id="notif-sendDate">27/05/2026</strong>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted d-block" style="font-size: 0.75rem;">Sức chứa / Diện tích:</span>
+                                <strong><span id="notif-capacity">50</span> chỗ | <span id="notif-area">500</span> m²</strong>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <span class="text-muted small d-block mb-1" style="font-size: 0.75rem;">Trạng thái phê duyệt:</span>
+                            <span class="badge px-3 py-1.5" id="notif-status">Hoạt động</span>
+                        </div>
+
+                        <hr class="my-3 opacity-50">
+
+                        <div>
+                            <span class="text-muted small d-block mb-1 fw-semibold" style="font-size: 0.75rem;">Ý kiến phản hồi từ Admin:</span>
+                            <div class="p-3 bg-white rounded-3 border text-dark" id="notif-feedback" style="font-size: 0.9rem; min-height: 60px;">
+                                Nội dung phản hồi...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                    <button type="button" class="btn btn-primary w-100 py-2" data-bs-dismiss="modal" style="border-radius: 8px;">Đã hiểu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Phản Hồi Đề Xuất Hoa Hồng -->
+    <div class="modal fade" id="modalPhanHoiHoaHong" tabindex="-1" style="backdrop-filter:blur(5px)">
+        <div class="modal-dialog modal-dialog-centered text-dark">
+            <div class="modal-content border-0 shadow" style="border-radius:16px;overflow:hidden">
+                <div class="modal-header border-0 pb-0" style="padding:20px 24px">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="width:44px;height:44px;border-radius:12px;background:#ede9fe;color:#7c3aed;display:flex;align-items:center;justify-content:center;font-size:1.2rem">
+                            <i class="fa-solid fa-percent"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title mb-0 fw-bold">Đề Xuất Thay Đổi Hoa Hồng</h5>
+                            <small class="text-muted">Từ Admin hệ thống</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body px-4 py-3">
+                    <div class="p-3 rounded-3 mb-3" style="background:#f8fafc;border:1.5px solid #e5e7eb">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted" style="font-size:.8rem">Tỷ lệ hiện tại</span>
+                            <span class="fw-bold text-dark" id="phanHoi_TyLeCu">—</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted" style="font-size:.8rem">Tỷ lệ đề xuất mới</span>
+                            <span class="fw-bold text-primary fs-5" id="phanHoi_TyLeMoi">—</span>
+                        </div>
+                        <hr class="my-2 opacity-25" />
+                        <p class="mb-0 text-dark" style="font-size:.88rem" id="phanHoi_NoiDung"></p>
+                    </div>
+                    <div id="phanHoi_TuChoiBox" style="display:none">
+                        <label class="form-label fw-semibold" style="font-size:.88rem">
+                            Lý do từ chối <span class="text-danger">*</span>
+                        </label>
+                        <textarea id="phanHoi_LyDo" class="form-control" rows="3"
+                                  placeholder="Nhập lý do bạn không đồng ý với tỷ lệ này..."
+                                  style="border-radius:10px;font-size:.88rem"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 px-4 pb-4 gap-2">
+                    <button type="button" class="btn btn-outline-danger flex-fill py-2"
+                            id="btnTuChoiHoaHong" style="border-radius:10px">
+                        <i class="fa-solid fa-xmark me-1"></i>Từ Chối
+                    </button>
+                    <button type="button" class="btn btn-success flex-fill py-2"
+                            id="btnChapNhanHoaHong" style="border-radius:10px">
+                        <i class="fa-solid fa-check me-1"></i>Chấp Nhận
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Approval Notification JavaScript -->
+    <script>
+        $(document).ready(function() {
+            let loadedNotifications = [];
+
+            // Load notifications from server
+            function loadNotifications() {
+                $.getJSON('/Owner/BaiXe/GetNotifications')
+                    .done(function(resp) {
+                        if (resp.success && Array.isArray(resp.data)) {
+                            loadedNotifications = resp.data;
+                            renderNotifications();
+                        }
+                    })
+                    .fail(function() {
+                        console.error("Failed to load notifications.");
+                    });
+            }
+
+            // Render notifications list inside dropdown
+            function renderNotifications() {
+                const listContainer = $('#notificationListItems');
+                listContainer.empty();
+
+                if (loadedNotifications.length === 0) {
+                    listContainer.html('<li class="text-center py-4 text-muted"><i class="fa-solid fa-bell-slash mb-2 d-block fs-5 opacity-50"></i>Không có thông báo mới</li>');
+                    $('#notificationBadge').addClass('d-none');
+                    return;
+                }
+
+                let unreadCount = 0;
+
+                loadedNotifications.forEach(function(item) {
+                    const isRead = item.daDoc;
+                    if (!isRead) unreadCount++;
+
+                    // Icon và màu theo loại thông báo
+                    let icon = 'fa-circle-info text-primary';
+                    let statusText = item.trangThai || '—';
+                    let statusClass = 'text-secondary bg-secondary bg-opacity-10';
+
+                    switch (item.loaiThongBao) {
+                        case 'DuyetBai':
+                            icon = 'fa-circle-check text-success';
+                            statusClass = 'text-success bg-success bg-opacity-10';
+                            break;
+                        case 'TuChoiBai':
+                            icon = 'fa-circle-xmark text-danger';
+                            statusClass = 'text-danger bg-danger bg-opacity-10';
+                            break;
+                        case 'KhoaBai':
+                        case 'TamDongBai':
+                            icon = 'fa-lock text-warning';
+                            statusClass = 'text-warning bg-warning bg-opacity-10';
+                            break;
+                        case 'MoKhoaBai':
+                            icon = 'fa-lock-open text-success';
+                            statusClass = 'text-success bg-success bg-opacity-10';
+                            break;
+                        case 'BaoTriBai':
+                            icon = 'fa-wrench text-secondary';
+                            statusClass = 'text-secondary bg-secondary bg-opacity-10';
+                            break;
+                        case 'DoiTrangThai':
+                            icon = 'fa-rotate text-info';
+                            statusClass = 'text-info bg-info bg-opacity-10';
+                            break;
+                        case 'DeXuatHoaHong':
+                            icon = 'fa-percent text-purple';
+                            statusClass = 'text-purple bg-purple bg-opacity-10';
+                            statusText = 'Đề xuất hoa hồng';
+                            break;
+                        case 'HoaHongApDung':
+                            icon = 'fa-circle-check text-success';
+                            statusClass = 'text-success bg-success bg-opacity-10';
+                            statusText = 'Hoa hồng đã áp dụng';
+                            break;
+                    }
+
+                    const itemHtml = `
+                        <li class="notification-item px-3 py-2 border-bottom cursor-pointer ${isRead ? '' : 'bg-light'}"
+                            onclick="showNotificationDetail(${item.id})"
+                            style="list-style: none; transition: background 0.15s;"
+                            onmouseover="this.style.backgroundColor='#f1f5f9'"
+                            onmouseout="this.style.backgroundColor='${isRead ? 'transparent' : '#f8f9fa'}'">
+                            <div class="d-flex align-items-start gap-2">
+                                <div class="fs-5 mt-1 flex-shrink-0"><i class="fa-solid ${icon}"></i></div>
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="badge ${statusClass} rounded-pill" style="font-size: 0.65rem;">${statusText}</span>
+                                        <small class="text-muted" style="font-size: 0.7rem; white-space: nowrap;">${item.ngayGui}</small>
+                                    </div>
+                                    <div class="text-dark ${isRead ? '' : 'fw-semibold'} text-truncate" style="font-size: 0.85rem;">
+                                        ${item.tieuDe || item.ghiChu}
+                                    </div>
+                                    <div class="text-muted text-truncate" style="font-size: 0.75rem;">
+                                        ${item.tenBai !== '—' ? '<i class="fa-solid fa-location-dot me-1"></i>' + item.tenBai : item.ghiChu}
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                    `;
+                    listContainer.append(itemHtml);
+                });
+
+                if (unreadCount > 0) {
+                    $('#notificationBadge').text(unreadCount).removeClass('d-none');
+                } else {
+                    $('#notificationBadge').addClass('d-none');
+                }
+            }
+
+            // Show details in Modal and mark as read
+            window.showNotificationDetail = function(id) {
+                const item = loadedNotifications.find(x => x.id === id);
+                if (!item) return;
+
+                // ── Đề xuất hoa hồng → mở modal phản hồi riêng ──────────────
+                if (item.loaiThongBao === 'DeXuatHoaHong') {
+                    $.getJSON('/Owner/BaiXe/GetDeXuatHoaHong')
+                        .done(function(resp) {
+                            const deXuat = resp.data?.find(x => x.id === id);
+                            if (!deXuat) {
+                                // Đã phản hồi rồi, chỉ hiện modal thông thường
+                                moModalThongThuong(item);
+                                return;
+                            }
+                            currentDeXuatId = id;
+                            dangTuChoi = false;
+                            document.getElementById('phanHoi_TyLeCu').textContent = deXuat.tyLeCu + '%';
+                            document.getElementById('phanHoi_TyLeMoi').textContent = deXuat.tyLeMoi + '%';
+                            document.getElementById('phanHoi_NoiDung').textContent = deXuat.noiDung;
+                            document.getElementById('phanHoi_TuChoiBox').style.display = 'none';
+                            document.getElementById('phanHoi_LyDo').value = '';
+                            document.getElementById('btnTuChoiHoaHong').innerHTML = '<i class="fa-solid fa-xmark me-1"></i>Từ Chối';
+                            document.getElementById('btnChapNhanHoaHong').disabled = false;
+                            new bootstrap.Modal(document.getElementById('modalPhanHoiHoaHong')).show();
+                        });
+                    return;
+                }
+
+                moModalThongThuong(item);
+            };
+
+            function moModalThongThuong(item) {
+                // Populate modal
+                $('#notif-lotName').text(item.tieuDe || item.tenBai);
+                $('#notif-lotAddress').text(item.diaChi || '—');
+                $('#notif-sendDate').text(item.ngayGui);
+                $('#notif-capacity').text(item.sucChua || '—');
+                $('#notif-area').text(item.dienTich ? Math.round(item.dienTich) : '—');
+
+                const statusEl = $('#notif-status');
+                statusEl.text(item.trangThai || '—');
+                statusEl.removeClass().addClass('badge px-3 py-1');
+                const successTypes = ['DuyetBai', 'MoKhoaBai', 'HoaHongApDung'];
+                const dangerTypes  = ['TuChoiBai', 'KhoaBai'];
+                if (successTypes.includes(item.loaiThongBao)) {
+                    statusEl.addClass('bg-success text-white');
+                } else if (dangerTypes.includes(item.loaiThongBao)) {
+                    statusEl.addClass('bg-danger text-white');
+                } else {
+                    statusEl.addClass('bg-warning text-dark');
+                }
+
+                // Lọc bỏ phần metadata |TyLeMoi=... khỏi nội dung hiển thị
+                const noiDungHienThi = (item.ghiChu || '').split('|')[0].trim();
+                $('#notif-feedback').text(noiDungHienThi || 'Không có nội dung chi tiết.');
+
+                if (!item.daDoc) {
+                    $.post('/Owner/BaiXe/MarkNotificationRead', { id: item.id })
+                        .done(function() {
+                            item.daDoc = true;
+                            renderNotifications();
+                        });
+                }
+
+                const modal = new bootstrap.Modal(document.getElementById('notificationDetailModal'));
+                modal.show();
+            }
+
+            // ── Phản hồi hoa hồng ────────────────────────────────────────────
+            let currentDeXuatId = null;
+            let dangTuChoi = false;
+
+            document.getElementById('btnTuChoiHoaHong').addEventListener('click', function() {
+                if (!dangTuChoi) {
+                    dangTuChoi = true;
+                    document.getElementById('phanHoi_TuChoiBox').style.display = 'block';
+                    this.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i>Gửi Từ Chối';
+                    document.getElementById('btnChapNhanHoaHong').disabled = true;
+                } else {
+                    const lyDo = document.getElementById('phanHoi_LyDo').value.trim();
+                    if (!lyDo) {
+                        document.getElementById('phanHoi_LyDo').focus();
+                        document.getElementById('phanHoi_LyDo').style.borderColor = '#dc2626';
+                        return;
+                    }
+                    guiPhanHoi(false, lyDo);
+                }
+            });
+
+            document.getElementById('btnChapNhanHoaHong').addEventListener('click', function() {
+                guiPhanHoi(true, '');
+            });
+
+            function guiPhanHoi(chapNhan, lyDo) {
+                if (!currentDeXuatId) return;
+                $.post('/Owner/BaiXe/PhanHoiHoaHong', {
+                    idThongBao: currentDeXuatId,
+                    chapNhan: chapNhan,
+                    lyDo: lyDo,
+                    __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val()
+                }).done(function(resp) {
+                    bootstrap.Modal.getInstance(document.getElementById('modalPhanHoiHoaHong'))?.hide();
+                    if (resp.success) {
+                        loadNotifications();
+                        showToast(chapNhan ? 'Đã chấp nhận đề xuất hoa hồng.' : 'Đã gửi phản hồi từ chối.', chapNhan ? 'success' : 'warning');
+                    }
+                });
+            }
+
+            function showToast(msg, type) {
+                const colors = { success: '#16a34a', warning: '#ca8a04', danger: '#dc2626' };
+                const toast = document.createElement('div');
+                toast.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:9999;background:${colors[type]||'#374151'};color:#fff;padding:12px 20px;border-radius:12px;font-size:.88rem;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.2);transition:opacity .3s`;
+                toast.textContent = msg;
+                document.body.appendChild(toast);
+                setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+            }
+
+            // Mark all notifications as read
+            window.markAllNotificationsAsRead = function() {
+                $.post('/Owner/BaiXe/MarkAllNotificationsRead')
+                    .done(function() {
+                        loadedNotifications.forEach(function(item) { item.daDoc = true; });
+                        renderNotifications();
+                    });
+            };
+
+            // Initial load
+            loadNotifications();
+
+            // Refresh notifications every 60s
+            setInterval(loadNotifications, 60000);
+        });
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

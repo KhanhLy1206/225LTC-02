@@ -1,0 +1,854 @@
+@{
+    ViewData["Title"] = "Thống kê doanh thu";
+}
+
+<!-- Custom Styles for Statistics Dashboard -->
+<style>
+    .chart-card {
+        background-color: var(--owner-card-bg);
+        border: 1px solid var(--owner-border);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: var(--owner-shadow-sm);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chart-title-group {
+        margin-bottom: 20px;
+    }
+
+    .chart-title {
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: var(--owner-text-main);
+        margin: 0;
+    }
+
+    .chart-subtitle {
+        font-size: 0.85rem;
+        color: var(--owner-text-muted);
+        margin: 2px 0 0 0;
+    }
+
+    .chart-container {
+        position: relative;
+        flex-grow: 1;
+        min-height: 300px;
+        width: 100%;
+    }
+
+    /* Table styles */
+    .txn-table th {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 700;
+        background-color: #f8fafc !important;
+        border-bottom: 2px solid var(--owner-border) !important;
+    }
+
+    .txn-table td {
+        vertical-align: middle;
+        font-size: 0.875rem;
+    }
+
+    .txn-badge-success {
+        background-color: var(--owner-success-light);
+        color: var(--owner-success);
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+    }
+</style>
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <h1 class="owner-page-title">Thống kê doanh thu</h1>
+        <p class="owner-page-subtitle">Xem báo cáo chi tiết hiệu suất khai thác bãi đỗ, tổng quan doanh thu dịch vụ và tần suất xe đỗ.</p>
+    </div>
+</div>
+
+<!-- Toolbar: Filter Controls -->
+<div class="owner-table-card border-0 mb-4 p-3">
+    <div class="row g-3">
+        <!-- Lot Filter -->
+        <div class="col-md-6">
+            <label class="form-label small fw-semibold text-muted text-uppercase">Bãi đỗ xe</label>
+            <select class="form-select rounded-3 border-light shadow-sm py-2" id="lotSelect">
+                <option value="all" data-trangthai="Hoạt động" selected>Tất cả bãi đỗ xe</option>
+                @if (ViewBag.BaiXes != null)
+                {
+                    foreach (var lot in (List<WebApplication1.Models.Entities.BaiXe>)ViewBag.BaiXes)
+                    {
+                        <option value="@lot.ID" data-trangthai="@lot.TrangThai">@lot.TenBai @(lot.TrangThai != "Hoạt động" ? $"({lot.TrangThai})" : "")</option>
+                    }
+                }
+            </select>
+        </div>
+        <!-- Time Filter -->
+        <div class="col-md-6">
+            <label class="form-label small fw-semibold text-muted text-uppercase">Khoảng thời gian</label>
+            <select class="form-select rounded-3 border-light shadow-sm py-2" id="timeSelect">
+                <option value="today">Hôm nay</option>
+                <option value="7days">7 ngày qua</option>
+                <option value="30days" selected>30 ngày qua (Tháng này)</option>
+                <option value="year">Năm nay (12 tháng)</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- Banner: Bãi xe chưa được duyệt -->
+<div id="lotPendingBanner" class="d-none mb-4">
+    <div style="
+        background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+        border: 2px solid #fb923c;
+        border-radius: 20px;
+        padding: 48px 32px;
+        text-align: center;
+    ">
+        <div style="
+            width: 80px; height: 80px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 24px rgba(249,115,22,0.3);
+        ">
+            <i class="fa-solid fa-hourglass-half text-white" style="font-size: 2rem;"></i>
+        </div>
+        <h4 id="lotPendingTitle" class="fw-bold mb-2" style="color: #c2410c; font-size: 1.4rem;">Bãi xe đang chờ duyệt</h4>
+        <p id="lotPendingDesc" class="text-muted mb-4" style="max-width: 480px; margin: 0 auto;">
+            Bãi xe này hiện chưa được Admin phê duyệt. Bạn chưa thể xem báo cáo thống kê doanh thu ở đây.
+        </p>
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+            <a href="/Owner/BaiXe" class="btn btn-outline-warning fw-semibold px-4">
+                <i class="fa-solid fa-arrow-left me-2"></i> Xem danh sách bãi xe
+            </a>
+        </div>
+        <div class="mt-4 p-3 rounded-3" style="background: rgba(249,115,22,0.08); display: inline-block;">
+            <small class="text-muted"><i class="fa-solid fa-circle-info me-1 text-warning"></i>
+                Trạng thái hiện tại: <strong id="lotPendingStatusText" class="text-warning">Chờ duyệt</strong>
+            </small>
+        </div>
+    </div>
+</div>
+
+<div id="mainContent">
+    <!-- KPI Stats Summary Row -->
+    <div class="row g-4 mb-4">
+        <!-- Revenue -->
+        <div class="col-xl-3 col-md-6">
+            <div class="owner-kpi-card py-3 px-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-1 text-muted text-uppercase small font-weight-bold">Tổng doanh thu</h6>
+                        <div class="owner-kpi-value text-dark" id="kpi-revenue" style="font-size: 1.5rem;">0đ</div>
+                        <span class="small text-muted">Doanh thu thực tế</span>
+                    </div>
+                    <div class="owner-kpi-icon-box success" style="width: 40px; height: 40px; font-size: 1.1rem;">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Total Parkings -->
+        <div class="col-xl-3 col-md-6">
+            <div class="owner-kpi-card py-3 px-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-1 text-muted text-uppercase small font-weight-bold">Lượt đỗ xe</h6>
+                        <div class="owner-kpi-value text-dark" id="kpi-parkings" style="font-size: 1.5rem;">0 lượt</div>
+                        <span class="small text-muted">Lượt đỗ thực tế</span>
+                    </div>
+                    <div class="owner-kpi-icon-box primary" style="width: 40px; height: 40px; font-size: 1.1rem;">
+                        <i class="fa-solid fa-car"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Occupancy Rate -->
+        <div class="col-xl-3 col-md-6">
+            <div class="owner-kpi-card py-3 px-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-1 text-muted text-uppercase small font-weight-bold">Hiệu suất lấp đầy</h6>
+                        <div class="owner-kpi-value text-dark" id="kpi-occupancy" style="font-size: 1.5rem;">0%</div>
+                        <span class="small text-muted">Tỉ lệ lấp đầy bãi</span>
+                    </div>
+                    <div class="owner-kpi-icon-box warning" style="width: 40px; height: 40px; font-size: 1.1rem; color: var(--owner-warning); background-color: var(--owner-warning-light);">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Average Ticket Value -->
+        <div class="col-xl-3 col-md-6">
+            <div class="owner-kpi-card py-3 px-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-1 text-muted text-uppercase small font-weight-bold">Doanh thu bình quân</h6>
+                        <div class="owner-kpi-value text-dark" id="kpi-average" style="font-size: 1.5rem;">0đ</div>
+                        <span class="small text-muted">trên mỗi lượt xe đỗ</span>
+                    </div>
+                    <div class="owner-kpi-icon-box info" style="width: 40px; height: 40px; font-size: 1.1rem;">
+                        <i class="fa-solid fa-receipt"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Visual Charts Section (Chart.js Layout) -->
+    <div class="row g-4 mb-4">
+        <!-- Bar Chart (Revenue Trend) -->
+        <div class="col-lg-8">
+            <div class="chart-card">
+                <div class="chart-title-group">
+                    <h5 class="chart-title">Xu hướng doanh thu bãi đỗ</h5>
+                    <p class="chart-subtitle">Biểu đồ biểu diễn doanh thu thu phí dịch vụ qua các mốc thời gian.</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="revenueBarChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <!-- Doughnut Chart (Vehicle Breakdown) -->
+        <div class="col-lg-4">
+            <div class="chart-card">
+                <div class="chart-title-group">
+                    <h5 class="chart-title">Cơ cấu doanh thu theo loại xe</h5>
+                    <p class="chart-subtitle">Tỷ lệ đóng góp doanh thu của các phương tiện lớn trong bãi xe.</p>
+                </div>
+                <div class="chart-container d-flex align-items-center justify-content-center">
+                    <canvas id="vehicleDoughnutChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Revenue Log Table -->
+    <div class="owner-table-card border-0 p-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+            <div>
+                <h5 class="fw-bold text-dark m-0"><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i> Lịch sử giao dịch dịch vụ</h5>
+                <p class="text-muted small m-0">Chi tiết các lượt thanh toán thành công phí đỗ xe của khách hàng.</p>
+            </div>
+            <!-- Search Input -->
+            <div class="owner-search m-0" style="max-width: 300px;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="owner-search-input" id="txnSearchInput" placeholder="Tìm giao dịch, vị trí, loại xe..." />
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive">
+            <table class="table table-hover align-middle txn-table text-nowrap">
+                <thead>
+                    <tr>
+                        <th style="width: 120px;">Mã giao dịch</th>
+                        <th>Bãi đỗ xe</th>
+                        <th style="width: 120px;">Vị trí đỗ</th>
+                        <th style="width: 130px;">Loại xe</th>
+                        <th style="width: 150px;">Số tiền</th>
+                        <th style="width: 200px;">Thời gian</th>
+                        <th style="width: 150px;">Trạng thái</th>
+                        <th style="width: 100px; text-align: center;">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="txnTableBody">
+                    <!-- Dynamically generated -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+            <div class="text-muted small" id="paginationInfo">
+                Hiển thị 1-6 trong 9 dòng
+            </div>
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-sm m-0" id="txnPagination">
+                    <!-- Generated dynamically by JS -->
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- Invoice Detail Modal (Owner) -->
+<div class="modal fade" id="invoiceDetailModal" tabindex="-1" aria-labelledby="invoiceDetailModalLabel" aria-hidden="true" style="backdrop-filter: blur(5px);">
+    <div class="modal-dialog modal-dialog-centered text-dark">
+        <div class="modal-content border-0 shadow" style="border-radius: 16px; overflow: hidden; background: #ffffff;">
+            <!-- Modal Header -->
+            <div class="modal-header border-0 pb-0" style="background: #ffffff; padding: 20px 24px;">
+                <h5 class="modal-title fw-bold text-dark" id="invoiceDetailModalLabel">
+                    <i class="fa-solid fa-receipt text-primary me-2"></i>Chi Tiết Hóa Đơn
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <!-- Modal Body (The Invoice Receipt) -->
+            <div class="modal-body px-4 py-3" id="invoiceReceiptPrintArea">
+                <div class="invoice-receipt-wrapper p-3" style="border: 2px dashed #cbd5e1; border-radius: 12px; background: #fafafa; font-family: 'Inter', system-ui, sans-serif;">
+                    
+                    <!-- Brand/Header Info -->
+                    <div class="text-center mb-3 pb-3 border-bottom border-secondary border-opacity-10">
+                        <h4 class="fw-bold text-primary mb-1" style="letter-spacing: 0.5px; font-size: 1.3rem;" id="inv-lotName">BÃI ĐỖ XE</h4>
+                        <p class="text-muted small mb-0" id="inv-lotAddress">Địa chỉ bãi xe</p>
+                        <h5 class="fw-bold mt-3 mb-1 text-dark" style="font-size: 1.1rem;">BIÊN LAI ĐỖ XE</h5>
+                        <div class="small text-muted">Số: <span class="fw-semibold text-dark font-monospace" id="inv-id">#HD-0000</span></div>
+                    </div>
+
+                    <!-- Invoice Body Info -->
+                    <div class="invoice-details-grid" style="font-size: 0.88rem; line-height: 1.6;">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Khách hàng:</span>
+                            <span class="fw-semibold text-dark" id="inv-customerName">Nguyễn Văn A</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Số điện thoại:</span>
+                            <span class="text-dark font-monospace" id="inv-customerPhone">0987654321</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Email:</span>
+                            <span class="text-dark" id="inv-customerEmail">mail@example.com</span>
+                        </div>
+                        
+                        <hr class="my-2" style="border-style: dotted; color: #94a3b8;">
+                        
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Khu vực / Ô đỗ:</span>
+                            <span class="fw-bold text-dark"><span id="inv-areaName">Khu A</span> - <span id="inv-spotName">Vị trí A01</span></span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Biển số / Loại xe:</span>
+                            <span>
+                                <span class="badge bg-dark border border-secondary text-white font-monospace me-1" id="inv-licensePlate">29A-12345</span>
+                                <span class="text-muted small" id="inv-vehicleType">Ô tô con</span>
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Thời gian vào:</span>
+                            <span class="text-dark small" id="inv-startTime">26/05/2026 08:00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Thời gian ra:</span>
+                            <span class="text-dark small" id="inv-endTime">26/05/2026 12:00</span>
+                        </div>
+
+                        <hr class="my-2" style="border-style: dotted; color: #94a3b8;">
+
+                        <div class="d-flex justify-content-between mb-2" style="font-size: 0.95rem;">
+                            <span class="text-muted">Tổng cộng (VNPAY):</span>
+                            <span class="fw-bold text-dark font-monospace" id="inv-totalAmount">100,000đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2" style="font-size: 0.85rem;">
+                            <span class="text-muted">Phí dịch vụ Admin (10%):</span>
+                            <span class="text-warning fw-semibold font-monospace" id="inv-feeAdmin">10,000đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2" style="font-size: 1rem;">
+                            <span class="fw-bold text-success">Chủ bãi thực nhận:</span>
+                            <strong class="text-success font-monospace" id="inv-ownerAmount">90,000đ</strong>
+                        </div>
+
+                        <hr class="my-2" style="border-style: dotted; color: #94a3b8;">
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Trạng thái:</span>
+                            <span class="badge" id="inv-paymentStatus">Đã thanh toán</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Hình thức:</span>
+                            <span class="text-primary fw-semibold" id="inv-paymentMethod">VNPAY</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-0">
+                            <span class="text-muted">Ngày lập:</span>
+                            <span class="text-dark small" id="inv-createdTime">26/05/2026 12:05</span>
+                        </div>
+                    </div>
+
+                    <!-- Receipt Footer -->
+                    <div class="text-center mt-3 pt-3 border-top border-secondary border-opacity-10 text-muted small" style="font-size: 0.75rem;">
+                        <p class="mb-0">Cảm ơn quý khách đã sử dụng dịch vụ!</p>
+                        <p class="mb-0 font-italic">Hóa đơn điện tử tự động từ hệ thống</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer border-0 pt-0 px-4 pb-4">
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal" style="border-radius: 8px;">Đóng</button>
+                <button type="button" class="btn btn-primary" onclick="printInvoiceReceipt()" style="border-radius: 8px;">
+                    <i class="fa-solid fa-print me-1"></i>In Hóa Đơn
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CSS for printing invoice -->
+<style>
+    @@media print {
+        body * {
+            visibility: hidden !important;
+        }
+        #invoiceReceiptPrintArea, #invoiceReceiptPrintArea * {
+            visibility: visible !important;
+        }
+        #invoiceReceiptPrintArea {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .invoice-receipt-wrapper {
+            border: none !important;
+            background: white !important;
+            padding: 0 !important;
+        }
+    }
+</style>
+
+@section Scripts {
+    <script>
+        // Vehicle config names
+        const vehicleTypeNames = {
+            'oto': 'Ô tô con',
+            'xebantai': 'Xe bán tải',
+            'xebuyt': 'Xe buýt',
+            'xetai': 'Xe tải',
+            'xemay': 'Xe máy',
+            'xedapdien': 'Xe đạp điện'
+        };
+
+        // Transaction records
+        const transactionLogs = [];
+
+        let selectedLot = 'all';
+        let selectedTime = '30days';
+
+        // Transactions table pagination & filtering
+        let txnSearchQuery = '';
+        let currentTxnPage = 1;
+        const txnPerPage = 6;
+
+        // Chart instances
+        let revenueChartInstance = null;
+        let vehicleDoughnutInstance = null;
+
+        // Check lot approval status and show/hide pending banner
+        function checkLotStatus() {
+            const selectedOption = $('#lotSelect option:selected');
+            const trangThai = selectedOption.data('trangthai') || '';
+
+            if (trangThai && trangThai !== 'Hoạt động') {
+                let icon = 'fa-hourglass-half';
+                let color = '#f97316';
+                let borderColor = '#fb923c';
+                let bgGradient = 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)';
+                let titleText = 'Bãi xe đang chờ duyệt';
+                let descText = 'Bãi xe này hiện chưa được Admin phê duyệt. Bạn chưa thể xem báo cáo thống kê doanh thu ở đây.';
+                let btnClass = 'btn-outline-warning';
+
+                if (trangThai === 'Từ chối' || trangThai === 'Bị từ chối') {
+                    icon = 'fa-circle-xmark';
+                    color = '#dc2626';
+                    borderColor = '#f87171';
+                    bgGradient = 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)';
+                    titleText = 'Bãi xe đã bị từ chối';
+                    descText = 'Yêu cầu đăng ký bãi xe này đã bị Admin từ chối. Vui lòng liên hệ quản trị viên.';
+                    btnClass = 'btn-outline-danger';
+                } else if (trangThai === 'Tạm ngưng' || trangThai === 'Ngưng hoạt động') {
+                    icon = 'fa-pause-circle';
+                    color = '#6b7280';
+                    borderColor = '#9ca3af';
+                    bgGradient = 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)';
+                    titleText = 'Bãi xe đang tạm ngưng';
+                    descText = 'Bãi xe này hiện đang tạm ngưng hoạt động. Bạn chưa thể xem báo cáo thống kê doanh thu ở đây.';
+                    btnClass = 'btn-outline-secondary';
+                }
+
+                const bannerInner = $('#lotPendingBanner > div');
+                bannerInner.css({ 'background': bgGradient, 'border-color': borderColor });
+                bannerInner.find('div:first').css('background', `linear-gradient(135deg, ${color}, ${color}dd)`);
+                bannerInner.find('i.fa-solid').attr('class', `fa-solid ${icon} text-white`);
+                bannerInner.find('.btn').attr('class', `btn ${btnClass} fw-semibold px-4`);
+                $('#lotPendingTitle').text(titleText).css('color', color);
+                $('#lotPendingDesc').text(descText);
+                $('#lotPendingStatusText').text(trangThai).css('color', color);
+
+                $('#lotPendingBanner').removeClass('d-none');
+                $('#mainContent').addClass('d-none');
+                return false;
+            } else {
+                $('#lotPendingBanner').addClass('d-none');
+                $('#mainContent').removeClass('d-none');
+                return true;
+            }
+        }
+
+        $(document).ready(function() {
+            // Initialize charts with empty data
+            initRevenueChart([] , []);
+            initVehicleDoughnutChart([], []);
+
+            // Check lot approval status and fetch stats if active
+            if (checkLotStatus()) {
+                fetchAndApplyStatistics();
+            }
+
+            // Listeners
+            $('#lotSelect').change(function() {
+                selectedLot = $(this).val();
+                if (checkLotStatus()) {
+                    fetchAndApplyStatistics();
+                }
+                currentTxnPage = 1;
+            });
+
+            $('#timeSelect').change(function() {
+                selectedTime = $(this).val();
+                const selectedOption = $('#lotSelect option:selected');
+                const trangThai = selectedOption.data('trangthai') || '';
+                if (trangThai === 'Hoạt động') {
+                    fetchAndApplyStatistics();
+                }
+                currentTxnPage = 1;
+            });
+
+            $('#txnSearchInput').on('input', function() {
+                txnSearchQuery = $(this).val().toLowerCase().trim();
+                currentTxnPage = 1;
+                refreshTxnTable();
+            });
+        });
+
+        // Initialize Bar Chart for Revenue
+        function initRevenueChart(labels = [], numbers = []) {
+            const ctx = document.getElementById('revenueBarChart').getContext('2d');
+
+            revenueChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Doanh thu (VNĐ)',
+                        data: numbers,
+                        backgroundColor: 'rgba(79, 70, 229, 0.85)',
+                        borderColor: '#4f46e5',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        barThickness: selectedTime === 'year' ? 15 : (selectedTime === '7days' ? 40 : 25)
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ' ' + context.parsed.y.toLocaleString('vi-VN') + ' đ';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    if (value >= 1000000) {
+                                        return (value / 1000000) + 'M';
+                                    }
+                                    return value.toLocaleString('vi-VN');
+                                }
+                            },
+                            grid: {
+                                color: '#f1f5f9'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize Doughnut Chart for Vehicle type percentage
+        function initVehicleDoughnutChart(labels = [], numbers = []) {
+            const ctx = document.getElementById('vehicleDoughnutChart').getContext('2d');
+
+            vehicleDoughnutInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: numbers,
+                        backgroundColor: [
+                            '#4f46e5', // Primary indigo
+                            '#f59e0b', // Warning yellow
+                            '#10b981', // Success emerald
+                            '#ec4899'  // Danger pink
+                        ],
+                        borderWidth: 2,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                font: {
+                                    size: 11,
+                                    weight: 'bold'
+                                },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ' ' + context.label + ': ' + context.parsed + '%';
+                                }
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
+        // Update charts when filters change (server-driven)
+        function updateChartsFromServer(resp) {
+            if (!resp) return;
+            // Bar chart
+            revenueChartInstance.data.labels = resp.chartLabels || [];
+            revenueChartInstance.data.datasets[0].data = resp.chartData || [];
+            revenueChartInstance.data.datasets[0].barThickness = selectedTime === 'year' ? 15 : (selectedTime === '7days' ? 40 : 25);
+            revenueChartInstance.update();
+
+            // Doughnut chart
+            vehicleDoughnutInstance.data.labels = resp.doughnutLabels || [];
+            vehicleDoughnutInstance.data.datasets[0].data = resp.doughnutData || [];
+            vehicleDoughnutInstance.update();
+        }
+
+        // Fetch statistics from server and apply to KPI, charts and transactions
+        function fetchAndApplyStatistics() {
+            const params = {};
+            if (selectedLot !== 'all') params.baiXeId = selectedLot;
+            params.range = selectedTime;
+
+            $.getJSON('/Owner/ThongKe/GetThongKe', params)
+                .done(function(resp) {
+                    // Update KPI
+                    const tong = resp.tongDoanhThu || 0;
+                    $('#kpi-revenue').text((+tong).toLocaleString('vi-VN') + 'đ');
+                    $('#kpi-parkings').text((resp.luotDoXe || 0) + ' lượt');
+                    $('#kpi-occupancy').text((resp.hieuSuat || 0) + '%');
+                    $('#kpi-average').text((+(resp.doanhThuTB || 0)).toLocaleString('vi-VN') + 'đ');
+
+                    // Update charts
+                    updateChartsFromServer(resp);
+
+                    // Map transactions for table
+                    if (Array.isArray(resp.giaoDich)) {
+                        transactionLogs.length = 0;
+                        resp.giaoDich.forEach(g => {
+                            transactionLogs.push({
+                                id: 'HD-' + g.id,
+                                time: g.thoiGian,
+                                lotName: g.lotName || '—',
+                                spotName: g.spotName || '—',
+                                type: (g.type || '').toLowerCase(),
+                                amount: (+(g.tongTien || 0)).toLocaleString('vi-VN') + 'đ',
+                                status: g.trangThai || ''
+                            });
+                        });
+                    }
+
+                    // Refresh table UI
+                    currentTxnPage = 1;
+                    refreshTxnTable();
+                })
+                .fail(function() {
+                    // fallback to local mock data if server call fails
+                    refreshTxnTable();
+                });
+        }
+
+        // Populate and paginate Transaction log table
+        function refreshTxnTable() {
+            const tbody = $('#txnTableBody');
+            tbody.empty();
+
+            let txns = transactionLogs;
+
+            // Filter by Search Query
+            if (txnSearchQuery !== '') {
+                txns = txns.filter(t => {
+                    return t.id.toLowerCase().includes(txnSearchQuery) ||
+                           t.lotName.toLowerCase().includes(txnSearchQuery) ||
+                           t.spotName.toLowerCase().includes(txnSearchQuery) ||
+                           vehicleTypeNames[t.type].toLowerCase().includes(txnSearchQuery);
+                });
+            }
+
+            const totalTxns = txns.length;
+
+            if (totalTxns === 0) {
+                tbody.html('<tr><td colspan="8" class="text-center p-4 text-muted">Không tìm thấy giao dịch tài chính phù hợp.</td></tr>');
+                $('#paginationInfo').text('Hiển thị 0 dòng');
+                $('#txnPagination').empty();
+                return;
+            }
+
+            // Calculate Pagination
+            const totalPages = Math.ceil(totalTxns / txnPerPage);
+            if (currentTxnPage > totalPages) {
+                currentTxnPage = totalPages;
+            }
+            if (currentTxnPage < 1) {
+                currentTxnPage = 1;
+            }
+
+            const startIndex = (currentTxnPage - 1) * txnPerPage;
+            const endIndex = Math.min(startIndex + txnPerPage, totalTxns);
+            const paginatedTxns = txns.slice(startIndex, endIndex);
+
+            // Append rows
+            paginatedTxns.forEach(txn => {
+                const vehicleName = vehicleTypeNames[txn.type] || 'Ô tô con';
+                const numericId = txn.id.replace('HD-', '');
+
+                const rowHtml = `
+                    <tr>
+                        <td class="font-monospace fw-bold text-dark">${txn.id}</td>
+                        <td><span class="fw-bold">${txn.lotName}</span></td>
+                        <td><span class="badge bg-light text-dark fw-bold border">${txn.spotName}</span></td>
+                        <td>${vehicleName}</td>
+                        <td class="fw-bold text-success font-monospace">+${txn.amount}</td>
+                        <td class="text-muted small">${txn.time}</td>
+                        <td><span class="txn-badge-success"><i class="fa-solid fa-circle-check"></i> ${txn.status}</span></td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-primary px-2 py-1" onclick="viewInvoiceDetails(${numericId})" style="border-radius: 6px; font-size: 0.78rem;">
+                                <i class="fa-solid fa-file-invoice-dollar"></i> Chi tiết
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(rowHtml);
+            });
+
+            // Update Pagination Info
+            $('#paginationInfo').text(`Hiển thị ${startIndex + 1}-${endIndex} trong ${totalTxns} dòng`);
+
+            // Build Pagination buttons
+            buildPaginationButtons(totalPages);
+        }
+
+        function buildPaginationButtons(totalPages) {
+            const paginationEl = $('#txnPagination');
+            paginationEl.empty();
+
+            if (totalPages <= 1) return;
+
+            // Previous
+            paginationEl.append(`
+                <li class="page-item ${currentTxnPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="changeTxnPage(${currentTxnPage - 1}); return false;"><i class="fa-solid fa-angle-left"></i></a>
+                </li>
+            `);
+
+            // Numbers
+            for (let i = 1; i <= totalPages; i++) {
+                paginationEl.append(`
+                    <li class="page-item ${currentTxnPage === i ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="changeTxnPage(${i}); return false;">${i}</a>
+                    </li>
+                `);
+            }
+
+            // Next
+            paginationEl.append(`
+                <li class="page-item ${currentTxnPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="changeTxnPage(${currentTxnPage + 1}); return false;"><i class="fa-solid fa-angle-right"></i></a>
+                </li>
+            `);
+        }
+
+        function changeTxnPage(page) {
+            currentTxnPage = page;
+            refreshTxnTable();
+        }
+
+        // View detailed receipt/invoice in Modal popup
+        function viewInvoiceDetails(id) {
+            $.getJSON('/Owner/ThongKe/GetInvoiceDetails', { id: id })
+                .done(function(res) {
+                    if (res.success) {
+                        $('#inv-lotName').text(res.lotName.toUpperCase());
+                        $('#inv-lotAddress').text("Thành phố Hồ Chí Minh, Việt Nam"); // Standard default address
+                        $('#inv-id').text('#HD-' + res.invoiceId);
+                        $('#inv-customerName').text(res.customerName);
+                        $('#inv-customerPhone').text(res.customerPhone);
+                        $('#inv-customerEmail').text(res.customerEmail);
+                        $('#inv-areaName').text('Khu ' + res.areaName);
+                        $('#inv-spotName').text('Vị trí ' + res.spotName);
+                        $('#inv-licensePlate').text(res.licensePlate);
+                        $('#inv-vehicleType').text(res.vehicleType);
+                        $('#inv-startTime').text(res.startTime);
+                        $('#inv-endTime').text(res.endTime);
+                        $('#inv-createdTime').text(res.createdTime);
+                        $('#inv-totalAmount').text((+res.totalAmount).toLocaleString('vi-VN') + 'đ');
+                        $('#inv-feeAdmin').text((+res.feeAdmin).toLocaleString('vi-VN') + 'đ');
+                        $('#inv-ownerAmount').text((+res.ownerAmount).toLocaleString('vi-VN') + 'đ');
+                        $('#inv-paymentMethod').text(res.paymentMethod);
+                        
+                        // Status styling
+                        const statusBadge = $('#inv-paymentStatus');
+                        statusBadge.text(res.paymentStatus);
+                        statusBadge.removeClass().addClass('badge');
+                        if (res.paymentStatus === 'Đã thanh toán') {
+                            statusBadge.addClass('bg-success text-white');
+                        } else if (res.paymentStatus === 'Đã hoàn tiền') {
+                            statusBadge.addClass('bg-info text-dark');
+                        } else {
+                            statusBadge.addClass('bg-warning text-dark');
+                        }
+
+                        // Show bootstrap modal
+                        const myModal = new bootstrap.Modal(document.getElementById('invoiceDetailModal'));
+                        myModal.show();
+                    } else {
+                        alert('❌ Không thể tải hóa đơn: ' + res.message);
+                    }
+                })
+                .fail(function() {
+                    alert('❌ Lỗi kết nối hệ thống khi tải hóa đơn.');
+                });
+        }
+
+        // Print receipt
+        function printInvoiceReceipt() {
+            window.print();
+        }
+    </script>
+}
