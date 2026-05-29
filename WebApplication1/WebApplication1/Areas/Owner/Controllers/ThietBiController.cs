@@ -75,7 +75,7 @@ namespace WebApplication1.Areas.Owner.Controllers
             await _context.AutoReleaseExpiredBookingsAsync();
 
             var lots = await _context.BaiXes
-                .Where(b => b.IDChuBai == chuBaiId)
+                .Where(b => b.IDChuBai == chuBaiId && b.TrangThai != "Từ chối")
                 .ToListAsync();
 
             ViewBag.BaiXes = lots;
