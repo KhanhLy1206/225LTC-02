@@ -618,4 +618,21 @@ html, body {
   background-color: rgba(185, 28, 28, 0.1) !important; /* Soft red background */
 }
 
+/* Sleek Premium Checkbox / Switch Style */
+.form-check-input {
+  background-color: #ffffff;
+  border: 1.5px solid #cbd5e1 !important;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+.form-check-input:checked {
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+}
+.form-check-input:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 0.25rem var(--primary-glow) !important;
+}
+
+
 
