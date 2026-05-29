@@ -265,7 +265,8 @@
                                             <i class="fa-solid fa-xmark me-1"></i>Từ chối
                                         </span>
                                         <button class="btn btn-outline-secondary btn-sm action-btn mb-1"
-                                                onclick="xemLyDo('@Html.Raw(item.NoiDungPhanHoi?.Replace("'","\\'")??"")' )">
+                                                data-bs-toggle="modal" data-bs-target="#modalXemLyDo"
+                                                data-lydo="@item.NoiDungPhanHoi">
                                             <i class="fa-solid fa-eye me-1"></i>Lý do
                                         </button>
                                         <form method="post" asp-action="DocPhanHoi">
@@ -376,6 +377,33 @@
     </div>
 </div>
 
+<!-- Modal Xem Lý Do Từ Chối -->
+<div class="modal fade" id="modalXemLyDo" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px; border:none; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+            <div class="modal-header border-0 pb-0">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width:44px; height:44px; border-radius:12px; background:#fee2e2; color:#dc2626; display:flex; align-items:center; justify-content:center; font-size:1.2rem">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title mb-0 fw-bold">Chi Tiết Phản Hồi Từ Chối</h5>
+                        <small class="text-muted">Lý do từ chủ bãi xe</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-3">
+                <div class="p-3 rounded mb-0" style="background:#f8fafc; border-left:4px solid #ef4444; white-space: pre-line; font-size:.9rem; color:#374151;" id="xemLyDoNoiDung">
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light px-4" style="border-radius: 8px;" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
     // Dữ liệu doanh thu tháng theo bãi (để preview)
@@ -448,9 +476,11 @@
     }
 
     // Xem lý do từ chối
-    function xemLyDo(lyDo) {
-        alert('Lý do từ chối:\n\n' + lyDo);
-    }
+    document.querySelectorAll('[data-bs-target="#modalXemLyDo"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('xemLyDoNoiDung').textContent = btn.dataset.lydo;
+        });
+    });
 
     // Xác nhận áp dụng đồng loạt
     function xacNhanDongLoat(form) {
