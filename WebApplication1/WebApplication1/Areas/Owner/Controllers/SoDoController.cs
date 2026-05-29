@@ -5,6 +5,7 @@ using System.Security.Claims;
 using WebApplication1.Areas.Owner.Models;
 using WebApplication1.Models.DataContext;
 using WebApplication1.Models.Entities;
+using WebApplication1.Extensions;
 
 namespace WebApplication1.Areas.Owner.Controllers
 {
@@ -48,6 +49,9 @@ namespace WebApplication1.Areas.Owner.Controllers
             }
 
             int chuBaiId = GetChuBaiId(ownerId);
+
+            // Auto-release expired bookings first
+            await _context.AutoReleaseExpiredBookingsAsync();
 
             var lots = await _context.BaiXes
                 .Where(b => b.IDChuBai == chuBaiId)
@@ -107,6 +111,8 @@ namespace WebApplication1.Areas.Owner.Controllers
         [HttpPost("ToggleLock")]
         public async Task<IActionResult> ToggleLock(int spotId)
         {
+            await _context.AutoReleaseExpiredBookingsAsync();
+
             var spot = await _context.ChoDauXes.FindAsync(spotId);
             if (spot == null) return Json(new { success = false, message = "Không tìm thấy chỗ đỗ." });
 
@@ -120,6 +126,8 @@ namespace WebApplication1.Areas.Owner.Controllers
         [HttpPost("ReportError")]
         public async Task<IActionResult> ReportError(int spotId)
         {
+            await _context.AutoReleaseExpiredBookingsAsync();
+
             var spot = await _context.ChoDauXes.FindAsync(spotId);
             if (spot == null) return Json(new { success = false, message = "Không tìm thấy chỗ đỗ." });
 
@@ -134,6 +142,8 @@ namespace WebApplication1.Areas.Owner.Controllers
         [HttpPost("ToggleMaintenance")]
         public async Task<IActionResult> ToggleMaintenance(int spotId)
         {
+            await _context.AutoReleaseExpiredBookingsAsync();
+
             var spot = await _context.ChoDauXes.FindAsync(spotId);
             if (spot == null) return Json(new { success = false, message = "Không tìm thấy chỗ đỗ." });
 

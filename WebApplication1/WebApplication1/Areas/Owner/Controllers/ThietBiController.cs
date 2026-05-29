@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using System.Linq;
 using System;
 using System.Collections.Generic;
+using WebApplication1.Extensions;
+
 
 namespace WebApplication1.Areas.Owner.Controllers
 {
@@ -69,6 +71,9 @@ namespace WebApplication1.Areas.Owner.Controllers
 
             int chuBaiId = GetChuBaiId(ownerId);
 
+            // Auto-release expired bookings first
+            await _context.AutoReleaseExpiredBookingsAsync();
+
             var lots = await _context.BaiXes
                 .Where(b => b.IDChuBai == chuBaiId)
                 .ToListAsync();
@@ -81,6 +86,9 @@ namespace WebApplication1.Areas.Owner.Controllers
         [HttpGet("GetSpotsForLot")]
         public async Task<IActionResult> GetSpotsForLot(int lotId)
         {
+            // Auto-release expired bookings first
+            await _context.AutoReleaseExpiredBookingsAsync();
+
             var spots = await _context.ChoDauXes
                 .Include(s => s.KhuVuc)
                     .ThenInclude(k => k!.LoaiXe)
