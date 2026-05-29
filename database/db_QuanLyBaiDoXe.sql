@@ -304,7 +304,7 @@ CREATE TABLE DatCho (
     CONSTRAINT FK_DatCho_ChoDau         FOREIGN KEY (IDChoDau)    REFERENCES ChoDauXe(ID),
     CONSTRAINT CK_DatCho_ThoiGian       CHECK (TgianKetThuc > TgianBatDau),
     CONSTRAINT CK_DatCho_TienCoc        CHECK (TienCoc >= 0),
-    CONSTRAINT CK_DatCho_TrangThai      CHECK (TrangThai IN (N'Đã đặt', N'Đang đỗ', N'Hoàn thành', N'Đã hủy', N'Quá hạn'))
+    CONSTRAINT CK_DatCho_TrangThai      CHECK (TrangThai IN (N'Đã đặt', N'Đang đỗ', N'Hoàn thành', N'Đã hủy', N'Quá hạn', N'Chờ thanh toán'))
 );
 GO
 
@@ -313,17 +313,18 @@ GO
 -- ============================================================
 CREATE TABLE LogDieuKhienBarrier (
     ID              INT IDENTITY(1,1)   NOT NULL,
-    IDDatCho        INT                 NOT NULL,
+    IDDatCho        INT                 NULL,
     IDTaiKhoan      INT                 NOT NULL, -- Người gửi lệnh (tài khoản khách hàng nắm quyền)
     ThoiGianLệnh    DATETIME            NOT NULL DEFAULT GETDATE(),
-    HanhDong        NVARCHAR(50)        NOT NULL, -- N'Mở khóa', N'Khóa lại'
+    HanhDong        NVARCHAR(50)        NOT NULL,
     KetQua          NVARCHAR(50)        NOT NULL, -- N'Thành công', N'Thất bại'
     GhiChu          NVARCHAR(255)       NULL,
+    IDChoDau        INT                 NULL,
 
     CONSTRAINT PK_LogDieuKhienBarrier       PRIMARY KEY (ID),
     CONSTRAINT FK_LogDieuKhien_DatCho       FOREIGN KEY (IDDatCho) REFERENCES DatCho(ID),
     CONSTRAINT FK_LogDieuKhien_TaiKhoan     FOREIGN KEY (IDTaiKhoan) REFERENCES TaiKhoan(ID),
-    CONSTRAINT CK_LogDieuKhien_HanhDong     CHECK (HanhDong IN (N'Mở khóa', N'Khóa lại')),
+    CONSTRAINT FK_LogDieuKhien_ChoDau       FOREIGN KEY (IDChoDau) REFERENCES ChoDauXe(ID),
     CONSTRAINT CK_LogDieuKhien_KetQua       CHECK (KetQua IN (N'Thành công', N'Thất bại'))
 );
 GO

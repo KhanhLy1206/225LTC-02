@@ -718,8 +718,8 @@
                             alert(response.message || 'Lỗi khi đặt chỗ.');
                         }
                     },
-                    error: function() {
-                        alert('Không thể kết nối đến máy chủ.');
+                    error: function(xhr, status, error) {
+                        alert('Không thể kết nối đến máy chủ. Chi tiết: ' + (xhr.status ? xhr.status + ' - ' + (xhr.responseJSON?.message || xhr.responseText || error) : 'Lỗi kết nối mạng'));
                     }
                 });
             });
