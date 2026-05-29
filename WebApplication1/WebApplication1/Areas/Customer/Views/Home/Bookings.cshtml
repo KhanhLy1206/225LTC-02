@@ -136,7 +136,14 @@
                 <div class="glass-card mb-3 border border-secondary border-opacity-10">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="font-monospace text-secondary fw-bold">Mã đơn: #SP-@b.ID</span>
-                        <span class="badge bg-info bg-opacity-20 text-info border border-info border-opacity-25 px-2 py-1">SẮP DIỄN RA</span>
+                        @if (b.TrangThai == "Chờ thanh toán")
+                        {
+                            <span class="badge bg-warning bg-opacity-20 text-warning border border-warning border-opacity-25 px-2 py-1">CHỜ THANH TOÁN</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-info bg-opacity-20 text-info border border-info border-opacity-25 px-2 py-1">SẮP DIỄN RA</span>
+                        }
                     </div>
                     
                     <div class="row align-items-center">
@@ -213,6 +220,10 @@
                                         else if (b.TrangThai == "Đã hủy")
                                         {
                                             <span class="badge bg-danger bg-opacity-20 text-danger">Đã Hủy</span>
+                                        }
+                                        else if (b.TrangThai == "Chờ thanh toán")
+                                        {
+                                            <span class="badge bg-warning bg-opacity-20 text-warning">Chờ Thanh Toán</span>
                                         }
                                         else
                                         {

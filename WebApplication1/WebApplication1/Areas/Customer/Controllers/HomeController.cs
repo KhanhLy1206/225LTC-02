@@ -118,8 +118,8 @@ namespace WebApplication1.Areas.Customer.Controllers
 
             var nowBookings = DateTime.Now;
             ViewBag.ActiveBookings = allBookings.Where(dc => dc.TrangThai == "Đang đỗ" || (dc.TrangThai == "Đã đặt" && dc.TgianBatDau <= nowBookings && dc.TgianKetThuc >= nowBookings)).ToList();
-            ViewBag.UpcomingBookings = allBookings.Where(dc => dc.TrangThai == "Đã đặt" && dc.TgianBatDau > nowBookings).ToList();
-            ViewBag.HistoryBookings = allBookings.Where(dc => dc.TrangThai == "Hoàn thành" || dc.TrangThai == "Đã hủy" || dc.TrangThai == "Quá hạn" || dc.TrangThai == "Đã hoàn thành" || (dc.TrangThai == "Đã đặt" && dc.TgianKetThuc < nowBookings)).ToList();
+            ViewBag.UpcomingBookings = allBookings.Where(dc => (dc.TrangThai == "Đã đặt" || dc.TrangThai == "Chờ thanh toán") && dc.TgianBatDau > nowBookings).ToList();
+            ViewBag.HistoryBookings = allBookings.Where(dc => dc.TrangThai == "Hoàn thành" || dc.TrangThai == "Đã hủy" || dc.TrangThai == "Quá hạn" || dc.TrangThai == "Đã hoàn thành" || ((dc.TrangThai == "Đã đặt" || dc.TrangThai == "Chờ thanh toán") && dc.TgianKetThuc < nowBookings)).ToList();
 
             return View();
         }
@@ -302,6 +302,9 @@ namespace WebApplication1.Areas.Customer.Controllers
                     && dc.TgianKetThuc > start)
                 .ToListAsync();
 
+            var pricing = await _context.BangGias
+                .FirstOrDefaultAsync(bg => bg.IDBaiXe == lotId && bg.IDLoaiXe == vehicle.IDLoaiXe);
+
             var result = areas.Select(kv => new
             {
                 id = kv.ID,
@@ -316,12 +319,21 @@ namespace WebApplication1.Areas.Customer.Controllers
                 }).ToList()
             }).ToList();
 
-            return Json(new { success = true, areas = result });
+            return Json(new { 
+                success = true, 
+                areas = result,
+                pricing = pricing != null ? new {
+                    tenBangGia = pricing.TenBangGia,
+                    giaTheoGio = pricing.GiaTheoGio,
+                    giaQuaDem = pricing.GiaQuaDem,
+                    giaTheoThang = pricing.GiaTheoThang,
+                    giaDatCho = pricing.GiaDatCho
+                } : null
+            });
         }
 
-        // POST: /Customer/Home/BookSpot
         [HttpPost]
-        public async Task<IActionResult> BookSpot(int spotId, string bienSoXe, DateTime startTime, DateTime endTime)
+        public async Task<IActionResult> BookSpot(int spotId, string bienSoXe, DateTime startTime, DateTime endTime, string rentalType = "hour")
         {
             var customer = GetCurrentCustomer();
             if (customer == null) return Json(new { success = false, message = "Không tìm thấy khách hàng." });
@@ -364,14 +376,33 @@ namespace WebApplication1.Areas.Customer.Controllers
                 return Json(new { success = false, message = "Thời gian thuê tối thiểu là 1 giờ." });
             }
 
-            // Fetch price
-            var price = await _context.BangGias
-                .Where(bg => bg.IDBaiXe == lot.ID && bg.IDLoaiXe == vehicle.IDLoaiXe)
-                .Select(bg => bg.GiaTheoGio)
-                .FirstOrDefaultAsync();
-            decimal cost = Math.Round(price * (decimal)durationHours, 2);
+            // Fetch pricing
+            var pricing = await _context.BangGias
+                .FirstOrDefaultAsync(bg => bg.IDBaiXe == lot.ID && bg.IDLoaiXe == vehicle.IDLoaiXe);
 
-            // Create booking in pending status ("Đã đặt" fits SQL constraints, payment is tracked via HoaDon/ThanhToan)
+            if (pricing == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy bảng giá của bãi xe cho loại phương tiện này." });
+            }
+
+            decimal totalCost = 0;
+            if (rentalType == "overnight")
+            {
+                int nights = (int)Math.Ceiling(durationHours / 24);
+                if (nights < 1) nights = 1;
+                totalCost = pricing.GiaQuaDem * nights;
+            }
+            else if (rentalType == "month")
+            {
+                totalCost = pricing.GiaTheoThang;
+            }
+            else // hour
+            {
+                decimal price = pricing.GiaTheoGio;
+                totalCost = Math.Round(price * (decimal)durationHours, 2);
+            }
+
+            // Create booking in pending status ("Chờ thanh toán" fits workflow, payment is tracked via HoaDon/ThanhToan)
             var booking = new DatCho
             {
                 IDKhachHang = customer.ID,
@@ -380,8 +411,8 @@ namespace WebApplication1.Areas.Customer.Controllers
                 NgayDat = DateTime.Now,
                 TgianBatDau = startTime,
                 TgianKetThuc = endTime,
-                TienCoc = cost,
-                TrangThai = "Đã đặt"
+                TienCoc = totalCost,
+                TrangThai = "Chờ thanh toán"
             };
 
             // Update spot to booked (locks the spot during transaction)
@@ -391,13 +422,13 @@ namespace WebApplication1.Areas.Customer.Controllers
             await _context.SaveChangesAsync();
 
             // Create Invoice in pending status ("Chưa thanh toán")
-            decimal chietKhauAdmin = Math.Round(cost * (lot.PhanTramChietKhau / 100), 2);
-            decimal tienChuBai = cost - chietKhauAdmin;
+            decimal chietKhauAdmin = Math.Round(totalCost * (lot.PhanTramChietKhau / 100), 2);
+            decimal tienChuBai = totalCost - chietKhauAdmin;
 
             var invoice = new HoaDon
             {
                 IDDatCho = booking.ID,
-                TongTien = cost,
+                TongTien = totalCost,
                 TienChietKhauAdmin = chietKhauAdmin,
                 TienChuBaiNhan = tienChuBai,
                 NgayTao = DateTime.Now,
@@ -411,7 +442,7 @@ namespace WebApplication1.Areas.Customer.Controllers
             {
                 IDHoaDon = invoice.ID,
                 PhuongThuc = "VNPAY",
-                SoTien = cost,
+                SoTien = totalCost,
                 TrangThai = false, // Unpaid
                 NgayThanhToan = DateTime.Now
             };
@@ -427,13 +458,13 @@ namespace WebApplication1.Areas.Customer.Controllers
 
             if (string.IsNullOrEmpty(tmnCode) || string.IsNullOrEmpty(hashSecret) || string.IsNullOrEmpty(baseUrl))
             {
-                return Json(new { success = false, message = "Lỗi cấu hình cổng thanh toán VNPAY." });
+                return Json(new { success = false, message = "Lỗi cổng thanh toán VNPAY." });
             }
 
             vnpay.AddRequestData("vnp_Version", "2.1.0");
             vnpay.AddRequestData("vnp_Command", "pay");
             vnpay.AddRequestData("vnp_TmnCode", tmnCode);
-            vnpay.AddRequestData("vnp_Amount", ((long)(cost * 100)).ToString()); // Amount multiplied by 100
+            vnpay.AddRequestData("vnp_Amount", ((long)(totalCost * 100)).ToString()); // Amount multiplied by 100
             vnpay.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
             vnpay.AddRequestData("vnp_CurrCode", "VND");
             
